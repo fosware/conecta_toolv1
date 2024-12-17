@@ -1,3 +1,33 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Tema global para el body */
+body {
+  @apply bg-background text-foreground;
+}
+
+/* Clases personalizadas para contenedores */
+@layer components {
+  .container {
+    @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .dropdown-menu {
+    @apply bg-card border border-border rounded-md shadow-lg;
+  }
+}
+
+/* Tarjetas */
+.card {
+  @apply bg-card border border-border rounded-lg shadow-md;
+}
+
+/* Texto secundario */
+.muted-text {
+  @apply text-muted;
+}
+
+html.dark body {
+  @apply bg-background-dark text-foreground-dark;
+}
