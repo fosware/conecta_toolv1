@@ -15,6 +15,14 @@ export default function RootLayout({
 
   return (
     <html lang="es" suppressHydrationWarning>
+      <head>
+        <title>ConectaTool</title>
+        <meta
+          name="description"
+          content="ConectaTool - Tu plataforma de gestión y productividad"
+        />
+        <link rel="icon" href="/favicon.ico" />
+      </head>
       <body className="h-screen flex flex-col bg-background text-foreground">
         <ThemeProvider
           attribute="class"

@@ -16,21 +16,33 @@ export default function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
   return (
     <header className="w-full bg-background dark:bg-background-dark border-b border-border dark:border-border-dark">
       <div className="flex items-center justify-between pl-4 pr-4 sm:pr-6 lg:pr-8 py-4">
-        {/* Logo y Título */}
+        {/* Contenedor del Botón Hamburguesa y Título */}
         <div className="flex items-center space-x-2 sm:space-x-4">
-          {/* Logo y Título para Pantallas Pequeñas */}
-          <div
+          {/* Botón Hamburguesa en Pantallas Pequeñas */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="sm:hidden"
             onClick={onMenuClick}
-            className="flex items-center sm:hidden cursor-pointer"
           >
-            <Image src="/logo.svg" alt="Logo" width={32} height={32} priority />
-            <span className="text-xl font-bold text-foreground dark:text-foreground-dark ml-2">
-              ConectaTool
-            </span>
-          </div>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+              className="w-6 h-6 text-foreground dark:text-foreground-dark"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M3.75 5.75h16.5m-16.5 6h16.5m-16.5 6h16.5"
+              />
+            </svg>
+          </Button>
 
-          {/* Logo y Título para Pantallas Grandes */}
-          <Link href="/" className="hidden sm:flex items-center space-x-2">
+          {/* Logo y Título */}
+          <Link href="/" className="flex items-center space-x-2">
             <Image src="/logo.svg" alt="Logo" width={32} height={32} priority />
             <span className="text-xl font-bold text-foreground dark:text-foreground-dark">
               ConectaTool
