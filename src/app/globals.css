@@ -16,6 +16,12 @@ body {
   .dropdown-menu {
     @apply bg-card border border-border rounded-md shadow-lg;
   }
+
+  .menu-item {
+    @apply hover:bg-accent hover:text-background 
+           dark:hover:bg-accent-dark dark:hover:text-background 
+           transition rounded-md px-4 py-2;
+  }
 }
 
 /* Tarjetas */
@@ -30,4 +36,8 @@ body {
 
 html.dark body {
   @apply bg-background-dark text-foreground-dark;
+}
+
+.navbar-gradient {
+  @apply bg-gradient-to-r from-gray-800 to-gray-900 dark:from-gray-900 dark:to-black;
 }

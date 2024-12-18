@@ -8,31 +8,35 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Bars3Icon } from "@heroicons/react/24/outline";
 import ThemeToggle from "@/components/theme-toggle";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
   return (
     <header className="w-full bg-background dark:bg-background-dark border-b border-border dark:border-border-dark">
-      <div className="container mx-auto flex items-center justify-between p-4">
-        {/* Botón Hamburguesa */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="sm:hidden"
-          onClick={onMenuClick}
-        >
-          <Bars3Icon className=" w-6 h-6 text-foreground dark:text-foreground-dark" />
-        </Button>
+      <div className="flex items-center justify-between pl-4 pr-4 sm:pr-6 lg:pr-8 py-4">
+        {/* Logo y Título */}
+        <div className="flex items-center space-x-2 sm:space-x-4">
+          {/* Logo y Título para Pantallas Pequeñas */}
+          <div
+            onClick={onMenuClick}
+            className="flex items-center sm:hidden cursor-pointer"
+          >
+            <Image src="/logo.svg" alt="Logo" width={32} height={32} priority />
+            <span className="text-xl font-bold text-foreground dark:text-foreground-dark ml-2">
+              ConectaTool
+            </span>
+          </div>
 
-        {/* Título */}
-        <Link
-          href="/"
-          className="text-xl font-bold text-foreground dark:text-foreground-dark hover:text-accent dark:hover:text-accent-dark transition"
-        >
-          Conecta Tool
-        </Link>
+          {/* Logo y Título para Pantallas Grandes */}
+          <Link href="/" className="hidden sm:flex items-center space-x-2">
+            <Image src="/logo.svg" alt="Logo" width={32} height={32} priority />
+            <span className="text-xl font-bold text-foreground dark:text-foreground-dark">
+              ConectaTool
+            </span>
+          </Link>
+        </div>
 
         {/* Menú de Usuario y Toggle */}
         <div className="flex items-center space-x-4">
