@@ -6,7 +6,7 @@ const DashboardPage = () => {
   const router = useRouter();
 
   const handleLogout = async () => {
-    const res = await fetch("/api/auth/logout", {
+    const res = await fetch("/logout/api", {
       method: "POST",
     });
 

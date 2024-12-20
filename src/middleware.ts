@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import jwt from "jsonwebtoken";
-
-const JWT_SECRET = process.env.JWT_SECRET || "your-jwt-secret-key";
+import * as jose from "jose";
 
 // Tipo personalizado para el contenido del token
 type DecodedToken = {
@@ -9,13 +7,10 @@ type DecodedToken = {
   roles: string[];
 };
 
-export function middleware(req: NextRequest) {
-  const publicRoutes = [
-    "/auth/login",
-    "/auth/register",
-    "/auth/api/login",
-    "/auth/api/register",
-  ];
+const JWT_SECRET = process.env.JWT_SECRET;
+
+export async function middleware(req: NextRequest) {
+  const publicRoutes = ["/login", "/register", "/api/login", "/api/register"];
   const protectedRoutes = [
     "/dashboard",
     "/modules/proyectos",
@@ -39,12 +34,19 @@ export function middleware(req: NextRequest) {
 
     if (!token) {
       // Redirigir al login si no hay token
-      return NextResponse.redirect(new URL("/auth/login", req.url));
+      return NextResponse.redirect(new URL("/login", req.url));
+    }
+
+    if (!JWT_SECRET) {
+      console.error("JWT_SECRET is not defined");
+      return NextResponse.redirect(new URL("/login", req.url));
     }
 
     try {
+      const secret = new TextEncoder().encode(JWT_SECRET);
       // Verificar el token y forzar el tipo a DecodedToken
-      const decoded = jwt.verify(token, JWT_SECRET) as unknown as DecodedToken;
+      const { payload } = await jose.jwtVerify(token, secret);
+      const decoded = payload as unknown as DecodedToken;
 
       // Ejemplo de restricción por rol
       if (
@@ -57,7 +59,7 @@ export function middleware(req: NextRequest) {
       return NextResponse.next(); // Token válido, permitir acceso
     } catch (error) {
       console.error("Error verificando token:", error);
-      return NextResponse.redirect(new URL("/auth/login", req.url)); // Token inválido, redirigir al login
+      return NextResponse.redirect(new URL("/login", req.url)); // Token inválido, redirigir al login
     }
   }
 

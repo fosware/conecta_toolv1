@@ -6,10 +6,10 @@ const LogoutPage = () => {
   const router = useRouter();
 
   const handleLogout = async () => {
-    const res = await fetch("/auth/api/logout", { method: "POST" });
+    const res = await fetch("/logout/api", { method: "POST" });
 
     if (res.ok) {
-      router.push("/auth/login"); // Redirige al login después del logout
+      router.push("/login"); // Redirige al login después del logout
     } else {
       alert("Error al cerrar sesión");
     }
