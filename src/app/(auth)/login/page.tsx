@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-//import { Form } from "@/components/ui/form";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 
 const LoginPage = () => {
@@ -31,17 +30,19 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[var(--background-color)] text-[var(--text-color)]">
-      <Card className="w-full max-w-md shadow-lg">
+    <div className="flex min-h-screen items-center justify-center bg-background dark:bg-background-dark text-foreground dark:text-foreground-dark">
+      <Card className="w-full max-w-md bg-card dark:bg-card-dark border border-border dark:border-border-dark shadow-md">
         <CardHeader>
-          <CardTitle className="text-center text-2xl font-bold">
+          <CardTitle className="text-center text-2xl font-bold text-foreground dark:text-foreground-dark">
             Iniciar Sesión
           </CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <Label htmlFor="email">Correo Electrónico</Label>
+              <Label htmlFor="email" className="">
+                Correo Electrónico
+              </Label>
               <Input
                 id="email"
                 type="email"
@@ -49,11 +50,13 @@ const LoginPage = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)]"
+                className="mt-1 block w-full"
               />
             </div>
             <div>
-              <Label htmlFor="password">Contraseña</Label>
+              <Label htmlFor="password" className=" ">
+                Contraseña
+              </Label>
               <Input
                 id="password"
                 type="password"
@@ -61,12 +64,12 @@ const LoginPage = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)]"
+                className="mt-1 block w-full"
               />
             </div>
             <Button
               type="submit"
-              className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[var(--primary-color)] hover:bg-[var(--secondary-color)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--primary-color)]"
+              className="w-full hover:bg-primary-dark text-background focus:ring-2 focus:ring-offset-2"
             >
               Ingresar
             </Button>

@@ -2,9 +2,10 @@
 
 import { ThemeProvider } from "next-themes";
 import "./globals.css";
-import Navbar from "@/components/navbar";
-import Sidebar from "@/components/sidebar";
+import Navbar from "../../components/navbar";
+import Sidebar from "../../components/sidebar";
 import { useState } from "react";
+import React from "react";
 
 export default function RootLayout({
   children,

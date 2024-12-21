@@ -2,7 +2,11 @@ import { Config } from "tailwindcss";
 
 const config: Config = {
   darkMode: "class",
-  content: ["./src/**/*.{ts,tsx}"],
+  content: [
+    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
   theme: {
     extend: {
       colors: {
@@ -23,7 +27,7 @@ const config: Config = {
           dark: "#2d2f31", // Texto secundario en modo oscuro
         },
         primary: {
-          DEFAULT: "#1e293b", // Azul grisáceo moderno
+          DEFAULT: "#717986", // Azul grisáceo moderno
           dark: "#64748b", // Tonalidad primaria en modo oscuro
         },
         card: {

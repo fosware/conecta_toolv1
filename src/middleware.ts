@@ -1,23 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
-import * as jose from "jose";
+//import * as jose from "jose";
 
 // Tipo personalizado para el contenido del token
+/*
 type DecodedToken = {
   userId: number;
   roles: string[];
 };
-
+*/
 const JWT_SECRET = process.env.JWT_SECRET;
 
 export async function middleware(req: NextRequest) {
-  const publicRoutes = ["/login", "/register", "/api/login", "/api/register"];
+  const publicRoutes = ["/login", "/api/login"];
   const protectedRoutes = [
+    "/",
     "/dashboard",
-    "/modules/proyectos",
-    "/modules/asociados",
-    "/modules/clientes",
-    "/modules/especialidades",
-    "/modules/certificaciones",
+    "/proyectos",
+    "/asociados",
+    "/clientes",
+    "/especialidades",
+    "/certificaciones",
+    "/register",
+    "/api/register",
   ];
 
   const { pathname } = req.nextUrl;
@@ -28,38 +32,46 @@ export async function middleware(req: NextRequest) {
   }
 
   // Verificar si la ruta es protegida
-  if (protectedRoutes.some((route) => pathname.startsWith(route))) {
-    // Extraer el valor del token de la cookie
+  if (
+    protectedRoutes.some(
+      (route) => pathname === route || pathname.startsWith(route)
+    )
+  ) {
     const token = req.cookies.get("token")?.value;
 
     if (!token) {
       // Redirigir al login si no hay token
-      return NextResponse.redirect(new URL("/login", req.url));
+      const loginUrl = new URL("/login", req.nextUrl.origin);
+      return NextResponse.redirect(loginUrl);
     }
 
     if (!JWT_SECRET) {
       console.error("JWT_SECRET is not defined");
-      return NextResponse.redirect(new URL("/login", req.url));
+      const loginUrl = new URL("/login", req.nextUrl.origin);
+      return NextResponse.redirect(loginUrl);
     }
 
     try {
-      const secret = new TextEncoder().encode(JWT_SECRET);
       // Verificar el token y forzar el tipo a DecodedToken
-      const { payload } = await jose.jwtVerify(token, secret);
-      const decoded = payload as unknown as DecodedToken;
 
       // Ejemplo de restricción por rol
+      /*
+      const secret = new TextEncoder().encode(JWT_SECRET);
+      const { payload } = await jose.jwtVerify(token, secret);
+      const decoded = payload as unknown as DecodedToken;
       if (
-        pathname.startsWith("/modules/proyectos") &&
+        pathname.startsWith("/proyectos") &&
         !decoded.roles.includes("admin")
       ) {
-        return NextResponse.redirect(new URL("/dashboard", req.url));
+        const dashboardUrl = new URL("/dashboard", req.nextUrl.origin);
+        return NextResponse.redirect(dashboardUrl);
       }
-
+      */
       return NextResponse.next(); // Token válido, permitir acceso
     } catch (error) {
       console.error("Error verificando token:", error);
-      return NextResponse.redirect(new URL("/login", req.url)); // Token inválido, redirigir al login
+      const loginUrl = new URL("/login", req.nextUrl.origin);
+      return NextResponse.redirect(loginUrl); // Token inválido, redirigir al login
     }
   }
 
@@ -68,5 +80,7 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/:path*"], // Aplicar middleware a todas las rutas
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.css|.*\\.js|.*\\.map).*)",
+  ],
 };

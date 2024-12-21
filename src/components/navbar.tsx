@@ -11,8 +11,25 @@ import {
 import ThemeToggle from "@/components/theme-toggle";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 export default function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
+  const router = useRouter();
+  const handleLogout = async () => {
+    try {
+      const res = await fetch("/logout/api", { method: "POST" });
+
+      if (res.ok) {
+        router.push("/login"); // Redirige al login después del logout
+      } else {
+        alert("Error al cerrar sesión");
+      }
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error);
+      alert("Error al cerrar sesión");
+    }
+  };
+
   return (
     <header className="w-full bg-background dark:bg-background-dark border-b border-border dark:border-border-dark">
       <div className="flex items-center justify-between pl-4 pr-4 sm:pr-6 lg:pr-8 py-4">
@@ -67,7 +84,9 @@ export default function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
             </DropdownMenuTrigger>
             <DropdownMenuContent className="dropdown-menu bg-card dark:bg-card-dark border border-border dark:border-border-dark rounded-md shadow-md">
               <DropdownMenuItem>Perfil</DropdownMenuItem>
-              <DropdownMenuItem>Cerrar sesión</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLogout}>
+                Cerrar sesión
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

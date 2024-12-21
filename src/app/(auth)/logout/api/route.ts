@@ -1,11 +1,17 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function POST() {
-  const response = NextResponse.json({
-    message: "Sesión cerrada correctamente",
-  });
+export async function GET(req: NextRequest) {
+  const url = new URL("/login", req.url); // Genera la URL absoluta
 
-  // Eliminar la cookie del token
-  response.cookies.set("token", "", { maxAge: 0 });
+  const response = NextResponse.redirect(url);
+  response.cookies.set("token", "", { path: "/", maxAge: 0 }); // Elimina el token
+  return response;
+}
+
+export async function POST(req: NextRequest) {
+  const url = new URL("/login", req.url); // Genera la URL absoluta
+
+  const response = NextResponse.redirect(url);
+  response.cookies.set("token", "", { path: "/", maxAge: 0 }); // Elimina el token
   return response;
 }
