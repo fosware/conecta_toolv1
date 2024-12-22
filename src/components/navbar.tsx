@@ -60,7 +60,14 @@ export default function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
 
           {/* Logo y Título */}
           <Link href="/" className="flex items-center space-x-2">
-            <Image src="/logo.svg" alt="Logo" width={32} height={32} priority />
+            <Image
+              src="/conecta_logo_transparente.png"
+              alt="Logo"
+              width={42}
+              height={42}
+              priority
+              className="bg-transparent dark:bg-slate-200 p-1 rounded"
+            />
             <span className="text-xl font-bold text-foreground dark:text-foreground-dark">
               ConectaTool
             </span>
@@ -83,8 +90,27 @@ export default function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="dropdown-menu bg-card dark:bg-card-dark border border-border dark:border-border-dark rounded-md shadow-md">
-              <DropdownMenuItem>Perfil</DropdownMenuItem>
-              <DropdownMenuItem onClick={handleLogout}>
+              <DropdownMenuItem className="hover:bg-accent hover:text-background transition">
+                <Image
+                  src="/icons/profile.svg"
+                  alt="Cerrar sesión"
+                  width={20}
+                  height={20}
+                  className="mr-2"
+                />
+                Perfil
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={handleLogout}
+                className="hover:bg-accent hover:text-background transition"
+              >
+                <Image
+                  src="/icons/logout.svg"
+                  alt="Cerrar sesión"
+                  width={20}
+                  height={20}
+                  className="mr-2 text-current"
+                />
                 Cerrar sesión
               </DropdownMenuItem>
             </DropdownMenuContent>

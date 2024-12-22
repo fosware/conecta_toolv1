@@ -48,10 +48,11 @@ export default function Sidebar({
           {/* Logo y título visibles solo en pantallas pequeñas */}
           <div className="sm:hidden flex items-center space-x-3 px-4 py-4 border-b border-border dark:border-border-dark">
             <Image
-              src="/logo.svg" // Asegúrate de que el logo esté en public/
+              src="/conecta_logo_transparente.png" // Asegúrate de que el logo esté en public/
               alt="Logo"
-              width={32}
-              height={32}
+              width={42}
+              height={42}
+              className="bg-transparent dark:bg-slate-200 p-1 rounded"
             />
             <span className="text-lg font-semibold text-foreground dark:text-foreground-dark">
               ConectaTool
