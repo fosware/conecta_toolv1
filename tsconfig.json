@@ -27,7 +27,12 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "src/**/*"
+    "src/**/*",
+    "prisma/seed.js",
+    "prisma/seeds/index.ts",
+    "prisma/seeds/roles.js",
+    "prisma/seeds/users.js",
+    "prisma/seeds/profiles.js"
   ],
   "exclude": ["node_modules"]
 }

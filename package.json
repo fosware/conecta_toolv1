@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "prisma:seed": "node --loader ts-node/esm prisma/seed.js"
   },
   "dependencies": {
     "@fontsource/inter": "^5.1.0",
@@ -58,8 +59,5 @@
     "ts-node": "^10.9.2",
     "typescript": "^5.7.2"
   },
-  "type": "module",
-  "prisma": {
-    "seed": "node --loader ts-node/esm prisma/seed.ts"
-  }
+  "type": "module"
 }

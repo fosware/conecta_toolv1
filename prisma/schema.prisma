@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,8 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// prisma/schema.prisma
-
 model User {
   id        Int      @id @default(autoincrement())
   email     String   @unique
@@ -23,15 +15,29 @@ model User {
   image     String?
   phone     String?
   roles     Json
+  profile   Profile?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  
+  @@map("d_users") // Tabla de datos de usuarios
+}
 
-  @@map("d_users") // Usamos la convención "d_" para tablas de datos
+model Profile {
+  id               Int     @id @default(autoincrement())
+  name             String
+  first_lastname   String
+  second_lastname  String?
+  phone            String?
+  image_profile    String? // Enlace o Base64 de la imagen
+  userId           Int     @unique
+  user             User    @relation(fields: [userId], references: [id])
+
+  @@map("d_profiles") // Tabla de datos de perfiles
 }
 
 model Role {
   id   Int    @id @default(autoincrement())
   name String @unique
 
-  @@map("c_roles") // Usamos la convención "c_" para tablas de catálogo
+  @@map("c_roles") // Tabla de catálogo de roles
 }

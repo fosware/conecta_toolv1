@@ -3,22 +3,14 @@ import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
-async function main() {
-  // Crear roles (si no están creados)
-  await prisma.role.createMany({
-    data: [{ name: "admin" }, { name: "user" }, { name: "moderator" }],
-    skipDuplicates: true, // Evitar errores si los roles ya existen
-  });
-
-  // Hashear contraseñas
+export async function seedUsers() {
   const hashedAdminPassword = await bcrypt.hash("admin123", 10);
   const hashedUserPassword = await bcrypt.hash("user123", 10);
   const hashedModeratorPassword = await bcrypt.hash("moderator123", 10);
 
-  // Crear usuarios usando upsert
   await prisma.user.upsert({
     where: { email: "admin@example.com" },
-    update: {}, // Si ya existe, no hacemos cambios
+    update: {},
     create: {
       email: "admin@example.com",
       password: hashedAdminPassword,
@@ -29,7 +21,7 @@ async function main() {
 
   await prisma.user.upsert({
     where: { email: "user@example.com" },
-    update: {}, // Si ya existe, no hacemos cambios
+    update: {},
     create: {
       email: "user@example.com",
       password: hashedUserPassword,
@@ -40,7 +32,7 @@ async function main() {
 
   await prisma.user.upsert({
     where: { email: "moderator@example.com" },
-    update: {}, // Si ya existe, no hacemos cambios
+    update: {},
     create: {
       email: "moderator@example.com",
       password: hashedModeratorPassword,
@@ -49,14 +41,5 @@ async function main() {
     },
   });
 
-  console.log("Seed ejecutado correctamente.");
+  console.log("Usuarios sembrados correctamente.");
 }
-
-main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
