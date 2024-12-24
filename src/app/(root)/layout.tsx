@@ -6,6 +6,7 @@ import Navbar from "../../components/navbar";
 import Sidebar from "../../components/sidebar";
 import { useState } from "react";
 import React from "react";
+import { Toaster } from "react-hot-toast";
 
 export default function RootLayout({
   children,
@@ -30,6 +31,7 @@ export default function RootLayout({
           defaultTheme="dark"
           enableSystem={false}
         >
+          <Toaster position="top-right" reverseOrder={false} />
           {/* Navbar */}
           <Navbar onMenuClick={() => setSidebarOpen(!isSidebarOpen)} />
 

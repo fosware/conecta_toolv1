@@ -1,4 +1,5 @@
 "use client";
+
 import { useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,6 +11,7 @@ import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import { useUserStore } from "@/lib/store/useUserState";
+import toast from "react-hot-toast";
 
 const ProfilePage = () => {
   const [selectedFileName, setSelectedFileName] = useState<
@@ -62,9 +64,11 @@ const ProfilePage = () => {
         setValue("username", data.user.username);
       } else {
         console.error("Error fetching profile data");
+        toast.error("Error interno del servidor.");
       }
     } catch (error) {
       console.error("Error fetching profile data:", error);
+      toast.error("Error interno del servidor.");
     }
   }, [setValue]);
 
@@ -97,16 +101,24 @@ const ProfilePage = () => {
       });
 
       if (!res.ok) {
-        const errorData = await res.json();
-        console.error("Errors:", errorData.errors);
-        alert(errorData.message || "Error updating profile");
+        try {
+          const errorData = await res.json();
+          console.error("Errors:", errorData.errors);
+          toast.error(errorData.message || "Error al actualizar el perfil.");
+        } catch (parseError) {
+          console.error("Error parsing error response:", parseError);
+          toast.error("Error desconocido al actualizar el perfil.");
+        }
       } else {
-        alert("Perfil actualizado correctamente");
+        toast.success("Perfil actualizado correctamente.", {
+          className: "toast-success",
+        });
+
         await fetchProfileData();
       }
     } catch (error) {
       console.error("Error submitting data:", error);
-      alert("Error updating profile");
+      toast.error("Error interno del servidor.");
     }
   };
 
@@ -150,9 +162,10 @@ const ProfilePage = () => {
                     className="object-cover w-full h-full"
                     width={96}
                     height={96}
-                    onError={(e) =>
-                      console.error("Error al cargar la imagen de perfil:", e)
-                    }
+                    onError={(e) => {
+                      console.error("Error al cargar la imagen de perfil", e);
+                      toast.error("Error al cargar la imagen de perfil");
+                    }}
                   />
                 ) : (
                   <div className="flex items-center justify-center w-full h-full bg-muted text-muted-foreground">

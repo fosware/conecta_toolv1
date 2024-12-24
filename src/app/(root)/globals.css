@@ -41,3 +41,27 @@ html.dark body {
 .navbar-gradient {
   @apply bg-gradient-to-r from-gray-800 to-gray-900 dark:from-gray-900 dark:to-black;
 }
+
+.toast-success {
+  background-color: var(--accent); /* Color de éxito */
+  color: var(--background); /* Texto contrastante */
+  border: 1px solid var(--accent-dark); /* Borde más oscuro */
+}
+
+.toast-error {
+  background-color: var(--destructive); /* Color de error */
+  color: var(--background); /* Texto contrastante */
+  border: 1px solid var(--destructive-dark); /* Borde más oscuro */
+}
+
+.toast-info {
+  background-color: var(--muted); /* Color informativo */
+  color: var(--foreground); /* Texto contrastante */
+  border: 1px solid var(--muted-dark); /* Borde más oscuro */
+}
+
+.toast-warning {
+  background-color: var(--warning); /* Color de advertencia */
+  color: var(--foreground); /* Texto contrastante */
+  border: 1px solid var(--warning-dark); /* Borde más oscuro */
+}
