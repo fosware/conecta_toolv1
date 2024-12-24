@@ -13,7 +13,6 @@ export async function middleware(req: NextRequest) {
     "/clientes",
     "/especialidades",
     "/certificaciones",
-    "/profile",
   ];
 
   const { pathname } = req.nextUrl;
@@ -44,14 +43,17 @@ export async function middleware(req: NextRequest) {
     try {
       const secret = new TextEncoder().encode(JWT_SECRET);
       const { payload } = await jose.jwtVerify(token, secret);
+
       if (!payload.userId) {
         console.error("El token no contiene userId");
         return NextResponse.redirect(new URL("/login", req.nextUrl.origin));
       }
 
-      // Adjunta el userId al encabezado para uso en las APIs.
+      // Adjunta encabezados para el uso en las APIs
       const requestHeaders = new Headers(req.headers);
       requestHeaders.set("user-id", String(payload.userId));
+      requestHeaders.set("Authorization", `Bearer ${token}`);
+
       return NextResponse.next({
         request: {
           headers: requestHeaders,

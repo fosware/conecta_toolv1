@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
+import { useUserStore } from "@/lib/store/useUserState";
 
 const ProfilePage = () => {
   const [selectedFileName, setSelectedFileName] = useState<
@@ -43,6 +44,16 @@ const ProfilePage = () => {
       if (res.ok) {
         const data = await res.json();
         setProfileImage(data.profile.image_profile || null);
+
+        // Actualiza el estado global
+        useUserStore
+          .getState()
+          .setProfileImage(
+            data.profile.image_profile
+              ? `data:image/png;base64,${data.profile.image_profile}`
+              : null
+          );
+
         setValue("name", data.profile.name);
         setValue("first_lastname", data.profile.first_lastname);
         setValue("second_lastname", data.profile.second_lastname || "");
@@ -112,6 +123,7 @@ const ProfilePage = () => {
             onSubmit={handleSubmit(onSubmit)}
             className="space-y-6 overflow-auto max-h-[70vh] p-4"
           >
+            {/* Imagen de Perfil */}
             <div className="flex items-center space-x-6">
               <div
                 className="w-24 h-24 rounded-full overflow-hidden border-4 border-border dark:border-border-dark cursor-pointer hover:border-accent dark:hover:border-accent-light transition-colors"
@@ -189,6 +201,8 @@ const ProfilePage = () => {
                 </div>
               </div>
             </div>
+
+            {/* Resto de los campos */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="first_lastname">Primer Apellido *</Label>

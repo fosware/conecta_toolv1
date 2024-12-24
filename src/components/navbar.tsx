@@ -11,10 +11,47 @@ import {
 import ThemeToggle from "@/components/theme-toggle";
 import Link from "next/link";
 import Image from "next/image";
+import { useUserStore } from "@/lib/store/useUserState";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
   const router = useRouter();
+  const { profileImage, setProfileImage } = useUserStore();
+
+  // Fetch profile image on mount
+  useEffect(() => {
+    const fetchProfileImage = async () => {
+      try {
+        const token = document.cookie.replace(
+          /(?:(?:^|.*;\s*)token\s*=\s*([^;]*).*$)|^.*$/,
+          "$1"
+        );
+
+        const res = await fetch("/profile/api/get", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setProfileImage(
+            data.profile.image_profile
+              ? `data:image/png;base64,${data.profile.image_profile}`
+              : null
+          );
+        } else {
+          console.error("Error fetching profile image");
+        }
+      } catch (error) {
+        console.error("Error fetching profile image:", error);
+      }
+    };
+
+    fetchProfileImage();
+  }, [setProfileImage]);
+
   const handleLogout = async () => {
     try {
       const res = await fetch("/logout/api", { method: "POST" });
@@ -85,21 +122,37 @@ export default function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
                 className="hover:bg-transparent focus:outline-none"
               >
                 <Avatar className="h-8 w-8 dark:bg-muted-dark">
-                  <AvatarFallback className="text-foreground">U</AvatarFallback>
+                  {profileImage ? (
+                    <Image
+                      src={profileImage}
+                      alt="Avatar"
+                      className="h-full w-full object-cover rounded-full"
+                      width={32}
+                      height={32}
+                    />
+                  ) : (
+                    <AvatarFallback className="text-foreground">
+                      U
+                    </AvatarFallback>
+                  )}
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="dropdown-menu bg-card dark:bg-card-dark border border-border dark:border-border-dark rounded-md shadow-md">
-              <DropdownMenuItem className="hover:bg-accent hover:text-background transition">
-                <Image
-                  src="/icons/profile.svg"
-                  alt="Perfil"
-                  width={20}
-                  height={20}
-                  className="mr-2"
-                />
-                Perfil
-              </DropdownMenuItem>
+              {/* Perfil */}
+              <Link href="/profile">
+                <DropdownMenuItem className="hover:bg-accent hover:text-background transition">
+                  <Image
+                    src="/icons/profile.svg"
+                    alt="Perfil"
+                    width={20}
+                    height={20}
+                    className="mr-2"
+                  />
+                  Perfil
+                </DropdownMenuItem>
+              </Link>
+              {/* Cerrar Sesión */}
               <DropdownMenuItem
                 onClick={handleLogout}
                 className="hover:bg-accent hover:text-background transition"
@@ -111,7 +164,7 @@ export default function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
                   height={20}
                   className="mr-2 text-current"
                 />
-                Cerrar sesión
+                Cerrar Sesión
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

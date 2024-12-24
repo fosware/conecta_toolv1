@@ -51,10 +51,20 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json({
+      /*
       profile: user.profile || null,
+      */
       user: {
         email: user.email,
         username: user.username,
+      },
+      profile: {
+        name: user.profile?.name || "",
+
+        first_lastname: user.profile?.first_lastname || "",
+        second_lastname: user.profile?.second_lastname || "",
+        phone: user.profile?.phone || "",
+        image_profile: user.profile?.image_profile || null,
       },
     });
   } catch (error) {
