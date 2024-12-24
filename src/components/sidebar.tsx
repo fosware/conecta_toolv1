@@ -16,9 +16,7 @@ export default function Sidebar({
   return (
     <>
       {/* Sidebar fijo para pantallas grandes */}
-      <aside className="hidden sm:block w-64 bg-background dark:bg-background-dark text-foreground dark:text-foreground-dark border-r border-border dark:border-border-dark h-screen">
-        {/* Logo y Título */}
-
+      <aside className="hidden lg:block w-64 bg-background dark:bg-background-dark text-foreground dark:text-foreground-dark border-r border-border dark:border-border-dark h-screen">
         {/* Menú de Navegación */}
         <nav className="p-4">
           <ul className="space-y-4">
@@ -29,7 +27,7 @@ export default function Sidebar({
                   className="flex items-center space-x-3 px-4 py-2 rounded hover:bg-accent hover:text-background transition"
                 >
                   <item.icon className="w-5 h-5" />
-                  <span className="hidden sm:inline">{item.name}</span>
+                  <span className="hidden lg:inline">{item.name}</span>
                 </Link>
               </li>
             ))}
@@ -37,18 +35,18 @@ export default function Sidebar({
         </nav>
       </aside>
 
-      {/* Sidebar desplegable para pantallas pequeñas */}
+      {/* Sidebar desplegable para pantallas medianas y pequeñas */}
       <Sheet open={isOpen} onOpenChange={onClose}>
         <SheetTitle></SheetTitle>
         <SheetContent
           side="left"
-          className="w-64 bg-background dark:bg-background-dark text-foreground dark:text-foreground-dark border-r border-border dark:border-border-dark "
+          className="w-64 bg-background dark:bg-background-dark text-foreground dark:text-foreground-dark border-r border-border dark:border-border-dark"
           tabIndex={-1}
         >
           {/* Logo y título visibles solo en pantallas pequeñas */}
-          <div className="sm:hidden flex items-center space-x-3 px-4 py-4 border-b border-border dark:border-border-dark">
+          <div className="lg:hidden flex items-center space-x-3 px-4 py-4 border-b border-border dark:border-border-dark">
             <Image
-              src="/conecta_logo_transparente.png" // Asegúrate de que el logo esté en public/
+              src="/conecta_logo_transparente.png"
               alt="Logo"
               width={42}
               height={42}

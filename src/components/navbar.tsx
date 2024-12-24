@@ -32,14 +32,14 @@ export default function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
 
   return (
     <header className="w-full bg-background dark:bg-background-dark border-b border-border dark:border-border-dark">
-      <div className="flex items-center justify-between pl-4 pr-4 sm:pr-6 lg:pr-8 py-4">
+      <div className="flex items-center justify-between pl-4 pr-4 md:pr-6 lg:pr-8 py-4">
         {/* Contenedor del Botón Hamburguesa y Título */}
-        <div className="flex items-center space-x-2 sm:space-x-4">
-          {/* Botón Hamburguesa en Pantallas Pequeñas */}
+        <div className="flex items-center space-x-2 md:space-x-4">
+          {/* Botón Hamburguesa en Pantallas Pequeñas y Medianas */}
           <Button
             variant="ghost"
             size="icon"
-            className="sm:hidden"
+            className="lg:hidden" // Visible en pantallas menores a lg
             onClick={onMenuClick}
           >
             <svg
@@ -66,7 +66,7 @@ export default function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
               width={42}
               height={42}
               priority
-              className="bg-transparent dark:bg-slate-200 p-1 rounded"
+              className="bg-transparent dark:bg-slate-200 p-1 rounded "
             />
             <span className="text-xl font-bold text-foreground dark:text-foreground-dark">
               ConectaTool
@@ -93,7 +93,7 @@ export default function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
               <DropdownMenuItem className="hover:bg-accent hover:text-background transition">
                 <Image
                   src="/icons/profile.svg"
-                  alt="Cerrar sesión"
+                  alt="Perfil"
                   width={20}
                   height={20}
                   className="mr-2"

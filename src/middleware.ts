@@ -1,27 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-//import * as jose from "jose";
+import * as jose from "jose";
 
-// Tipo personalizado para el contenido del token
-/*
-type DecodedToken = {
-  userId: number;
-  roles: string[];
-};
-*/
 const JWT_SECRET = process.env.JWT_SECRET;
 
 export async function middleware(req: NextRequest) {
   const publicRoutes = ["/login", "/api/login"];
   const protectedRoutes = [
-    "/",
+    "/profile",
     "/dashboard",
     "/proyectos",
     "/asociados",
     "/clientes",
     "/especialidades",
     "/certificaciones",
-    "/register",
-    "/api/register",
+    "/profile",
   ];
 
   const { pathname } = req.nextUrl;
@@ -41,37 +33,33 @@ export async function middleware(req: NextRequest) {
 
     if (!token) {
       // Redirigir al login si no hay token
-      const loginUrl = new URL("/login", req.nextUrl.origin);
-      return NextResponse.redirect(loginUrl);
+      return NextResponse.redirect(new URL("/login", req.nextUrl.origin));
     }
 
     if (!JWT_SECRET) {
       console.error("JWT_SECRET is not defined");
-      const loginUrl = new URL("/login", req.nextUrl.origin);
-      return NextResponse.redirect(loginUrl);
+      return NextResponse.redirect(new URL("/login", req.nextUrl.origin));
     }
 
     try {
-      // Verificar el token y forzar el tipo a DecodedToken
-
-      // Ejemplo de restricción por rol
-      /*
       const secret = new TextEncoder().encode(JWT_SECRET);
       const { payload } = await jose.jwtVerify(token, secret);
-      const decoded = payload as unknown as DecodedToken;
-      if (
-        pathname.startsWith("/proyectos") &&
-        !decoded.roles.includes("admin")
-      ) {
-        const dashboardUrl = new URL("/dashboard", req.nextUrl.origin);
-        return NextResponse.redirect(dashboardUrl);
+      if (!payload.userId) {
+        console.error("El token no contiene userId");
+        return NextResponse.redirect(new URL("/login", req.nextUrl.origin));
       }
-      */
-      return NextResponse.next(); // Token válido, permitir acceso
+
+      // Adjunta el userId al encabezado para uso en las APIs.
+      const requestHeaders = new Headers(req.headers);
+      requestHeaders.set("user-id", String(payload.userId));
+      return NextResponse.next({
+        request: {
+          headers: requestHeaders,
+        },
+      });
     } catch (error) {
       console.error("Error verificando token:", error);
-      const loginUrl = new URL("/login", req.nextUrl.origin);
-      return NextResponse.redirect(loginUrl); // Token inválido, redirigir al login
+      return NextResponse.redirect(new URL("/login", req.nextUrl.origin));
     }
   }
 
@@ -81,8 +69,6 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    // "/((?!_next/static|_next/image|favicon.ico|.*\\.css|.*\\.js|.*\\.map).*)",
-
     "/((?!_next/static|_next/image|favicon.ico|.*\\.svg|.*\\.png|.*\\.jpg|.*\\.css|.*\\.js|.*\\.map).*)",
   ],
 };
