@@ -6,6 +6,7 @@ const JWT_SECRET = process.env.JWT_SECRET;
 export async function middleware(req: NextRequest) {
   const publicRoutes = ["/login", "/api/login"];
   const protectedRoutes = [
+    "/",
     "/profile",
     "/dashboard",
     "/proyectos",

@@ -31,7 +31,30 @@ export default function RootLayout({
           defaultTheme="dark"
           enableSystem={false}
         >
-          <Toaster position="top-right" reverseOrder={false} />
+          <Toaster
+            position="bottom-right"
+            reverseOrder={false}
+            toastOptions={{
+              success: {
+                style: {
+                  backgroundColor: "var(--accent)", // Color de éxito
+                  color: "var(--background)", // Texto contrastante
+                  border: "1px solid var(--accent-dark)", // Borde más oscuro
+                },
+                iconTheme: {
+                  primary: "var(--background)", // Color del ícono
+                  secondary: "var(--accent)", // Fondo del ícono
+                },
+              },
+              error: {
+                style: {
+                  backgroundColor: "var(--destructive)", // Color de error
+                  color: "var(--background)", // Texto contrastante
+                  border: "1px solid var(--destructive-dark)", // Borde más oscuro
+                },
+              },
+            }}
+          />
           {/* Navbar */}
           <Navbar onMenuClick={() => setSidebarOpen(!isSidebarOpen)} />
 
@@ -43,7 +66,6 @@ export default function RootLayout({
             />
 
             {/* Main Content */}
-            {/*  <main className="flex-1 flex items-center justify-center"> */}
             <main className="flex-1 flex flex-col p-4 overflow-auto">
               {children}
             </main>
