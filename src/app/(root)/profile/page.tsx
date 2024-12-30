@@ -169,7 +169,7 @@ const ProfilePage = () => {
                   />
                 ) : (
                   <div className="flex items-center justify-center w-full h-full bg-muted text-muted-foreground">
-                    Sin Imagen
+                    {" "}
                   </div>
                 )}
               </div>
@@ -215,7 +215,6 @@ const ProfilePage = () => {
               </div>
             </div>
 
-            {/* Resto de los campos */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="first_lastname">Primer Apellido *</Label>
