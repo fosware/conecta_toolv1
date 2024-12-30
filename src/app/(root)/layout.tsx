@@ -37,8 +37,8 @@ export default function RootLayout({
             toastOptions={{
               success: {
                 style: {
-                  backgroundColor: "var(--accent)", // Color de éxito
-                  color: "var(--background)", // Texto contrastante
+                  backgroundColor: "rgb(242, 242, 242)", // Color de éxito
+                  color: "green", // Texto contrastante
                   border: "1px solid var(--accent-dark)", // Borde más oscuro
                 },
                 iconTheme: {
@@ -48,8 +48,8 @@ export default function RootLayout({
               },
               error: {
                 style: {
-                  backgroundColor: "var(--destructive)", // Color de error
-                  color: "var(--background)", // Texto contrastante
+                  backgroundColor: "rgb(242, 242, 242)", // Color de error
+                  color: "red", // Texto contrastante
                   border: "1px solid var(--destructive-dark)", // Borde más oscuro
                 },
               },

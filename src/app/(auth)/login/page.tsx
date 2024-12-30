@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import Image from "next/image";
 import ThemeToggle from "@/components/theme-toggle";
+import toast from "react-hot-toast";
 
 const LoginPage = () => {
   const [username, setUserName] = useState("");
@@ -25,9 +26,12 @@ const LoginPage = () => {
     if (res.ok) {
       const data = await res.json();
       document.cookie = `token=${data.token}; path=/`;
+      {
+        /* toast.success("Bienvenido"); */
+      }
       router.push("/dashboard");
     } else {
-      alert("Credenciales incorrectas");
+      toast.error("Credenciales incorrectas");
     }
   };
 

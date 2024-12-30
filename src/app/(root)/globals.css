@@ -43,13 +43,15 @@ html.dark body {
 }
 
 .toast-success {
-  background-color: var(--accent); /* Color de éxito */
+  background-color: var(
+    --accent
+  ); /* Color de éxito **
   color: var(--background); /* Texto contrastante */
   border: 1px solid var(--accent-dark); /* Borde más oscuro */
 }
 
 .toast-error {
-  background-color: var(--destructive); /* Color de error */
+  background-color: red; /*  var(--destructive); /* Color de error */
   color: var(--background); /* Texto contrastante */
   border: 1px solid var(--destructive-dark); /* Borde más oscuro */
 }

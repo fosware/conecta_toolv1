@@ -14,11 +14,12 @@ import Image from "next/image";
 import { useUserStore } from "@/lib/store/useUserState";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { useRef } from "react"; // Import useRef
 
 export default function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
   const router = useRouter();
   const { profileImage, setProfileImage } = useUserStore();
-
+  const usernameRef = useRef<string | null>(null);
   // Fetch profile image on mount
   useEffect(() => {
     const fetchProfileImage = async () => {
@@ -36,6 +37,8 @@ export default function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
 
         if (res.ok) {
           const data = await res.json();
+          console.log(data.user.username);
+          usernameRef.current = data.user.username;
           setProfileImage(
             data.profile.image_profile
               ? `data:image/png;base64,${data.profile.image_profile}`
@@ -118,7 +121,6 @@ export default function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
-                size="icon"
                 className="hover:bg-transparent focus:outline-none"
               >
                 <Avatar className="h-8 w-8 dark:bg-muted-dark">
@@ -132,15 +134,17 @@ export default function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
                     />
                   ) : (
                     <AvatarFallback className="text-foreground">
-                      U
+                      {usernameRef.current?.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   )}
                 </Avatar>
+                {usernameRef.current}
               </Button>
             </DropdownMenuTrigger>
+
             <DropdownMenuContent className="dropdown-menu bg-card dark:bg-card-dark border border-border dark:border-border-dark rounded-md shadow-md">
-              {/* Perfil */}
               <Link href="/profile">
+                {/* Perfil */}
                 <DropdownMenuItem className="hover:bg-accent hover:text-background transition">
                   <Image
                     src="/icons/profile.svg"
