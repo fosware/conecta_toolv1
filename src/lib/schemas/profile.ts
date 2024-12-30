@@ -5,8 +5,8 @@ export const profileSchema = z
   .object({
     name: z.string().min(1, "El nombre es obligatorio"),
     first_lastname: z.string().min(1, "El primer apellido es obligatorio"),
-    second_lastname: z.string().optional(),
-    phone: z.string().optional(),
+    second_lastname: z.string().nullable().optional(),
+    phone: z.string().nullable().optional(),
     email: z.string().email("Debe ser un correo válido"),
     username: z.string().min(3, "El usuario debe tener al menos 3 caracteres"),
     password: z

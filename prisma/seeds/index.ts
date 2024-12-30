@@ -1,10 +1,23 @@
 import { seedRoles } from "./roles.js";
+import { seedPrivileges } from "./privileges.js";
 import { seedUsers } from "./users.js";
-import { seedProfiles } from "./profiles.js";
+import { seedRolePrivileges } from "./rolePrivileges.js";
 
 export async function seedAll() {
-  await seedRoles();
-  await seedUsers();
-  await seedProfiles();
-  console.log("Todas las semillas ejecutadas correctamente.");
+  try {
+    console.log("Iniciando proceso de semillas...");
+    await seedRoles();
+    console.log("Roles sembrados.");
+    await seedPrivileges();
+    console.log("Privilegios sembrados.");
+    await seedUsers();
+    console.log("Usuarios sembrados.");
+    await seedRolePrivileges();
+    console.log("Relaciones de privilegios sembradas.");
+    console.log("Semillas completadas.");
+  } catch (error) {
+    console.error("Error al ejecutar semillas:", error);
+  }
 }
+
+//seedAll();
