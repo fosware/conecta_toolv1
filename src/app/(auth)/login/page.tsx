@@ -49,7 +49,7 @@ const LoginPage = () => {
             width={220}
             height={200}
             priority
-            className=" dark:bg-slate-200 m-4 p-2 rounded"
+            className="dark:bg-slate-300 m-4 p-2 rounded dark:inverted"
           />
         </CardHeader>
         <CardContent>

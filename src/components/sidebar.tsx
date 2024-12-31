@@ -4,7 +4,7 @@ import { menuItems } from "@/lib/menu";
 import Link from "next/link";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import Image from "next/image";
-import { HomeIcon } from "@heroicons/react/24/outline";
+import { useUserStore } from "@/lib/store/useUserState";
 
 export default function Sidebar({
   isOpen,
@@ -13,6 +13,28 @@ export default function Sidebar({
   isOpen: boolean;
   onClose: () => void;
 }) {
+  const { role } = useUserStore();
+
+  // Agregar subitems dinámicamente para Administración
+  const adminSubItems = [
+    { name: "Usuarios Staff", path: "/administracion/usuarios-staff" },
+  ];
+
+  // Filtrar y ordenar menú (Administración al final si es Admin)
+  const filteredMenuItems = [
+    ...menuItems.filter((item) => item.name !== "Administración"),
+    ...(role === "Admin"
+      ? [
+          {
+            name: "Administración",
+            path: "/administracion",
+            icon: "/icons/admin.svg",
+            subItems: adminSubItems,
+          },
+        ]
+      : []),
+  ];
+
   return (
     <>
       {/* Sidebar fijo para pantallas grandes */}
@@ -20,15 +42,36 @@ export default function Sidebar({
         {/* Menú de Navegación */}
         <nav className="p-4">
           <ul className="space-y-4">
-            {menuItems.map((item) => (
+            {filteredMenuItems.map((item) => (
               <li key={item.path}>
                 <Link
                   href={item.path}
-                  className="flex items-center space-x-3 px-4 py-2 rounded hover:bg-accent hover:text-background transition"
+                  className="flex items-center space-x-3 px-4 py-2 rounded hover:bg-accent hover:text-background transition group"
                 >
-                  <item.icon className="w-5 h-5" />
+                  <Image
+                    src={item.icon}
+                    alt={`${item.name} Icon`}
+                    width={24}
+                    height={24}
+                    className="dark:invert dark:backdrop-brightness-1"
+                  />
                   <span className="hidden lg:inline">{item.name}</span>
                 </Link>
+                {/* Subitems dinámicos para "Administración" */}
+                {"subItems" in item && item.subItems?.length && (
+                  <ul className="pl-6 mt-2 space-y-2">
+                    {item.subItems.map((subItem) => (
+                      <li key={subItem.path}>
+                        <Link
+                          href={subItem.path}
+                          className="block px-4 py-2 rounded hover:bg-muted transition"
+                        >
+                          {subItem.name}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </li>
             ))}
           </ul>
@@ -56,31 +99,41 @@ export default function Sidebar({
               ConectaTool
             </span>
           </div>
-
           {/* Menú de Navegación */}
           <nav className="mt-4">
             <ul className="space-y-4">
-              {/* Nueva opción "Home" */}
-              <li>
-                <Link
-                  href="/"
-                  className="flex items-center space-x-3 px-4 py-2 rounded hover:bg-accent hover:text-background transition"
-                  onClick={onClose}
-                >
-                  <HomeIcon className="w-5 h-5" />
-                  <span>Home</span>
-                </Link>
-              </li>
-              {menuItems.map((item) => (
+              {filteredMenuItems.map((item) => (
                 <li key={item.path}>
                   <Link
                     href={item.path}
-                    className="flex items-center space-x-3 px-4 py-2 rounded hover:bg-accent hover:text-background transition"
+                    className="flex items-center space-x-3 px-4 py-2 rounded hover:bg-accent hover:text-background transition group"
                     onClick={onClose}
                   >
-                    <item.icon className="w-5 h-5" />
+                    <Image
+                      src={item.icon}
+                      alt={`${item.name} Icon`}
+                      width={24}
+                      height={24}
+                      className="dark:invert dark:backdrop-brightness-1"
+                    />
                     <span>{item.name}</span>
                   </Link>
+                  {/* Subitems dinámicos para "Administración" */}
+                  {"subItems" in item && item.subItems?.length && (
+                    <ul className="pl-6 mt-2 space-y-2">
+                      {item.subItems.map((subItem) => (
+                        <li key={subItem.path}>
+                          <Link
+                            href={subItem.path}
+                            className="flex items-center space-x-3 px-4 py-2 rounded hover:bg-accent hover:text-background transition"
+                            onClick={onClose}
+                          >
+                            {subItem.name}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </li>
               ))}
             </ul>

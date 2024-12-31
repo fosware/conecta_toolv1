@@ -1,19 +1,16 @@
-import {
-  FolderIcon,
-  UsersIcon,
-  UserCircleIcon,
-  CogIcon,
-  ClipboardDocumentCheckIcon,
-} from "@heroicons/react/24/outline";
-
 export const menuItems = [
-  { name: "Proyectos", path: "/proyectos", icon: FolderIcon },
-  { name: "Asociados", path: "/asociados", icon: UsersIcon },
-  { name: "Clientes", path: "/clientes", icon: UserCircleIcon },
-  { name: "Especialidades", path: "/especialidades", icon: CogIcon },
+  { name: "Proyectos", path: "/proyectos", icon: "/icons/folder.svg" },
+  { name: "Asociados", path: "/asociados", icon: "/icons/users.svg" },
+  { name: "Clientes", path: "/clientes", icon: "/icons/user-circle.svg" },
+  { name: "Especialidades", path: "/especialidades", icon: "/icons/cog.svg" },
   {
     name: "Certificaciones",
     path: "/certificaciones",
-    icon: ClipboardDocumentCheckIcon,
+    icon: "/icons/clipboard-document-check.svg",
+  },
+  {
+    name: "Administración",
+    path: "/administracion",
+    icon: "/icons/admin.svg",
   },
 ];
