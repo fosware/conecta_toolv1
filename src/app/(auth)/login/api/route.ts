@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
     // Buscar usuario en la base de datos
     const user = await prisma.user.findUnique({
       where: { username },
+      include: { role: true },
     });
 
     if (!user) {
@@ -43,7 +44,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Generar token JWT usando jose
-    const token = await new SignJWT({ userId: user.id, role: user.roles })
+    const token = await new SignJWT({ userId: user.id, role: user.role.name })
       .setProtectedHeader({ alg: "HS256" })
       .setIssuedAt()
       .setExpirationTime("1h")

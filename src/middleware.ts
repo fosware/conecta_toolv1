@@ -14,6 +14,8 @@ export async function middleware(req: NextRequest) {
     "/clientes",
     "/especialidades",
     "/certificaciones",
+    "/administracion",
+    "/api/menu",
   ];
 
   const { pathname } = req.nextUrl;
@@ -46,20 +48,23 @@ export async function middleware(req: NextRequest) {
       const { payload } = await jose.jwtVerify(token, secret);
 
       if (!payload.userId) {
-        console.error("El token no contiene userId");
+        console.error("El token no contiene userId ");
         return NextResponse.redirect(new URL("/login", req.nextUrl.origin));
       }
 
-      // Adjunta encabezados para el uso en las APIs
+      // Adjuntar encabezados para el uso en las APIs
       const requestHeaders = new Headers(req.headers);
       requestHeaders.set("user-id", String(payload.userId));
       requestHeaders.set("Authorization", `Bearer ${token}`);
+      requestHeaders.set("role", String(payload.role)); // Adjuntar el rol del usuario
 
-      return NextResponse.next({
-        request: {
-          headers: requestHeaders,
-        },
-      });
+      // Crear el `NextResponse` y añadir los encabezados personalizados
+      const response = NextResponse.next();
+      response.headers.set("user-id", String(payload.userId));
+      response.headers.set("Authorization", `Bearer ${token}`);
+      response.headers.set("role", String(payload.role));
+
+      return response;
     } catch (error) {
       console.error("Error verificando token:", error);
       return NextResponse.redirect(new URL("/login", req.nextUrl.origin));

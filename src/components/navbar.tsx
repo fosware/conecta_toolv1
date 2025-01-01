@@ -37,7 +37,6 @@ export default function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
 
         if (res.ok) {
           const data = await res.json();
-          console.log(data.user.username);
           usernameRef.current = data.user.username;
           setProfileImage(
             data.profile.image_profile
