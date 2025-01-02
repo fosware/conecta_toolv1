@@ -1,11 +1,10 @@
 export interface SubMenuItem {
   name: string;
   path: string;
-  icon: string;
 }
 
 export interface MenuItem {
-  name: string;
+  name: string; // Debe coincidir con los privilegios en la BD
   path: string;
   icon: string;
   subItems?: SubMenuItem[];
@@ -13,7 +12,7 @@ export interface MenuItem {
 
 export const menuItems: MenuItem[] = [
   { name: "Proyectos", path: "/proyectos", icon: "/icons/folder.svg" },
-  { name: "Asociados", path: "/asociados", icon: "/icons/users.svg" },
+  { name: "Asociados", path: "/asociados", icon: "/icons/global-partner.svg" },
   { name: "Clientes", path: "/clientes", icon: "/icons/user-circle.svg" },
   { name: "Especialidades", path: "/especialidades", icon: "/icons/cog.svg" },
   {
@@ -22,11 +21,8 @@ export const menuItems: MenuItem[] = [
     icon: "/icons/clipboard-document-check.svg",
   },
   {
-    name: "Administración",
-    path: "/administracion",
-    icon: "/icons/admin.svg",
-    subItems: [
-      { name: "Usuarios Staff", path: "/staff", icon: "/icons/users.svg" },
-    ],
+    name: "Registro de usuarios", // Nombre que coincida con el privilegio
+    path: "/registro-usuarios",
+    icon: "/icons/new_user.svg",
   },
 ];

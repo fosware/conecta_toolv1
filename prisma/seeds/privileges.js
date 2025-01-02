@@ -3,9 +3,12 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 const privileges = [
-  { name: "Manage Users" },
-  { name: "View Reports" },
-  { name: "Edit Projects" },
+  { name: "Proyectos" },
+  { name: "Asociados" },
+  { name: "Clientes" },
+  { name: "Especialidades" },
+  { name: "Certificaciones" },
+  { name: "Registro de Usuarios" },
 ];
 
 export async function seedPrivileges() {

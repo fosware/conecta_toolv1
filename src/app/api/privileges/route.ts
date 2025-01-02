@@ -1,22 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { menuItems } from "@/lib/menu";
-import { jwtVerify } from "jose";
 import { PrismaClient } from "@prisma/client";
+import { jwtVerify } from "jose";
 
 const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET;
 
 export async function GET(req: NextRequest) {
   try {
-    if (!JWT_SECRET) {
-      console.error("JWT_SECRET no está definido");
-      return NextResponse.json(
-        { message: "Error interno del servidor" },
-        { status: 500 }
-      );
-    }
-
     const token = req.headers.get("Authorization")?.replace("Bearer ", "");
+
     if (!token) {
       return NextResponse.json(
         { message: "Autenticación requerida" },
@@ -24,16 +16,17 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    if (!JWT_SECRET) {
+      throw new Error("JWT_SECRET no está definido");
+    }
+
     const { payload } = await jwtVerify(
       token,
       new TextEncoder().encode(JWT_SECRET)
     );
 
-    const userId = payload.userId as number;
-
-    // Obtener privilegios del usuario desde la base de datos
     const user = await prisma.user.findUnique({
-      where: { id: userId },
+      where: { id: Number(payload.userId) },
       include: {
         role: {
           include: {
@@ -50,20 +43,9 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const userPrivileges = user.role.privileges.map((rp) => rp.privilege.name);
-
-    console.log("estamos con estos privileges", userPrivileges);
-
-    // Filtrar el menú según privilegios
-    const filteredMenuItems = menuItems.filter((item) =>
-      userPrivileges.includes(item.name)
-    );
-
-    console.log("estamos regresano este menu", filteredMenuItems);
-
-    return NextResponse.json(filteredMenuItems);
+    return NextResponse.json(user.role.privileges);
   } catch (error) {
-    console.error("Error al procesar el menú:", error);
+    console.error("Error al obtener privilegios:", error);
     return NextResponse.json(
       { message: "Error interno del servidor" },
       { status: 500 }

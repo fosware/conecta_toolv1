@@ -2,10 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import Image from "next/image";
-//import { useUserStore } from "@/lib/store/useUserState";
-import { MenuItem } from "@/lib/menu"; // Importar la interfaz definida en lib/menu.ts
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { MenuItem } from "@/lib/menu";
 
 export default function Sidebar({
   isOpen,
@@ -15,9 +14,7 @@ export default function Sidebar({
   onClose: () => void;
 }) {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
-  // const { role } = useUserStore();
 
-  // Cargar menú desde el API
   useEffect(() => {
     const fetchMenu = async () => {
       try {
@@ -25,6 +22,7 @@ export default function Sidebar({
           /(?:(?:^|.*;\s*)token\s*=\s*([^;]*).*$)|^.*$/,
           "$1"
         );
+
         const res = await fetch("/api/menu", {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -32,13 +30,13 @@ export default function Sidebar({
         });
 
         if (res.ok) {
-          const data: MenuItem[] = await res.json();
+          const data = await res.json();
           setMenuItems(data);
         } else {
-          console.error("Error al cargar el menú:", await res.json());
+          console.error("Error al obtener el menú:", await res.json());
         }
       } catch (error) {
-        console.error("Error al cargar el menú:", error);
+        console.error("Error al realizar fetch del menú:", error);
       }
     };
 
@@ -51,45 +49,23 @@ export default function Sidebar({
       <aside className="hidden lg:block w-64 bg-background dark:bg-background-dark text-foreground dark:text-foreground-dark border-r border-border dark:border-border-dark h-screen">
         <nav className="p-4">
           <ul className="space-y-4">
-            {menuItems.map((item) =>
-              item.name === "Administración" ? (
-                <li key={item.name} className="space-y-2">
-                  {/* Título o separador visual */}
-                  <div className="px-4 py-2 text-sm font-bold text-muted-foreground">
-                    {item.name}
-                  </div>
-                  {/* Subitems dinámicos */}
-                  <ul className="pl-6 mt-2 space-y-2">
-                    {item.subItems?.map((subItem) => (
-                      <li key={subItem.path}>
-                        <Link
-                          href={subItem.path}
-                          className="block px-4 py-2 rounded hover:bg-muted transition"
-                        >
-                          {subItem.name}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </li>
-              ) : (
-                <li key={item.path}>
-                  <Link
-                    href={item.path}
-                    className="flex items-center space-x-3 px-4 py-2 rounded hover:bg-accent hover:text-background transition group"
-                  >
-                    <Image
-                      src={item.icon}
-                      alt={`${item.name} Icon`}
-                      width={24}
-                      height={24}
-                      className="dark:invert dark:backdrop-brightness-1"
-                    />
-                    <span className="hidden lg:inline">{item.name}</span>
-                  </Link>
-                </li>
-              )
-            )}
+            {menuItems.map((item) => (
+              <li key={item.path}>
+                <Link
+                  href={item.path}
+                  className="flex items-center space-x-3 px-4 py-2 rounded hover:bg-accent hover:text-background transition group"
+                >
+                  <Image
+                    src={item.icon}
+                    alt={`${item.name} Icon`}
+                    width={24}
+                    height={24}
+                    className="dark:invert dark:backdrop-brightness-1"
+                  />
+                  <span className="hidden lg:inline">{item.name}</span>
+                </Link>
+              </li>
+            ))}
           </ul>
         </nav>
       </aside>
@@ -116,47 +92,24 @@ export default function Sidebar({
           </div>
           <nav className="mt-4">
             <ul className="space-y-4">
-              {menuItems.map((item) =>
-                item.name === "Administración" ? (
-                  <li key={item.name} className="space-y-2">
-                    {/* Título o separador visual */}
-                    <div className="px-4 py-2 text-sm font-bold text-muted-foreground">
-                      {item.name}
-                    </div>
-                    {/* Subitems dinámicos */}
-                    <ul className="pl-6 mt-2 space-y-2">
-                      {item.subItems?.map((subItem) => (
-                        <li key={subItem.path}>
-                          <Link
-                            href={subItem.path}
-                            className="block px-4 py-2 rounded hover:bg-muted transition"
-                            onClick={onClose}
-                          >
-                            {subItem.name}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  </li>
-                ) : (
-                  <li key={item.path}>
-                    <Link
-                      href={item.path}
-                      className="flex items-center space-x-3 px-4 py-2 rounded hover:bg-accent hover:text-background transition group"
-                      onClick={onClose}
-                    >
-                      <Image
-                        src={item.icon}
-                        alt={`${item.name} Icon`}
-                        width={24}
-                        height={24}
-                        className="dark:invert dark:backdrop-brightness-1"
-                      />
-                      <span>{item.name}</span>
-                    </Link>
-                  </li>
-                )
-              )}
+              {menuItems.map((item) => (
+                <li key={item.path}>
+                  <Link
+                    href={item.path}
+                    className="flex items-center space-x-3 px-4 py-2 rounded hover:bg-accent hover:text-background transition group"
+                    onClick={onClose}
+                  >
+                    <Image
+                      src={item.icon}
+                      alt={`${item.name} Icon`}
+                      width={24}
+                      height={24}
+                      className="dark:invert dark:backdrop-brightness-1"
+                    />
+                    <span>{item.name}</span>
+                  </Link>
+                </li>
+              ))}
             </ul>
           </nav>
         </SheetContent>

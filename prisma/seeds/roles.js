@@ -12,7 +12,7 @@ const roles = [
 export async function seedRoles() {
   for (const role of roles) {
     await prisma.role.upsert({
-      where: { name: role.name, prefix: role.prefix },
+      where: { name: role.name },
       update: {},
       create: role,
     });
