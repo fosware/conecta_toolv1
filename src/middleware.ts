@@ -7,8 +7,6 @@ export async function middleware(req: NextRequest) {
   const publicRoutes = ["/login", "/api/login"];
   const { pathname } = req.nextUrl;
 
-  console.log("Middleware ejecutado para:", pathname);
-
   // Permitir acceso a rutas públicas
   if (publicRoutes.some((route) => pathname.startsWith(route))) {
     return NextResponse.next();
@@ -35,18 +33,11 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(new URL("/login", req.nextUrl.origin));
     }
 
-    console.log("Headers antes del set:", Object.fromEntries(req.headers));
-
     // Adjuntar encabezados para el uso en las APIs
     const requestHeaders = new Headers(req.headers);
     requestHeaders.set("user-id", String(payload.userId));
     requestHeaders.set("Authorization", `Bearer ${token}`);
     requestHeaders.set("role", String(payload.role)); // Adjuntar el rol del usuario
-
-    console.log(
-      "Encabezados enviados al API:",
-      Object.fromEntries(requestHeaders)
-    );
 
     return NextResponse.next({
       request: {

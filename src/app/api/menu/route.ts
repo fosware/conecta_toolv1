@@ -52,14 +52,10 @@ export async function GET(req: NextRequest) {
 
     const userPrivileges = user.role.privileges.map((rp) => rp.privilege.name);
 
-    console.log("estamos con estos privileges", userPrivileges);
-
     // Filtrar el menú según privilegios
     const filteredMenuItems = menuItems.filter((item) =>
       userPrivileges.includes(item.name)
     );
-
-    console.log("estamos regresano este menu", filteredMenuItems);
 
     return NextResponse.json(filteredMenuItems);
   } catch (error) {
