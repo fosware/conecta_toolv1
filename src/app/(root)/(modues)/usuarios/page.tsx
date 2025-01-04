@@ -53,7 +53,10 @@ const UsuariosPage = () => {
     <div className="container mx-auto p-4">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">Usuarios</h1>
-        <Button onClick={() => showToast.info("Agregar usuario")}>
+        <Button
+          className="bg-transparent"
+          onClick={() => showToast.info("Agregar usuario")}
+        >
           Agregar Usuario
         </Button>
       </div>
@@ -79,7 +82,7 @@ const UsuariosPage = () => {
             <TableHead>Correo</TableHead>
             <TableHead>Usuario</TableHead>
             <TableHead>Rol</TableHead>
-            <TableHead>Estado</TableHead>
+            <TableHead>Inactivo/Activo</TableHead>
             <TableHead>Acciones</TableHead>
           </TableRow>
         </TableHeader>
@@ -90,8 +93,17 @@ const UsuariosPage = () => {
               <TableCell>{usuario.email}</TableCell>
               <TableCell>{usuario.username}</TableCell>
               <TableCell>{usuario.role.name}</TableCell>
-              <TableCell>
-                <Switch checked={usuario.isActive} disabled />
+              <TableCell className="gap-3">
+                <Switch
+                  checked={usuario.isActive}
+                  onCheckedChange={(isActive) => {
+                    // Lógica para actualizar estado
+                    console.log(
+                      `Usuario ${usuario.username} activo:`,
+                      isActive
+                    );
+                  }}
+                />
               </TableCell>
               <TableCell className="flex gap-3">
                 <Button className="bg-transparent p-2">

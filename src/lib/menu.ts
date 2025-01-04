@@ -22,7 +22,7 @@ export const menuItems: MenuItem[] = [
   },
   {
     name: "Registro de usuarios", // Nombre que coincida con el privilegio
-    path: "/registro-usuarios",
+    path: "/usuarios",
     icon: "/icons/new_user.svg",
   },
 ];
