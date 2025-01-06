@@ -21,7 +21,7 @@ export const menuItems: MenuItem[] = [
     icon: "/icons/clipboard-document-check.svg",
   },
   {
-    name: "Registro de usuarios", // Nombre que coincida con el privilegio
+    name: "Usuarios", // Nombre que coincida con el privilegio
     path: "/usuarios",
     icon: "/icons/new_user.svg",
   },
