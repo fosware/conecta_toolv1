@@ -121,6 +121,27 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
+    const existingUserWithEmail = await prisma.user.findFirst({
+      where: { email },
+    });
+
+    if (existingUserWithEmail) {
+      return NextResponse.json(
+        { message: "El correo ya está en uso." },
+        { status: 400 }
+      );
+    }
+
+    const existingUserWithUsername = await prisma.user.findFirst({
+      where: { username },
+    });
+
+    if (existingUserWithUsername) {
+      return NextResponse.json(
+        { message: "El nombre de usuario ya está en uso." },
+        { status: 400 }
+      );
+    }
 
     // Procesar la imagen (si existe)
     let imageBase64: string | null = null;

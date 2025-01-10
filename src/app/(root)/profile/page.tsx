@@ -17,6 +17,7 @@ const ProfilePage = () => {
   const [selectedFileName, setSelectedFileName] = useState<
     string | undefined
   >();
+  const [role, setRole] = useState<string>("");
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -45,6 +46,7 @@ const ProfilePage = () => {
 
       if (res.ok) {
         const data = await res.json();
+        setRole(data.user.role);
         setProfileImage(data.profile.image_profile || null);
 
         // Actualiza el estado global
@@ -103,7 +105,12 @@ const ProfilePage = () => {
       if (!res.ok) {
         try {
           const errorData = await res.json();
-          console.error("Errors:", errorData.errors);
+          // Verificar si `errors` existe antes de acceder
+          if (errorData.errors) {
+            console.error("Errors:", errorData.errors);
+          } else {
+            console.warn("Error sin detalles en `errors`:", errorData.message);
+          }
           toast.error(errorData.message || "Error al actualizar el perfil.");
         } catch (parseError) {
           console.error("Error parsing error response:", parseError);
@@ -205,7 +212,11 @@ const ProfilePage = () => {
                 </div>
                 <div>
                   <Label htmlFor="username">Usuario *</Label>
-                  <Input id="username" {...register("username")} />
+                  <Input
+                    id="username"
+                    {...register("username")}
+                    disabled={role.toLocaleLowerCase() !== "admin"} // Solo los admins pueden editar
+                  />
                   {errors.username && (
                     <p className="text-sm text-red-600">
                       {errors.username.message}

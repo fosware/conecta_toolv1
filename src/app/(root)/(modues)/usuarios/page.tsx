@@ -21,13 +21,14 @@ import Image from "next/image";
 import { useCallback } from "react";
 
 interface UserFormData {
+  id?: string;
   name: string;
   first_lastname: string;
   second_lastname?: string | null;
   email: string;
   username: string;
-  password?: string;
-  confirmPassword?: string;
+  password?: string | null;
+  confirmPassword?: string | null;
   roleId: string;
   phone?: string | null;
   image_profile?: File | null;
@@ -132,7 +133,7 @@ const UsuariosPage = () => {
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">Usuarios</h1>
         <Button
-          className="bg-transparent"
+          className="bg-transparent hover:text-white"
           onClick={() => {
             setEditingUser(null);
             setModalOpen(true);

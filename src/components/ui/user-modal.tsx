@@ -146,13 +146,16 @@ export const UserModal = ({
           ? `/usuarios/api/${initialData.id}`
           : "/usuarios/api";
 
-      console.log("ENDPOINT ", endpoint);
       const method = mode === "edit" ? "PATCH" : "POST";
 
       const formData = new FormData();
       Object.entries(data).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
-          formData.append(key, value instanceof File ? value : String(value));
+          if (key === "image_profile" && value instanceof File) {
+            formData.append(key, value);
+          } else {
+            formData.append(key, String(value));
+          }
         }
       });
 
@@ -161,18 +164,11 @@ export const UserModal = ({
         body: formData,
       });
 
-      console.log("Esto es res ", res);
-
-      // Verificar si la respuesta es JSON válida
       if (!res.ok) {
-        let errorMessage = "Error al procesar la solicitud";
-        try {
-          const errorData = await res.json();
-          errorMessage = errorData.message || errorMessage;
-        } catch {
-          console.error("No se pudo analizar la respuesta como JSON.");
-        }
-        throw new Error(errorMessage);
+        const errorData = await res.json();
+        toast.error(errorData.message || "Error al procesar la solicitud.");
+        console.warn("Error del servidor:", errorData.message);
+        return;
       }
 
       toast.success(
@@ -184,13 +180,13 @@ export const UserModal = ({
       onSuccess?.();
     } catch (error) {
       console.error("Error al procesar la solicitud:", error);
-      toast.error(error instanceof Error ? error.message : "Error inesperado");
+      toast.error("Error inesperado.");
     }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-3xl shadow-lg bg-card dark:bg-card-dark border border-border dark:border-border-dark">
         <DialogHeader>
           <DialogTitle>
             {mode === "edit" ? "Editar Usuario" : "Registrar Usuario"}
@@ -307,10 +303,14 @@ export const UserModal = ({
 
           {/* Footer */}
           <DialogFooter className="col-span-full flex justify-between">
-            <Button variant="secondary" type="button" onClick={onClose}>
+            <Button
+              className="bg-transparent hover:text-white"
+              type="button"
+              onClick={onClose}
+            >
               Cerrar
             </Button>
-            <Button type="submit">
+            <Button type="submit" className="bg-transparent hover:text-white">
               {mode === "edit" ? "Actualizar" : "Registrar"}
             </Button>
           </DialogFooter>
