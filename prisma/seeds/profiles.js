@@ -3,10 +3,6 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 export async function seedProfiles() {
-  const exampleImageBase64 =
-    "data:image/png;base64," +
-    Buffer.from("EjemploDeImagenEnBase64").toString("base64");
-
   const admin = await prisma.user.findUnique({
     where: { email: "admin@example.com" },
   });
@@ -32,7 +28,7 @@ export async function seedProfiles() {
       first_lastname: "Admin Lastname",
       second_lastname: "Admin Second Lastname",
       phone: "1234567890",
-      image_profile: exampleImageBase64,
+      image_profile: null,
       userId: admin.id,
     },
   });
@@ -45,7 +41,7 @@ export async function seedProfiles() {
       first_lastname: "User Lastname",
       second_lastname: "User Second Lastname",
       phone: "0987654321",
-      image_profile: exampleImageBase64,
+      image_profile: null,
       userId: user.id,
     },
   });
@@ -58,7 +54,7 @@ export async function seedProfiles() {
       first_lastname: "Moderator Lastname",
       second_lastname: "Moderator Second Lastname",
       phone: "1122334455",
-      image_profile: exampleImageBase64,
+      image_profile: null,
       userId: moderator.id,
     },
   });

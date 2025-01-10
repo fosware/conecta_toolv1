@@ -20,10 +20,21 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-
+    /*
     // Buscar usuario en la base de datos
     const user = await prisma.user.findUnique({
       where: { username },
+      include: { role: true },
+    });
+*/
+    // Buscar usuario en la base de datos y validar estado
+    const user = await prisma.user.findFirst({
+      where: {
+        username,
+        isActive: true, // Solo usuarios habilitados
+        isDeleted: false, // Excluir usuarios eliminados
+      },
+      include: { role: true },
     });
 
     if (!user) {
@@ -43,7 +54,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Generar token JWT usando jose
-    const token = await new SignJWT({ userId: user.id, role: user.roles })
+    const token = await new SignJWT({ userId: user.id, role: user.role.name })
       .setProtectedHeader({ alg: "HS256" })
       .setIssuedAt()
       .setExpirationTime("1h")

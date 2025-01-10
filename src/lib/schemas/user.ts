@@ -1,8 +1,8 @@
 import { z } from "zod";
 
-// Esquema de validación con Zod
-export const profileSchema = z
+export const userSchema = z
   .object({
+    id: z.string().optional(),
     name: z.string().min(1, "El nombre es obligatorio"),
     first_lastname: z.string().min(1, "El primer apellido es obligatorio"),
     second_lastname: z.string().nullable().optional(),
@@ -16,11 +16,12 @@ export const profileSchema = z
       .refine((val) => !val || val.length >= 6, {
         message: "La contraseña debe tener al menos 6 caracteres",
       }),
-    confirmPassword: z.string().nullable().optional(),
-    image: z
+    confirmPassword: z.string().optional(),
+    roleId: z.string().nonempty("El rol es obligatorio"),
+    image_profile: z
       .custom<
         File | null | undefined
-      >((file) => !file || file instanceof File, "Debe ser un archivo válido")
+      >((value) => value instanceof File || value === null || value === undefined, "Debe ser un archivo válido")
       .optional(),
   })
   .superRefine((data, ctx) => {
@@ -33,5 +34,4 @@ export const profileSchema = z
     }
   });
 
-// Exporta el tipo inferido
-export type ProfileFormData = z.infer<typeof profileSchema>;
+export type UserFormData = z.infer<typeof userSchema>;

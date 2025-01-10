@@ -1,10 +1,10 @@
 "use client";
 
-import { menuItems } from "@/lib/menu";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import Image from "next/image";
-import { HomeIcon } from "@heroicons/react/24/outline";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { MenuItem } from "@/lib/menu";
 
 export default function Sidebar({
   isOpen,
@@ -13,20 +13,55 @@ export default function Sidebar({
   isOpen: boolean;
   onClose: () => void;
 }) {
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+
+  useEffect(() => {
+    const fetchMenu = async () => {
+      try {
+        const token = document.cookie.replace(
+          /(?:(?:^|.*;\s*)token\s*=\s*([^;]*).*$)|^.*$/,
+          "$1"
+        );
+
+        const res = await fetch("/api/menu", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setMenuItems(data);
+        } else {
+          console.error("Error al obtener el menú:", await res.json());
+        }
+      } catch (error) {
+        console.error("Error al realizar fetch del menú:", error);
+      }
+    };
+
+    fetchMenu();
+  }, []);
+
   return (
     <>
       {/* Sidebar fijo para pantallas grandes */}
       <aside className="hidden lg:block w-64 bg-background dark:bg-background-dark text-foreground dark:text-foreground-dark border-r border-border dark:border-border-dark h-screen">
-        {/* Menú de Navegación */}
         <nav className="p-4">
           <ul className="space-y-4">
             {menuItems.map((item) => (
               <li key={item.path}>
                 <Link
                   href={item.path}
-                  className="flex items-center space-x-3 px-4 py-2 rounded hover:bg-accent hover:text-background transition"
+                  className="flex items-center space-x-3 px-4 py-2 rounded hover:bg-accent hover:text-background transition group"
                 >
-                  <item.icon className="w-5 h-5" />
+                  <Image
+                    src={item.icon}
+                    alt={`${item.name} Icon`}
+                    width={24}
+                    height={24}
+                    className="dark:invert dark:backdrop-brightness-1"
+                  />
                   <span className="hidden lg:inline">{item.name}</span>
                 </Link>
               </li>
@@ -43,7 +78,6 @@ export default function Sidebar({
           className="w-64 bg-background dark:bg-background-dark text-foreground dark:text-foreground-dark border-r border-border dark:border-border-dark"
           tabIndex={-1}
         >
-          {/* Logo y título visibles solo en pantallas pequeñas */}
           <div className="lg:hidden flex items-center space-x-3 px-4 py-4 border-b border-border dark:border-border-dark">
             <Image
               src="/conecta_logo_transparente.png"
@@ -56,29 +90,22 @@ export default function Sidebar({
               ConectaTool
             </span>
           </div>
-
-          {/* Menú de Navegación */}
           <nav className="mt-4">
             <ul className="space-y-4">
-              {/* Nueva opción "Home" */}
-              <li>
-                <Link
-                  href="/"
-                  className="flex items-center space-x-3 px-4 py-2 rounded hover:bg-accent hover:text-background transition"
-                  onClick={onClose}
-                >
-                  <HomeIcon className="w-5 h-5" />
-                  <span>Home</span>
-                </Link>
-              </li>
               {menuItems.map((item) => (
                 <li key={item.path}>
                   <Link
                     href={item.path}
-                    className="flex items-center space-x-3 px-4 py-2 rounded hover:bg-accent hover:text-background transition"
+                    className="flex items-center space-x-3 px-4 py-2 rounded hover:bg-accent hover:text-background transition group"
                     onClick={onClose}
                   >
-                    <item.icon className="w-5 h-5" />
+                    <Image
+                      src={item.icon}
+                      alt={`${item.name} Icon`}
+                      width={24}
+                      height={24}
+                      className="dark:invert dark:backdrop-brightness-1"
+                    />
                     <span>{item.name}</span>
                   </Link>
                 </li>

@@ -63,6 +63,38 @@ export async function POST(req: NextRequest) {
       image,
     });
 
+    //unicidad
+    // Validar unicidad de email y username
+    const existingEmail = await prisma.user.findFirst({
+      where: {
+        email: parsedData.email,
+        id: { not: userId }, // Excluir al usuario actual
+      },
+    });
+
+    const existingUsername = await prisma.user.findFirst({
+      where: {
+        username: parsedData.username,
+        id: { not: userId }, // Excluir al usuario actual
+      },
+    });
+
+    if (existingEmail) {
+      return NextResponse.json(
+        { message: "El correo ya está registrado por otro usuario." },
+        { status: 400 }
+      );
+    }
+
+    if (existingUsername) {
+      return NextResponse.json(
+        {
+          message: "El nombre de usuario ya está registrado por otro usuario.",
+        },
+        { status: 400 }
+      );
+    }
+
     // Procesar la imagen (si existe) en formato Base64
     let base64Image: string | null = null;
     if (image) {
