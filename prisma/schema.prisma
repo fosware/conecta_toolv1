@@ -20,9 +20,62 @@ model User {
   dateDeleted DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-
+  Specialties Specialties[]
+  Scopes      Scopes[]
+  Subscopes   Subscopes[]
   @@map("d_users")
 }
+
+
+model Specialties {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  num         Int       @unique
+  description String?  
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  userId      Int
+  user        User      @relation(fields: [userId], references: [id])
+  Scopes      Scopes[]
+
+  @@map("d_specialties")
+}
+
+model Scopes {
+  id          Int         @id @default(autoincrement())
+  name        String      @unique
+  num         Int         
+  description String?  
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  userId      Int
+  specialtyId Int
+
+  user        User        @relation(fields: [userId], references: [id])
+  specialty   Specialties @relation(fields: [specialtyId], references: [id])
+  Subscopes   Subscopes[]
+  
+  @@map("d_scopes")
+}
+
+model Subscopes {
+  id          Int         @id @default(autoincrement())
+  name        String      @unique
+  num         Int
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  userId      Int
+  scopeId     Int
+
+  user        User        @relation(fields: [userId], references: [id])
+  scope       Scopes      @relation(fields: [scopeId], references: [id])
+  
+  @@map("d_subscopes")
+}
+
 
 model Profile {
   id              Int      @id @default(autoincrement())
@@ -69,3 +122,4 @@ model Privilege {
 
   @@map("c_privileges")
 }
+

@@ -2,6 +2,9 @@ import { seedRoles } from "./roles.js";
 import { seedPrivileges } from "./privileges.js";
 import { seedUsers } from "./users.js";
 import { seedRolePrivileges } from "./rolePrivileges.js";
+import { seedSpecialties } from "./specialties.js";
+import { seedScopes } from "./scopes.js";
+import { seedSubscopes } from "./subscopes.js";
 
 export async function seedAll() {
   try {
@@ -14,10 +17,19 @@ export async function seedAll() {
     console.log("Usuarios sembrados.");
     await seedRolePrivileges();
     console.log("Relaciones de privilegios sembradas.");
+    await seedSpecialties();
+    console.log("Especialdiades sembradas.");
+    await seedScopes();
+    console.log("Alcances sembradas.");
+    await seedScopes();
+    console.log("Alcances sembradas.");
+    await seedSubscopes();
+    console.log("Subalcances sembradas.");
+
     console.log("Semillas completadas.");
   } catch (error) {
     console.error("Error al ejecutar semillas:", error);
   }
 }
-
+// npm run prisma:seed
 //seedAll();
