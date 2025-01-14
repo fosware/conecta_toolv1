@@ -8,21 +8,23 @@ datasource db {
 }
 
 model User {
-  id          Int       @id @default(autoincrement())
-  email       String    @unique
-  password    String
-  username    String    @unique
-  roleId      Int
-  role        Role      @relation(fields: [roleId], references: [id])
-  profile     Profile?
-  isActive    Boolean   @default(true)
-  isDeleted   Boolean   @default(false)
-  dateDeleted DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  Specialties Specialties[]
-  Scopes      Scopes[]
-  Subscopes   Subscopes[]
+  id            Int       @id @default(autoincrement())
+  email         String    @unique
+  password      String
+  username      String    @unique
+  roleId        Int
+  role          Role      @relation(fields: [roleId], references: [id])
+  profile       Profile?
+  isActive      Boolean   @default(true)
+  isDeleted     Boolean   @default(false)
+  dateDeleted   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  Specialties   Specialties[]
+  Scopes        Scopes[]
+  Subscopes     Subscopes[]
+  Cerifications Certifications[]
+  
   @@map("d_users")
 }
 
@@ -74,6 +76,20 @@ model Subscopes {
   scope       Scopes      @relation(fields: [scopeId], references: [id])
   
   @@map("d_subscopes")
+}
+
+model Certifications {
+  id          Int         @id @default(autoincrement())
+  name        String      @unique
+  description String?
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  userId      Int
+
+  user        User        @relation(fields: [userId], references: [id])
+  
+  @@map("c_certifications")
 }
 
 

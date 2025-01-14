@@ -1,7 +1,7 @@
 import React from "react";
 
-const Certificaciones = () => {
+const CertificacionesPage = () => {
   return <div>Certificaciones</div>;
 };
 
-export default Certificaciones;
+export default CertificacionesPage;

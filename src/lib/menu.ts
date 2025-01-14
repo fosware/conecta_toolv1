@@ -25,4 +25,9 @@ export const menuItems: MenuItem[] = [
     path: "/usuarios",
     icon: "/icons/new_user.svg",
   },
+  {
+    name: "Cat Certificaciones", // Nombre que coincida con el privilegio
+    path: "/cat_certificaciones",
+    icon: "/icons/folder.svg",
+  },
 ];

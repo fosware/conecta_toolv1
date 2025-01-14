@@ -3,10 +3,10 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 const subscopes = [
-  { name: "Anodizado básico", num: 1, scopeId: 1, userId: 1 },
-  { name: "Anodizado especializado", num: 2, scopeId: 1, userId: 1 },
-  { name: "Corte por láser plano", num: 1, scopeId: 12, userId: 1 },
-  { name: "Corte por láser tubular", num: 2, scopeId: 12, userId: 1 },
+  { name: "Machuelos estándares y especiales", num: 1, scopeId: 14, userId: 1 },
+  { name: "Tarrajas", num: 2, scopeId: 14, userId: 1 },
+  { name: "Brocas", num: 1, scopeId: 15, userId: 1 },
+  { name: "Insertos", num: 2, scopeId: 15, userId: 1 },
   // Agrega más subalcances según sea necesario
 ];
 

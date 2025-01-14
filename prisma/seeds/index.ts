@@ -5,6 +5,7 @@ import { seedRolePrivileges } from "./rolePrivileges.js";
 import { seedSpecialties } from "./specialties.js";
 import { seedScopes } from "./scopes.js";
 import { seedSubscopes } from "./subscopes.js";
+import { seedCertifications } from "./certifications.js";
 
 export async function seedAll() {
   try {
@@ -25,6 +26,8 @@ export async function seedAll() {
     console.log("Alcances sembradas.");
     await seedSubscopes();
     console.log("Subalcances sembradas.");
+    await seedCertifications();
+    console.log("Certificaciones sembradas.");
 
     console.log("Semillas completadas.");
   } catch (error) {

@@ -19,7 +19,8 @@ import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { UserModal } from "@/components/ui/user-modal";
 import Image from "next/image";
 import { useCallback } from "react";
-
+import { UserFormData } from "@/lib/schemas/user";
+/*
 interface UserFormData {
   id?: string;
   name: string;
@@ -33,7 +34,7 @@ interface UserFormData {
   phone?: string | null;
   image_profile?: File | null;
 }
-
+*/
 const UsuariosPage = () => {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>("");

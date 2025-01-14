@@ -23,7 +23,7 @@ export async function seedRolePrivileges() {
     "Clientes",
     "Especialidades",
     "Certificaciones",
-    "Registro de usuarios",
+    "Usuarios",
     "View Reports",
     "Edit Projects",
     "Create Projects",
@@ -31,6 +31,7 @@ export async function seedRolePrivileges() {
     "Approve Projects",
     "Assign Roles",
     "Update Clients",
+    "Cat Certificaciones",
   ];
 
   // Mapear privilegios específicos para Staff
