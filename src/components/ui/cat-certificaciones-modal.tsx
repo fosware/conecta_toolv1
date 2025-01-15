@@ -1,7 +1,22 @@
-import React from "react";
+import { catCertificacionesSchema } from "@/schemas/cat-certificaciones-schema";
 
-const CatCertificacionesModal = () => {
-  return <div></div>;
+interface CertificacionesModalProps {
+  IsOpen: boolean;
+  onClose: () => void;
+  onSubmit: (data: catCertificacionesSchema) => Promise<void>;
+  initialData?: Partial<catCertificacionesSchema>;
+  mode: "edit" | "create";
+  onSuccess?: () => Promise<void>;  
+}
+
+export const CatCertificacionesModal = (
+  isOpen,
+  onClose,
+  onSubmit,
+  initialData,
+  mode,
+}: CertificacionesModalProps) => {
+  
 };
 
 export default CatCertificacionesModal;

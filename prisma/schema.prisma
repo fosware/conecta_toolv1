@@ -83,6 +83,8 @@ model Certifications {
   name        String      @unique
   description String?
   isActive    Boolean     @default(true)
+  isDeleted   Boolean     @default(false)
+  dateDeleted DateTime?
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   userId      Int

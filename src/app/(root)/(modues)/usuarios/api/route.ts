@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { PrismaClient, Prisma } from "@prisma/client";
+
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
+
 /*
 type FormDataEntries = {
   email: string;

@@ -23,7 +23,7 @@ export async function PATCH(
       data: { isDeleted: true, dateDeleted: new Date() },
     });
 
-    return NextResponse.json({ message: "Usuario eliminado lógicamente." });
+    return NextResponse.json({ message: "Usuario eliminado" });
   } catch (error) {
     console.error("Error al eliminar usuario:", error);
     return NextResponse.json(
