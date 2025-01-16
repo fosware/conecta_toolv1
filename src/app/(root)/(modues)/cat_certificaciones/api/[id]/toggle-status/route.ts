@@ -8,10 +8,11 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   const { id } = params;
+  const certificationId = parseInt(id);
 
   try {
     const certificacion = await prisma.certifications.findUnique({
-      where: { id: parseInt(id, 10) },
+      where: { id: certificationId },
     });
     if (!certificacion) {
       return NextResponse.json(
@@ -21,7 +22,7 @@ export async function PATCH(
     }
 
     const updatedCertification = await prisma.certifications.update({
-      where: { id: parseInt(id, 10) },
+      where: { id: certificationId },
       data: { isActive: !certificacion.isActive },
     });
     return NextResponse.json(updatedCertification);

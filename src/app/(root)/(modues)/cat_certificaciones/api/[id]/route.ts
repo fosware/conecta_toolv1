@@ -5,8 +5,11 @@ const prisma = new PrismaClient();
 
 export async function PATCH(req: Request, context: { params: { id: string } }) {
   try {
-    const id = parseInt(await Promise.resolve(context.params.id), 10);
-    if (isNaN(id)) {
+    const certificationId = parseInt(
+      await Promise.resolve(context.params.id),
+      10
+    );
+    if (isNaN(certificationId)) {
       return NextResponse.json(
         { message: "ID de certificación inválido." },
         { status: 400 }
@@ -27,9 +30,10 @@ export async function PATCH(req: Request, context: { params: { id: string } }) {
     }
 
     // Verificar si la certificación ya existe
-    const existingCertification = await prisma.certifications.findUnique({
+    const existingCertification = await prisma.certifications.findFirst({
       where: { name },
     });
+
     if (existingCertification) {
       return NextResponse.json(
         { message: "La certificación ya existe." },
@@ -39,8 +43,8 @@ export async function PATCH(req: Request, context: { params: { id: string } }) {
 
     // Actualizar la certificación
     const updatedCertification = await prisma.certifications.update({
-      where: { id },
-      data: { name, description },
+      where: { id: certificationId },
+      data: { name, description, userId: parseInt(userId) },
       include: {
         user: true,
       },

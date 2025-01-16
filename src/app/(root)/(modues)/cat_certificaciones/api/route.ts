@@ -44,6 +44,7 @@ export async function GET(req: Request) {
     const certificaciones = certifications.map((certificacion) => ({
       id: certificacion.id,
       name: certificacion.name,
+      isActive: certificacion.isActive,
       description: certificacion.description,
       userId: certificacion.user.id,
     }));

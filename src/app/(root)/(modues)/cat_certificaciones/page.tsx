@@ -16,9 +16,10 @@ import {
 } from "@/components/ui/table";
 import Image from "next/image";
 import React from "react";
-import CatCertificacionesModal from "@/components/ui/cat-certificaciones-modal";
 import toast from "react-hot-toast";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { catCertificationsFormData } from "@/lib/schemas/cat_certifications";
+import { CatCertificacionesModal } from "@/components/ui/cat-certificaciones-modal";
 
 const CatalogCertifications = () => {
   const [certificaciones, setCertificaciones] = useState<Certificacion[]>([]);
@@ -28,8 +29,9 @@ const CatalogCertifications = () => {
   const [totalPages, setTotalPages] = useState<number>(1);
   const [itemsPerPage, setItemsPerPage] = useState<number>(15);
 
-  //const [editingCertification, setEditingCertification] =
-  //useState<Certificacion | null>(null);
+  const [modalOpen, setModalOpen] = useState<boolean>(false);
+  const [editingCertification, setEditingCertification] =
+    useState<Certificacion | null>(null);
 
   // Función para obtener certificaciones
   const fetchCertificaciones = useCallback(async () => {
@@ -61,11 +63,73 @@ const CatalogCertifications = () => {
     fetchCertificaciones();
   }, [fetchCertificaciones]);
 
+  const handleRegister = async (data: catCertificationsFormData) => {
+    try {
+      const formData = new FormData();
+      Object.entries(data).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          formData.append(key, String(value));
+        }
+      });
+      const res = await fetch("/cat_certificaciones/api", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (res.ok) {
+        toast.success("Certificación creada exitosamente");
+        fetchCertificaciones();
+      } else {
+        toast.error("Error al crear la certificación");
+      }
+    } catch (error) {
+      toast.error("Error al conectar con el servidor.");
+      console.error(error);
+    }
+  };
+
+  const handleEdit = async (data: catCertificationsFormData) => {
+    if (!editingCertification) return;
+
+    try {
+      const formData = new FormData();
+      Object.entries(data).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          formData.append(key, String(value));
+        }
+      });
+
+      const res = await fetch(
+        `/cat_certificaciones/api/${editingCertification.id}`,
+        {
+          method: "PATCH",
+          body: formData, // Enviar datos como FormData para incluir archivos
+        }
+      );
+
+      if (res.ok) {
+        toast.success("Certificación actualizada exitosamente");
+        fetchCertificaciones();
+      } else {
+        toast.error("Error al actualizar la certificación");
+      }
+    } catch (error) {
+      toast.error("Error al conectar con el servidor.");
+      console.error(error);
+    }
+  };
+
   return (
     <div className="container mx-auto p-4">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">Catálogo de Certificaciones</h1>
-        <Button className="bg-transparent hover:text-white">
+        <Button
+          className="bg-transparent hover:text-white"
+          onClick={() => {
+            setEditingCertification(null);
+            setModalOpen(true);
+          }}
+        >
           <Image
             src="/icons/new_user.svg"
             alt="new certification icon"
@@ -134,7 +198,7 @@ const CatalogCertifications = () => {
                       );
                       if (res.ok) {
                         toast.success(
-                          `Certificación ${isActive ? "activada" : "desactivada"}.`
+                          `Certificación ${isActive ? "habilitado" : "inhabilitado"}.`
                         );
                         fetchCertificaciones();
                       } else {
@@ -148,7 +212,13 @@ const CatalogCertifications = () => {
                 />
               </TableCell>
               <TableCell className="flex gap-3">
-                <Button className="w-10 h-10 flex items-center justify-center bg-transparent p-0">
+                <Button
+                  className="w-10 h-10 flex items-center justify-center bg-transparent p-0"
+                  onClick={() => {
+                    setEditingCertification(certificacion);
+                    setModalOpen(true);
+                  }}
+                >
                   <Image
                     alt="edit icon"
                     src="/icons/edit.svg"
@@ -162,7 +232,7 @@ const CatalogCertifications = () => {
                   onConfirm={async () => {
                     try {
                       const res = await fetch(
-                        `/cat_certificaciones/api/${certificacion.id}`,
+                        `/cat_certificaciones/api/${certificacion.id}/delete`,
                         {
                           method: "PATCH",
                           headers: {
@@ -201,6 +271,7 @@ const CatalogCertifications = () => {
           ))}
         </TableBody>
       </Table>
+
       <Pagination
         currentPage={currentPage}
         totalPages={totalPages}
@@ -208,7 +279,25 @@ const CatalogCertifications = () => {
         range={3} // Mostrar 3 páginas a la vez
       />
       {/* Modal */}
-      <CatCertificacionesModal />
+      <CatCertificacionesModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onSubmit={editingCertification ? handleEdit : handleRegister}
+        onSuccess={fetchCertificaciones}
+        initialData={
+          editingCertification
+            ? {
+                name: editingCertification.name,
+                description: editingCertification.description,
+                isActive: editingCertification.isActive,
+                isDeleted: editingCertification.isDeleted,
+                createdAt: editingCertification.createdAt,
+                updatedAt: editingCertification.updatedAt,
+              }
+            : undefined
+        }
+        mode={editingCertification ? "edit" : "create"}
+      />
     </div>
   );
 };
