@@ -4,12 +4,15 @@ import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
-export async function PATCH(req: Request, context: { params: { id: string } }) {
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
-    console.log("Iniciando PATCH para usuario:", context.params.id);
-
     // Resolver el parámetro dinámico id
-    const userId = parseInt(await Promise.resolve(context.params.id), 10);
+    const resolvedParams = await params;
+    const userId = parseInt(resolvedParams.id, 10);
+
     if (isNaN(userId)) {
       return NextResponse.json(
         { message: "ID de usuario inválido." },
@@ -17,7 +20,7 @@ export async function PATCH(req: Request, context: { params: { id: string } }) {
       );
     }
 
-    const formData = await req.formData();
+    const formData = await request.formData();
 
     const email = formData.get("email") as string | null;
     const username = formData.get("username") as string | null;

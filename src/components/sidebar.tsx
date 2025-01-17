@@ -8,10 +8,10 @@ import { MenuItem } from "@/lib/menu";
 
 export default function Sidebar({
   isOpen,
-  onClose,
+  setIsOpen,
 }: {
   isOpen: boolean;
-  onClose: () => void;
+  setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
 
@@ -71,7 +71,7 @@ export default function Sidebar({
       </aside>
 
       {/* Sidebar desplegable para pantallas medianas y pequeñas */}
-      <Sheet open={isOpen} onOpenChange={onClose}>
+      <Sheet open={isOpen} onOpenChange={setIsOpen}>
         <SheetTitle></SheetTitle>
         <SheetContent
           side="left"
@@ -97,7 +97,7 @@ export default function Sidebar({
                   <Link
                     href={item.path}
                     className="flex items-center space-x-3 px-4 py-2 rounded hover:bg-accent hover:text-background transition group"
-                    onClick={onClose}
+                    onClick={() => setIsOpen(false)}
                   >
                     <Image
                       src={item.icon}

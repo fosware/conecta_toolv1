@@ -7,10 +7,19 @@ export async function PATCH(
   request: Request,
   { params }: { params: { id: string } }
 ) {
-  const { id } = params;
   try {
+    const id = await Promise.resolve(params.id);
+    const certificationId = parseInt(id, 10);
+
+    if (isNaN(certificationId)) {
+      return NextResponse.json(
+        { message: "ID de certificación inválido." },
+        { status: 400 }
+      );
+    }
+
     const deletedCertification = await prisma.certifications.findUnique({
-      where: { id: parseInt(id, 10) },
+      where: { id: certificationId },
     });
 
     if (!deletedCertification) {
@@ -21,13 +30,12 @@ export async function PATCH(
     }
 
     await prisma.certifications.update({
-      where: { id: parseInt(id, 10) },
+      where: { id: certificationId },
       data: { isDeleted: true, dateDeleted: new Date() },
     });
 
     return NextResponse.json({ message: "Certificación eliminada" });
-  } catch (error) {
-    console.error("Error al eliminar certificación:", error);
+  } catch {
     return NextResponse.json(
       { message: "Error al eliminar certificación." },
       { status: 500 }

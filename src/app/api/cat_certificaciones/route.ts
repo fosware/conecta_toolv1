@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { PrismaClient, Prisma } from "@prisma/client";
+import { cookies } from "next/headers";
+//import * as jose from "jose";
 
 const prisma = new PrismaClient();
 
@@ -10,6 +12,17 @@ export async function GET(req: Request) {
     const limit = parseInt(searchParams.get("limit") || "5", 10);
     const searchTerm = searchParams.get("search") || "";
     const onlyActive = searchParams.get("onlyActive") === "true";
+
+    // Verificar autenticación
+    const cookieStore = await cookies();
+    const token = await cookieStore.get("token")?.value;
+
+    if (!token) {
+      return NextResponse.json(
+        { error: "No estás autenticado" },
+        { status: 401 }
+      );
+    }
 
     const where: Prisma.CertificationsWhereInput = {
       isDeleted: false,
@@ -49,13 +62,17 @@ export async function GET(req: Request) {
       userId: certificacion.user.id,
     }));
 
-    return NextResponse.json({
-      certificaciones,
-      total,
-      totalPages,
-      currentPage,
-    });
-  } catch {
+    return NextResponse.json(
+      {
+        certificaciones,
+        total,
+        totalPages,
+        currentPage,
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error al obtener certificaciones:", error);
     return NextResponse.json(
       { error: "Error al obtener certificaciones" },
       { status: 500 }
@@ -63,27 +80,21 @@ export async function GET(req: Request) {
   }
 }
 
-// Crear una nueva certificación
 export async function POST(req: Request) {
   try {
-    const jsonData = await req.json();
-    const { name, description, userId } = jsonData;
+    const formData = await req.formData();
+    const name = formData.get("name") as string;
+    const description = formData.get("description") as string;
+    const userId = formData.get("userId") as string;
 
-    if (!name || !userId) {
+    // Verificar autenticación
+    const cookieStore = await cookies();
+    const token = await cookieStore.get("token")?.value;
+
+    if (!token) {
       return NextResponse.json(
-        { message: "El nombre y el ID del usuario son requeridos." },
-        { status: 400 }
-      );
-    }
-
-    const existingCertification = await prisma.certifications.findFirst({
-      where: { name },
-    });
-
-    if (existingCertification) {
-      return NextResponse.json(
-        { message: "Ya existe una certificación con ese nombre." },
-        { status: 400 }
+        { error: "No estás autenticado" },
+        { status: 401 }
       );
     }
 
@@ -91,43 +102,21 @@ export async function POST(req: Request) {
       data: {
         name,
         description,
-        userId: parseInt(userId, 10),
         isActive: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        isDeleted: false,
+        user: {
+          connect: {
+            id: parseInt(userId),
+          },
+        },
       },
     });
 
     return NextResponse.json(certification, { status: 201 });
-  } catch {
+  } catch (error) {
+    console.error("Error al crear certificación:", error);
     return NextResponse.json(
-      { message: "Error al crear la certificación." },
-      { status: 500 }
-    );
-  }
-}
-
-// Eliminar una certificación
-export async function DELETE(req: Request) {
-  try {
-    const { id } = await req.json();
-
-    if (!id) {
-      return NextResponse.json(
-        { message: "ID de certificación es requerido." },
-        { status: 400 }
-      );
-    }
-
-    const deletedCertification = await prisma.certifications.update({
-      where: { id },
-      data: { isDeleted: true, dateDeleted: new Date() },
-    });
-
-    return NextResponse.json(deletedCertification);
-  } catch {
-    return NextResponse.json(
-      { message: "Error al eliminar certificación." },
+      { error: "Error al crear certificación" },
       { status: 500 }
     );
   }

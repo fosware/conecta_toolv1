@@ -2,9 +2,41 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  :root {
+    --background: 242 242 242;
+    --foreground: 30 41 59;
+    --card: 255 255 255;
+    --border: 229 231 235;
+    --primary: 113 121 134;
+    --accent: 107 114 128;
+    --destructive: 239 68 68;
+    --muted: 229 231 235;
+    --success: 34 197 94;     /* Verde para éxito */
+    --warning: 234 179 8;     /* Ámbar para advertencias */
+    --info: 59 130 246;       /* Azul para información */
+    --hover: 243 244 246;     /* Hover para modo claro */
+  }
+
+  .dark {
+    --background: 26 28 30;      /* #1A1C1E - Fondo principal más gris */
+    --foreground: 230 237 243;   /* #E6EDF3 - Texto principal */
+    --card: 35 38 41;           /* #232629 - Tarjetas */
+    --border: 47 51 55;         /* #2F3337 - Bordes y separadores */
+    --primary: 156 163 175;     /* #9CA3AF - Gris más suave para elementos primarios */
+    --accent: 156 163 175;      /* #9CA3AF - Mismo gris para acentos */
+    --destructive: 248 81 73;   /* #F85149 - Rojo más vibrante para errores */
+    --muted: 47 51 55;          /* #2F3337 - Elementos atenuados */
+    --success: 46 160 67;       /* #2EA043 - Verde más oscuro para éxito */
+    --warning: 187 128 9;       /* #BB8009 - Ámbar más oscuro */
+    --info: 54 123 240;         /* #367BF0 - Azul información */
+    --hover: 56 55 61;          /* #38373D - Hover con tono grisáceo sutil */
+  }
+}
+
 /* Tema global para el body */
 body {
-  @apply bg-background text-foreground;
+  @apply bg-background text-foreground transition-colors duration-200;
 }
 
 /* Clases personalizadas para contenedores */
@@ -18,8 +50,7 @@ body {
   }
 
   .menu-item {
-    @apply hover:bg-accent hover:text-background 
-           dark:hover:bg-accent-dark dark:hover:text-background 
+    @apply hover:bg-[rgb(var(--hover))] hover:text-foreground
            transition rounded-md px-4 py-2;
   }
 }
@@ -31,39 +62,30 @@ body {
 
 /* Texto secundario */
 .muted-text {
-  @apply text-muted;
+  @apply text-muted dark:text-muted-dark;
 }
 
-html.dark body {
-  @apply bg-background-dark text-foreground-dark;
-}
-
-.navbar-gradient {
-  @apply bg-gradient-to-r from-gray-800 to-gray-900 dark:from-gray-900 dark:to-black;
-}
-
+/* Toasts */
 .toast-success {
-  background-color: var(
-    --accent
-  ); /* Color de éxito **
-  color: var(--background); /* Texto contrastante */
-  border: 1px solid var(--accent-dark); /* Borde más oscuro */
+  @apply bg-card dark:bg-background border;
+  color: rgb(var(--success));
+  border-color: rgb(var(--success));
 }
 
 .toast-error {
-  background-color: red; /*  var(--destructive); /* Color de error */
-  color: var(--background); /* Texto contrastante */
-  border: 1px solid var(--destructive-dark); /* Borde más oscuro */
+  @apply bg-card dark:bg-background border;
+  color: rgb(var(--destructive));
+  border-color: rgb(var(--destructive));
 }
 
 .toast-info {
-  background-color: var(--muted); /* Color informativo */
-  color: var(--foreground); /* Texto contrastante */
-  border: 1px solid var(--muted-dark); /* Borde más oscuro */
+  @apply bg-card dark:bg-background border;
+  color: rgb(var(--info));
+  border-color: rgb(var(--info));
 }
 
 .toast-warning {
-  background-color: var(--warning); /* Color de advertencia */
-  color: var(--foreground); /* Texto contrastante */
-  border: 1px solid var(--warning-dark); /* Borde más oscuro */
+  @apply bg-card dark:bg-background border;
+  color: rgb(var(--warning));
+  border-color: rgb(var(--warning));
 }

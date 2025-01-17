@@ -1,4 +1,4 @@
-import { Config } from "tailwindcss";
+import type { Config } from "tailwindcss";
 
 const config: Config = {
   darkMode: "class",
@@ -10,34 +10,47 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      backgroundColor: {
+        background: "rgb(var(--background) / <alpha-value>)",
+        "background-dark": "#1A1C1E",
+        card: "rgb(var(--card) / <alpha-value>)",
+        "card-dark": "#232629",
+        hover: "rgb(var(--hover) / <alpha-value>)",
+      },
+      textColor: {
+        foreground: "rgb(var(--foreground) / <alpha-value>)",
+        "foreground-dark": "#E6EDF3",
+        muted: "rgb(var(--muted) / <alpha-value>)",
+        "muted-dark": "#2F3337",
+      },
+      borderColor: {
+        border: "rgb(var(--border) / <alpha-value>)",
+        "border-dark": "#2F3337",
+      },
       colors: {
-        background: {
-          DEFAULT: "#f2f2f2", // Fondo claro por defecto
-          dark: "#1f1f22", // Fondo principal en modo oscuro
-        },
-        foreground: {
-          DEFAULT: "#1e293b", // Texto principal en modo claro
-          dark: "#f5f5f5", // Texto principal en modo oscuro
-        },
-        border: {
-          DEFAULT: "#e5e7eb", // Borde en modo claro
-          dark: "#33363a", // Bordes en modo oscuro
-        },
-        muted: {
-          DEFAULT: "#e5e7eb", // Texto secundario en modo claro
-          dark: "#2d2f31", // Texto secundario en modo oscuro
+        accent: {
+          DEFAULT: "rgb(var(--accent) / <alpha-value>)",
+          dark: "#9CA3AF",
         },
         primary: {
-          DEFAULT: "#717986", // Azul grisáceo moderno
-          dark: "#64748b", // Tonalidad primaria en modo oscuro
+          DEFAULT: "rgb(var(--primary) / <alpha-value>)",
+          dark: "#9CA3AF",
         },
-        card: {
-          DEFAULT: "#ffffff",
-          dark: "#25262b", // Tarjetas o contenedores en modo oscuro
+        destructive: {
+          DEFAULT: "rgb(var(--destructive) / <alpha-value>)",
+          dark: "#F85149",
         },
-        accent: {
-          DEFAULT: "#6b7280",
-          dark: "#9ca3af",
+        success: {
+          DEFAULT: "rgb(var(--success) / <alpha-value>)",
+          dark: "#2EA043",
+        },
+        warning: {
+          DEFAULT: "rgb(var(--warning) / <alpha-value>)",
+          dark: "#BB8009",
+        },
+        info: {
+          DEFAULT: "rgb(var(--info) / <alpha-value>)",
+          dark: "#367BF0",
         },
       },
     },

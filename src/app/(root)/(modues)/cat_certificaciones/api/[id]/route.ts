@@ -3,12 +3,11 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-export async function PATCH(req: Request, context: { params: { id: string } }) {
+export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   try {
-    const certificationId = parseInt(
-      await Promise.resolve(context.params.id),
-      10
-    );
+    const id = await Promise.resolve(params.id);
+    const certificationId = parseInt(id, 10);
+
     if (isNaN(certificationId)) {
       return NextResponse.json(
         { message: "ID de certificación inválido." },
@@ -16,27 +15,40 @@ export async function PATCH(req: Request, context: { params: { id: string } }) {
       );
     }
 
-    const formData = await req.formData();
-    const name = formData.get("name") as string;
-    const description = formData.get("description") as string;
-    const userId = formData.get("userId") as string;
+    const jsonData = await req.json();
+    const { name, description, userId } = jsonData;
 
     // Validar datos requeridos
-    if (!name || !description || !userId) {
+    if (!name || !userId) {
       return NextResponse.json(
-        { message: "Faltan datos requeridos." },
+        { message: "El nombre y el ID del usuario son requeridos." },
         { status: 400 }
       );
     }
 
-    // Verificar si la certificación ya existe
-    const existingCertification = await prisma.certifications.findFirst({
-      where: { name },
+    // Verificar si la certificación existe
+    const existingCertification = await prisma.certifications.findUnique({
+      where: { id: certificationId },
     });
 
-    if (existingCertification) {
+    if (!existingCertification) {
       return NextResponse.json(
-        { message: "La certificación ya existe." },
+        { message: "La certificación no existe." },
+        { status: 404 }
+      );
+    }
+
+    // Verificar si el nombre ya existe en otra certificación
+    const duplicateCertification = await prisma.certifications.findFirst({
+      where: {
+        name,
+        id: { not: certificationId }, // Excluir la certificación actual
+      },
+    });
+
+    if (duplicateCertification) {
+      return NextResponse.json(
+        { message: "Ya existe una certificación con ese nombre." },
         { status: 400 }
       );
     }
@@ -44,17 +56,18 @@ export async function PATCH(req: Request, context: { params: { id: string } }) {
     // Actualizar la certificación
     const updatedCertification = await prisma.certifications.update({
       where: { id: certificationId },
-      data: { name, description, userId: parseInt(userId) },
-      include: {
-        user: true,
+      data: {
+        name,
+        description,
+        userId: parseInt(userId, 10),
+        updatedAt: new Date(),
       },
     });
 
     return NextResponse.json(updatedCertification);
-  } catch (error) {
-    console.error("Error al actualizar certificación:", error);
+  } catch {
     return NextResponse.json(
-      { message: "Error al actualizar certificación." },
+      { message: "Error al actualizar la certificación." },
       { status: 500 }
     );
   }

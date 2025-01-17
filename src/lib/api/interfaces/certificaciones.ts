@@ -1,9 +1,12 @@
+import { User } from "@prisma/client";
+
 export interface Certificacion {
-  id: number;
+  id: string;
   name: string;
   description: string;
   isActive: boolean;
   isDeleted: boolean;
   createdAt: Date;
   updatedAt: Date;
+  idUser: User;
 }

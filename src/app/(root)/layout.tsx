@@ -16,62 +16,38 @@ export default function RootLayout({
   const [isSidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <html lang="es" suppressHydrationWarning>
-      <head>
-        <title>ConectaTool</title>
-        <meta
-          name="description"
-          content="ConectaTool - Tu plataforma de gestión y productividad"
+    <div className="h-screen flex flex-col">
+      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={true}>
+        <Toaster
+          position="bottom-right"
+          reverseOrder={false}
+          toastOptions={{
+            success: {
+              style: {
+                backgroundColor: "var(--background)", 
+                color: "var(--accent)", 
+                border: "1px solid var(--accent)", 
+              },
+              iconTheme: {
+                primary: "var(--accent)",
+                secondary: "var(--background)",
+              },
+            },
+            error: {
+              style: {
+                backgroundColor: "var(--background)",
+                color: "var(--destructive)",
+                border: "1px solid var(--destructive)",
+              },
+            },
+          }}
         />
-        <link rel="icon" href="/favicon.ico" />
-      </head>
-      <body className="h-screen flex flex-col bg-background text-foreground">
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          enableSystem={false}
-        >
-          <Toaster
-            position="bottom-right"
-            reverseOrder={false}
-            toastOptions={{
-              success: {
-                style: {
-                  backgroundColor: "rgb(242, 242, 242)", // Color de éxito
-                  color: "green", // Texto contrastante
-                  border: "1px solid var(--accent-dark)", // Borde más oscuro
-                },
-                iconTheme: {
-                  primary: "var(--background)", // Color del ícono
-                  secondary: "var(--accent)", // Fondo del ícono
-                },
-              },
-              error: {
-                style: {
-                  backgroundColor: "rgb(242, 242, 242)", // Color de error
-                  color: "red", // Texto contrastante
-                  border: "1px solid var(--destructive-dark)", // Borde más oscuro
-                },
-              },
-            }}
-          />
-          {/* Navbar */}
-          <Navbar onMenuClick={() => setSidebarOpen(!isSidebarOpen)} />
-
-          <div className="flex flex-1 overflow-hidden">
-            {/* Sidebar */}
-            <Sidebar
-              isOpen={isSidebarOpen}
-              onClose={() => setSidebarOpen(false)}
-            />
-
-            {/* Main Content */}
-            <main className="flex-1 flex flex-col p-4 overflow-auto">
-              {children}
-            </main>
-          </div>
-        </ThemeProvider>
-      </body>
-    </html>
+        <Navbar isSidebarOpen={isSidebarOpen} setSidebarOpen={setSidebarOpen} />
+        <div className="flex flex-1 overflow-hidden bg-background dark:bg-background-dark">
+          <Sidebar isOpen={isSidebarOpen} setIsOpen={setSidebarOpen} />
+          <main className="flex-1 overflow-y-auto p-4 bg-background dark:bg-background-dark">{children}</main>
+        </div>
+      </ThemeProvider>
+    </div>
   );
 }

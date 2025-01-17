@@ -16,7 +16,13 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useRef } from "react"; // Import useRef
 
-export default function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
+export default function Navbar({
+  isSidebarOpen,
+  setSidebarOpen,
+}: {
+  isSidebarOpen: boolean;
+  setSidebarOpen: React.Dispatch<React.SetStateAction<boolean>>;
+}) {
   const router = useRouter();
   const { profileImage, setProfileImage } = useUserStore();
   const usernameRef = useRef<string | null>(null);
@@ -79,7 +85,7 @@ export default function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
             variant="ghost"
             size="icon"
             className="lg:hidden" // Visible en pantallas menores a lg
-            onClick={onMenuClick}
+            onClick={() => setSidebarOpen(!isSidebarOpen)}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
