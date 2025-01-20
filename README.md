@@ -1,36 +1,164 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Conecta Tool v1
 
-## Getting Started
+Sistema de gestión y certificación desarrollado con Next.js 15, Prisma y PostgreSQL.
 
-First, run the development server:
+## 🔧 Tecnologías Principales
 
+- **Frontend**:
+  - Next.js 15.1.0
+  - React 19.0.0
+  - Tailwind CSS
+  - NextUI v2.6.11
+  - Sonner 1.7.2 (notificaciones)
+  - Framer Motion 11.18.0
+  - Zustand 5.0.2 (manejo de estado)
+
+- **Backend**:
+  - Next.js 15.1.0 (App Router)
+  - Prisma ORM 6.1.0
+  - PostgreSQL
+  - JWT (jose 5.9.6)
+  - Zod 3.24.1 (validación)
+
+- **DevOps**:
+  - Docker
+  - Docker Compose
+  - TurboRepo (desarrollo)
+
+## 🚀 Requisitos Previos
+
+- Node.js (v18 o superior)
+- Docker y Docker Compose
+- npm o yarn
+
+## 📦 Instalación
+
+1. Clonar el repositorio:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone [URL_DEL_REPOSITORIO]
+cd conecta_toolv1
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Copiar el archivo de variables de entorno:
+```bash
+cp .env.example .env
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Ejecutar el script de configuración:
+```bash
+./setup.sh
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+> **Nota**: Si el script no es ejecutable, puedes darle permisos con:
+> ```bash
+> chmod +x setup.sh
+> ```
 
-## Learn More
+## 🛠️ Comandos Útiles
 
-To learn more about Next.js, take a look at the following resources:
+### Desarrollo
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Iniciar el servidor de desarrollo:
+```bash
+npm run dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Base de Datos
 
-## Deploy on Vercel
+- Levantar contenedores Docker:
+```bash
+docker-compose up -d
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Detener contenedores:
+```bash
+docker-compose down
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Ver logs de la base de datos:
+```bash
+docker-compose logs -f db
+```
+
+- Reiniciar la base de datos:
+```bash
+docker-compose restart db
+```
+
+### Prisma
+
+- Generar cliente Prisma:
+```bash
+npx prisma generate
+```
+
+- Aplicar migraciones:
+```bash
+npx prisma migrate deploy
+```
+
+- Resetear la base de datos:
+```bash
+npx prisma migrate reset --force
+```
+
+- Cargar datos iniciales (seeds):
+```bash
+npm run prisma:seed
+```
+
+## 🗄️ Estructura del Proyecto
+
+```
+conecta_toolv1/
+├── prisma/                 # Esquemas y migraciones de base de datos
+│   ├── schema.prisma      # Definición del modelo de datos
+│   ├── migrations/        # Migraciones de la base de datos
+│   └── seeds/            # Datos iniciales
+├── src/
+│   ├── app/              # Rutas y páginas de Next.js
+│   ├── components/       # Componentes React reutilizables
+│   └── lib/             # Utilidades y configuraciones
+├── public/              # Archivos estáticos
+└── docker-compose.yml   # Configuración de Docker
+```
+
+## 🔧 Configuración
+
+### Variables de Entorno
+
+Asegúrate de configurar las siguientes variables en tu archivo `.env`:
+
+```env
+DATABASE_URL="postgresql://usuario:contraseña@localhost:5432/conecta_toolv1?schema=public"
+JWT_SECRET="tu_secreto_jwt"
+```
+
+### Docker
+
+El proyecto utiliza Docker para la base de datos PostgreSQL. La configuración se encuentra en `docker-compose.yml`.
+
+## 🚨 Solución de Problemas
+
+### Problemas Comunes
+
+1. **Error de conexión a la base de datos**
+   - Verificar que Docker esté corriendo
+   - Comprobar las credenciales en el archivo `.env`
+   - Reiniciar el contenedor de la base de datos
+
+2. **Error al cargar las semillas**
+   - Asegurarse de que la base de datos está corriendo
+   - Verificar que las migraciones se han aplicado
+   - Ejecutar `npx prisma migrate reset --force` para un reinicio completo
+
+## 📝 Contribuir
+
+1. Crear una rama para tu feature
+2. Hacer commit de tus cambios
+3. Empujar los cambios a tu rama
+4. Crear un Pull Request
+
+## 📄 Licencia
+
+Este proyecto está bajo la Licencia [TU_LICENCIA].

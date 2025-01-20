@@ -8,102 +8,100 @@ datasource db {
 }
 
 model User {
-  id            Int       @id @default(autoincrement())
-  email         String    @unique
+  id            Int              @id @default(autoincrement())
+  email         String           @unique
   password      String
-  username      String    @unique
+  username      String           @unique
   roleId        Int
-  role          Role      @relation(fields: [roleId], references: [id])
+  role          Role             @relation(fields: [roleId], references: [id])
   profile       Profile?
-  isActive      Boolean   @default(true)
-  isDeleted     Boolean   @default(false)
+  isActive      Boolean          @default(true)
+  isDeleted     Boolean          @default(false)
   dateDeleted   DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
   Specialties   Specialties[]
   Scopes        Scopes[]
   Subscopes     Subscopes[]
   Cerifications Certifications[]
-  
+
   @@map("d_users")
 }
 
-
 model Specialties {
-  id          Int       @id @default(autoincrement())
-  name        String    @unique
-  num         Int       @unique
-  description String?  
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  num         Int      @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   userId      Int
-  user        User      @relation(fields: [userId], references: [id])
+  user        User     @relation(fields: [userId], references: [id])
   Scopes      Scopes[]
 
   @@map("d_specialties")
 }
 
 model Scopes {
-  id          Int         @id @default(autoincrement())
-  name        String      @unique
-  num         Int         
-  description String?  
-  isActive    Boolean     @default(true)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  num         Int
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   userId      Int
   specialtyId Int
 
-  user        User        @relation(fields: [userId], references: [id])
-  specialty   Specialties @relation(fields: [specialtyId], references: [id])
-  Subscopes   Subscopes[]
-  
+  user      User        @relation(fields: [userId], references: [id])
+  specialty Specialties @relation(fields: [specialtyId], references: [id])
+  Subscopes Subscopes[]
+
   @@map("d_scopes")
 }
 
 model Subscopes {
-  id          Int         @id @default(autoincrement())
-  name        String      @unique
-  num         Int
-  isActive    Boolean     @default(true)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  userId      Int
-  scopeId     Int
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  num       Int
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId    Int
+  scopeId   Int
 
-  user        User        @relation(fields: [userId], references: [id])
-  scope       Scopes      @relation(fields: [scopeId], references: [id])
-  
+  user  User   @relation(fields: [userId], references: [id])
+  scope Scopes @relation(fields: [scopeId], references: [id])
+
   @@map("d_subscopes")
 }
 
 model Certifications {
-  id          Int         @id @default(autoincrement())
-  name        String      @unique
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
   description String?
-  isActive    Boolean     @default(true)
-  isDeleted   Boolean     @default(false)
+  isActive    Boolean   @default(true)
+  isDeleted   Boolean   @default(false)
   dateDeleted DateTime?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   userId      Int
 
-  user        User        @relation(fields: [userId], references: [id])
-  
+  user User @relation(fields: [userId], references: [id])
+
   @@map("c_certifications")
 }
 
-
 model Profile {
-  id              Int      @id @default(autoincrement())
+  id              Int     @id @default(autoincrement())
   name            String
   first_lastname  String
   second_lastname String?
   phone           String?
   image_profile   String?
-  userId          Int      @unique
-  user            User     @relation(fields: [userId], references: [id])
+  userId          Int     @unique
+  user            User    @relation(fields: [userId], references: [id])
 
   @@map("d_profiles")
 }
@@ -141,3 +139,6 @@ model Privilege {
   @@map("c_privileges")
 }
 
+// npx prisma migrate dev --name init
+// npx prisma generate
+// npm run prisma:seed
