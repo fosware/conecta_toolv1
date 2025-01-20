@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Pagination } from "@/components/ui/pagination";
-import { toast } from "react-hot-toast";
+import { showToast } from "@/components/ui/custom-toast";
 import { Usuario } from "@/lib/api/interfaces/usuario";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { UserModal } from "@/components/ui/user-modal";
@@ -57,17 +57,36 @@ const UsuariosPage = () => {
       });
 
       const res = await fetch(`/usuarios/api?${params}`);
+      const data = await res.json();
+
       if (res.ok) {
-        const data: { usuarios: Usuario[]; totalPages: number } =
-          await res.json();
-        setUsuarios(data.usuarios);
-        setTotalPages(data.totalPages);
+        setUsuarios(data.usuarios || []);
+        setTotalPages(data.totalPages || 1);
+        /*
+        // Solo mostrar mensaje de "no hay usuarios" si es una búsqueda o filtro
+        if (data.usuarios.length === 0 && (searchTerm || onlyActive)) {
+          showToast({
+            message: "No se encontraron usuarios con los filtros actuales",
+            type: "warning"
+          });
+        }
+        */
       } else {
-        toast.error("Error al obtener usuarios.");
+        showToast({
+          message: data.message || "Error al obtener los usuarios",
+          type: "error",
+        });
+        setUsuarios([]);
+        setTotalPages(1);
       }
     } catch (error) {
-      toast.error("Error al conectar con la API.");
-      console.error(error);
+      console.error("Error fetching usuarios:", error);
+      showToast({
+        message: "Error al obtener los usuarios",
+        type: "error",
+      });
+      setUsuarios([]);
+      setTotalPages(1);
     }
   }, [currentPage, itemsPerPage, searchTerm, onlyActive]);
 
@@ -90,41 +109,74 @@ const UsuariosPage = () => {
       });
 
       if (res.ok) {
-        toast.success("Usuario registrado correctamente.");
+        showToast({
+          message: "Usuario registrado correctamente",
+          type: "success",
+        });
         fetchUsuarios(); // Actualiza la lista tras el registro
       } else {
-        toast.error("Error al registrar el usuario.");
+        showToast({
+          message: "Error al registrar el usuario",
+          type: "error",
+        });
       }
     } catch (error) {
-      toast.error("Error al conectar con el servidor.");
+      showToast({
+        message: "Error al conectar con el servidor",
+        type: "error",
+      });
       console.error(error);
     }
   };
 
   const handleEdit = async (data: UserFormData) => {
-    if (!editingUser) return;
-
     try {
+      if (!editingUser) {
+        showToast({
+          message: "Error: Usuario no válido",
+          type: "error",
+        });
+        return;
+      }
+
       const formData = new FormData();
       Object.entries(data).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
-          formData.append(key, value);
+          // Manejar específicamente la imagen
+          if (key === "image_profile" && value instanceof File) {
+            formData.append(key, value, value.name);
+          } else {
+            formData.append(key, String(value));
+          }
         }
       });
 
       const res = await fetch(`/usuarios/api/${editingUser.id}`, {
         method: "PATCH",
-        body: formData, // Enviar datos como FormData para incluir archivos
+        body: formData,
       });
 
-      if (res.ok) {
-        toast.success("Usuario actualizado correctamente.");
-        fetchUsuarios(); // Actualiza la lista tras la edición
-      } else {
-        toast.error("Error al actualizar el usuario.");
+      const responseData = await res.json();
+
+      if (!res.ok) {
+        showToast({
+          message: responseData.message || "Error al actualizar el usuario",
+          type: "error",
+        });
+        return;
       }
+
+      showToast({
+        message: "Usuario actualizado correctamente",
+        type: "success",
+      });
+      setModalOpen(false);
+      fetchUsuarios();
     } catch (error) {
-      toast.error("Error al conectar con el servidor.");
+      showToast({
+        message: "Error al conectar con el servidor",
+        type: "error",
+      });
       console.error(error);
     }
   };
@@ -212,18 +264,23 @@ const UsuariosPage = () => {
                       );
 
                       if (res.ok) {
-                        toast.success(
-                          `Usuario ${isActive ? "habilitado" : "inhabilitado"}.`
-                        );
+                        showToast({
+                          message: `Usuario ${isActive ? "habilitado" : "inhabilitado"}`,
+                          type: "success",
+                        });
                         fetchUsuarios(); // Actualiza la lista tras el cambio de estado
                       } else {
-                        toast.error(
-                          "No se pudo actualizar el estado del usuario."
-                        );
+                        showToast({
+                          message: "Error al actualizar el estado",
+                          type: "error",
+                        });
                       }
                     } catch (error) {
-                      toast.error("Error al conectar con el servidor.");
-                      console.error(error);
+                      showToast({
+                        message: "Error al actualizar el estado",
+                        type: "error",
+                      });
+                      console.error("Error al actualizar el estado:", error);
                     }
                   }}
                 />
@@ -259,14 +316,23 @@ const UsuariosPage = () => {
                       );
 
                       if (res.ok) {
-                        toast.success("Usuario eliminado correctamente.");
+                        showToast({
+                          message: "Usuario eliminado correctamente",
+                          type: "success",
+                        });
                         fetchUsuarios(); // Actualiza la lista tras la eliminación
                       } else {
-                        toast.error("Error al eliminar usuario.");
+                        showToast({
+                          message: "Error al eliminar el usuario",
+                          type: "error",
+                        });
                       }
                     } catch (error) {
-                      toast.error("Error al conectar con el servidor.");
-                      console.error(error);
+                      showToast({
+                        message: "Error al eliminar el usuario",
+                        type: "error",
+                      });
+                      console.error("Error al eliminar el usuario:", error);
                     }
                   }}
                   trigger={

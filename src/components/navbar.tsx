@@ -13,8 +13,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { useUserStore } from "@/lib/store/useUserState";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { useRef } from "react"; // Import useRef
+import { useEffect, useState } from "react";
+//import { useRef } from "react"; // Import useRef
 
 export default function Navbar({
   isSidebarOpen,
@@ -25,35 +25,54 @@ export default function Navbar({
 }) {
   const router = useRouter();
   const { profileImage, setProfileImage } = useUserStore();
-  const usernameRef = useRef<string | null>(null);
+  const [username, setUsername] = useState<string | null>(null);
+  //const usernameRef = useRef<string | null>(null);
   // Fetch profile image on mount
   useEffect(() => {
     const fetchProfileImage = async () => {
       try {
-        const token = document.cookie.replace(
-          /(?:(?:^|.*;\s*)token\s*=\s*([^;]*).*$)|^.*$/,
-          "$1"
-        );
+        // Verificar si hay token antes de hacer el fetch
+        const token = document.cookie.includes("token=");
+        if (!token) {
+          setProfileImage(null);
+          setUsername(null);
+          return;
+        }
 
         const res = await fetch("/profile/api/get", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          method: "GET",
+          credentials: "include",
         });
 
-        if (res.ok) {
-          const data = await res.json();
-          usernameRef.current = data.user.username;
-          setProfileImage(
-            data.profile.image_profile
-              ? `data:image/png;base64,${data.profile.image_profile}`
-              : null
-          );
-        } else {
-          console.error("Error fetching profile image");
+        if (!res.ok) {
+          // Si la respuesta no es ok, limpiar el estado y salir
+          setProfileImage(null);
+          setUsername(null);
+          return;
         }
-      } catch (error) {
-        console.error("Error fetching profile image:", error);
+
+        // Verificar que hay contenido antes de hacer parse
+        const text = await res.text();
+        if (!text) {
+          setProfileImage(null);
+          setUsername(null);
+          return;
+        }
+
+        // Intentar parsear el JSON
+        const data = JSON.parse(text);
+        if (data?.user?.username) {
+          setUsername(data.user.username);
+        }
+        if (data?.profile?.image_profile) {
+          setProfileImage(
+            `data:image/png;base64,${data.profile.image_profile}`
+          );
+        }
+      } catch {
+        // Limpiar estado en caso de error
+        setProfileImage(null);
+        setUsername(null);
       }
     };
 
@@ -62,7 +81,9 @@ export default function Navbar({
 
   const handleLogout = async () => {
     try {
-      const res = await fetch("/logout/api", { method: "POST" });
+      const res = await fetch("/logout/api", {
+        method: "POST",
+      });
 
       if (res.ok) {
         router.push("/login"); // Redirige al login después del logout
@@ -139,11 +160,11 @@ export default function Navbar({
                     />
                   ) : (
                     <AvatarFallback className="text-foreground">
-                      {usernameRef.current?.charAt(0).toUpperCase()}
+                      {username?.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   )}
                 </Avatar>
-                {usernameRef.current}
+                {username}
               </Button>
             </DropdownMenuTrigger>
 

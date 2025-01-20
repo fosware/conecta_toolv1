@@ -1,111 +1,136 @@
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcryptjs";
+import bcrypt from "bcrypt";
 
 const prisma = new PrismaClient();
 
 export async function PATCH(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    // Resolver el parámetro dinámico id
-    const resolvedParams = await params;
-    const userId = parseInt(resolvedParams.id, 10);
-
-    if (isNaN(userId)) {
-      return NextResponse.json(
-        { message: "ID de usuario inválido." },
-        { status: 400 }
-      );
-    }
-
     const formData = await request.formData();
+    const userId = params.id;
+    let base64Image = null;
 
-    const email = formData.get("email") as string | null;
-    const username = formData.get("username") as string | null;
-    const roleId = formData.get("roleId") as string | null;
-    const name = formData.get("name") as string | null;
-    const first_lastname = formData.get("first_lastname") as string | null;
+    // Extraer campos del formData
+    const name = formData.get("name") as string;
+    const email = formData.get("email") as string;
+    const username = formData.get("username") as string;
+    const first_lastname = formData.get("first_lastname") as string;
     const second_lastname = formData.get("second_lastname") as string | null;
     const phone = formData.get("phone") as string | null;
+    const roleId = formData.get("roleId") as string;
     const password = formData.get("password") as string | null;
     const image = formData.get("image_profile") as File | null;
 
-    if (!email || !username || !roleId || !name || !first_lastname) {
-      return NextResponse.json(
-        { message: "Faltan datos requeridos." },
-        { status: 400 }
-      );
-    }
-
-    // Validar si el correo o el username están en uso por otro usuario
-    const existingUser = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { email: { equals: email, mode: "insensitive" } },
-          { username: { equals: username, mode: "insensitive" } },
-        ],
-        NOT: { id: userId },
-      },
-    });
-
-    if (existingUser) {
-      const field =
-        existingUser.email === email ? "correo" : "nombre de usuario";
-      return NextResponse.json(
-        { message: `El ${field} ya está en uso por otro usuario.` },
-        { status: 400 }
-      );
-    }
-
-    let base64Image: string | null = null;
-    if (image) {
+    // Procesar la imagen si existe
+    if (image && image instanceof File) {
       try {
-        const buffer = await image.arrayBuffer();
-        base64Image = Buffer.from(buffer).toString("base64");
+        const arrayBuffer = await image.arrayBuffer();
+        base64Image = Buffer.from(arrayBuffer).toString("base64");
       } catch (error) {
         console.error("Error al procesar la imagen:", error);
         return NextResponse.json(
-          { message: "Error procesando la imagen." },
+          { message: "Error al procesar la imagen" },
           { status: 400 }
         );
       }
-    } else {
-      const existingProfile = await prisma.profile.findUnique({
-        where: { userId },
-        select: { image_profile: true },
-      });
-      base64Image = existingProfile?.image_profile || null;
     }
 
-    const hashedPassword = password ? bcrypt.hashSync(password, 10) : undefined;
+    // Verificar si el email ya existe
+    const existingUserWithEmail = await prisma.user.findFirst({
+      where: {
+        email,
+        NOT: {
+          id: parseInt(userId, 10)
+        }
+      }
+    });
 
-    const updatedUser = await prisma.user.update({
-      where: { id: userId },
+    if (existingUserWithEmail) {
+      return NextResponse.json(
+        { message: "El correo electrónico ya está siendo utilizado por otro usuario" },
+        { status: 400 }
+      );
+    }
+
+    // Verificar si el username ya existe
+    const existingUserWithUsername = await prisma.user.findFirst({
+      where: {
+        username,
+        NOT: {
+          id: parseInt(userId, 10)
+        }
+      }
+    });
+
+    if (existingUserWithUsername) {
+      return NextResponse.json(
+        { message: "El nombre de usuario ya está siendo utilizado" },
+        { status: 400 }
+      );
+    }
+
+    // Actualizar usuario
+    await prisma.user.update({
+      where: { id: parseInt(userId, 10) },
       data: {
         email,
         username,
         roleId: parseInt(roleId, 10),
-        ...(hashedPassword && { password: hashedPassword }),
-        profile: {
-          update: {
-            name,
-            first_lastname,
-            second_lastname: second_lastname || null,
-            phone: phone || null,
-            image_profile: base64Image,
-          },
-        },
+        ...(password && { password: await bcrypt.hash(password, 10) }),
       },
-      include: { profile: true, role: true },
     });
 
-    return NextResponse.json(updatedUser);
+    // Actualizar o crear perfil
+    const profile = await prisma.profile.upsert({
+      where: { userId: parseInt(userId, 10) },
+      create: {
+        name,
+        first_lastname,
+        second_lastname,
+        phone,
+        image_profile: base64Image,
+        userId: parseInt(userId, 10),
+      },
+      update: {
+        name,
+        first_lastname,
+        second_lastname,
+        phone,
+        ...(base64Image && { image_profile: base64Image }),
+      },
+    });
+
+    return NextResponse.json({
+      id: userId,
+      email,
+      username,
+      roleId,
+      name: profile.name,
+      first_lastname: profile.first_lastname,
+      second_lastname: profile.second_lastname,
+      phone: profile.phone,
+      image_profile: profile.image_profile,
+    });
   } catch (error) {
-    console.error("Error al procesar PATCH:", error);
+    console.error("Error al actualizar el usuario:", error);
+    
+    // Mejorar el manejo de errores de Prisma
+    if (error.code === 'P2002') {
+      const field = error.meta?.target[0];
+      const message = field === 'email' 
+        ? "El correo electrónico ya está siendo utilizado"
+        : field === 'username'
+        ? "El nombre de usuario ya está siendo utilizado"
+        : "Error de validación en los datos";
+      
+      return NextResponse.json({ message }, { status: 400 });
+    }
+    
     return NextResponse.json(
-      { message: "Error al actualizar usuario." },
+      { message: "Error al actualizar el usuario" },
       { status: 500 }
     );
   }

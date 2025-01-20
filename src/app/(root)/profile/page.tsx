@@ -11,7 +11,7 @@ import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import { useUserStore } from "@/lib/store/useUserState";
-import toast from "react-hot-toast";
+import { showToast } from "@/components/ui/custom-toast";
 
 const ProfilePage = () => {
   const [selectedFileName, setSelectedFileName] = useState<
@@ -66,11 +66,17 @@ const ProfilePage = () => {
         setValue("username", data.user.username);
       } else {
         console.error("Error fetching profile data");
-        toast.error("Error interno del servidor.");
+        showToast({
+          message: "Error interno del servidor.",
+          type: "error"
+        });
       }
     } catch (error) {
       console.error("Error fetching profile data:", error);
-      toast.error("Error interno del servidor.");
+      showToast({
+        message: "Error interno del servidor.",
+        type: "error"
+      });
     }
   }, [setValue]);
 
@@ -111,21 +117,31 @@ const ProfilePage = () => {
           } else {
             console.warn("Error sin detalles en `errors`:", errorData.message);
           }
-          toast.error(errorData.message || "Error al actualizar el perfil.");
+          showToast({
+            message: errorData.message || "Error al actualizar el perfil.",
+            type: "error"
+          });
         } catch (parseError) {
           console.error("Error parsing error response:", parseError);
-          toast.error("Error desconocido al actualizar el perfil.");
+          showToast({
+            message: "Error desconocido al actualizar el perfil.",
+            type: "error"
+          });
         }
       } else {
-        toast.success("Perfil actualizado correctamente.", {
-          className: "toast-success",
+        showToast({
+          message: "Perfil actualizado correctamente.",
+          type: "success"
         });
 
         await fetchProfileData();
       }
     } catch (error) {
       console.error("Error submitting data:", error);
-      toast.error("Error interno del servidor.");
+      showToast({
+        message: "Error interno del servidor.",
+        type: "error"
+      });
     }
   };
 
@@ -171,7 +187,10 @@ const ProfilePage = () => {
                     height={96}
                     onError={(e) => {
                       console.error("Error al cargar la imagen de perfil", e);
-                      toast.error("Error al cargar la imagen de perfil");
+                      showToast({
+                        message: "Error al cargar la imagen de perfil",
+                        type: "error"
+                      });
                     }}
                   />
                 ) : (

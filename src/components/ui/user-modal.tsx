@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { toast } from "react-hot-toast";
+import { showToast } from "@/components/ui/custom-toast";
 import Image from "next/image";
 
 interface UserModalProps {
@@ -129,13 +129,11 @@ export const UserModal = ({
   const onImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      //setSelectedFileName(file.name);
       setProfileImage(URL.createObjectURL(file));
       setValue("image_profile", file);
     } else {
-      //setSelectedFileName(null);
       setProfileImage(null);
-      setValue("image_profile", undefined);
+      setValue("image_profile", null);
     }
   };
 
@@ -154,7 +152,7 @@ export const UserModal = ({
           if (key === "image_profile" && value instanceof File) {
             formData.append(key, value);
           } else {
-            formData.append(key, String(value));
+            formData.append(key, value instanceof Date ? value.toISOString() : String(value));
           }
         }
       });
@@ -164,23 +162,35 @@ export const UserModal = ({
         body: formData,
       });
 
+      const responseData = await res.json();
+
       if (!res.ok) {
-        const errorData = await res.json();
-        toast.error(errorData.message || "Error al procesar la solicitud.");
-        console.warn("Error del servidor:", errorData.message);
+        showToast({
+          message: responseData.message || "Error al procesar la solicitud",
+          type: "error"
+        });
+        console.warn("Error del servidor:", responseData.message);
         return;
       }
 
-      toast.success(
-        mode === "edit"
+      showToast({
+        message: mode === "edit"
           ? "Usuario actualizado correctamente"
-          : "Usuario registrado correctamente"
-      );
+          : "Usuario registrado correctamente",
+        type: "success"
+      });
+
+      if (onSuccess) {
+        await onSuccess();
+      }
+      
       onClose();
-      onSuccess?.();
     } catch (error) {
       console.error("Error al procesar la solicitud:", error);
-      toast.error("Error inesperado.");
+      showToast({
+        message: "Error inesperado",
+        type: "error"
+      });
     }
   };
 

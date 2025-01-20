@@ -3,37 +3,29 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-export async function GET(req: Request, context: { params: { id: string } }) {
+export async function GET(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
   try {
-    // Esperar a que los `params` sean procesados correctamente
-    const { id } = await context.params;
+    const id = params.id;
 
-    // Procesar el ID del usuario
-    const userId = parseInt(id, 10);
-
-    if (isNaN(userId)) {
-      return NextResponse.json(
-        { message: "ID de usuario inválido" },
-        { status: 400 }
-      );
-    }
-
-    // Buscar al usuario y su perfil en la base de datos
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: { profile: true },
+    // Buscar el perfil del usuario
+    const profile = await prisma.profile.findUnique({
+      where: { userId: parseInt(id) },
     });
 
-    if (!user) {
+    if (!profile) {
+      console.warn(`Usuario ${id} no tiene perfil.`);
       return NextResponse.json(
-        { message: "Usuario no encontrado" },
+        { message: "Perfil no encontrado" },
         { status: 404 }
       );
     }
 
-    // Verificar si el perfil tiene una imagen asociada
-    if (!user.profile?.image_profile) {
-      console.warn(`Usuario ${userId} no tiene imagen de perfil.`);
+    // Verificar si hay imagen de perfil
+    if (!profile.image_profile) {
+      console.warn(`Usuario ${id} no tiene imagen de perfil.`);
       return NextResponse.json(
         { message: "Imagen de perfil no encontrada" },
         { status: 404 }
@@ -41,16 +33,16 @@ export async function GET(req: Request, context: { params: { id: string } }) {
     }
 
     // Convertir la imagen de Base64 a binario
-    const imageBuffer = Buffer.from(user.profile.image_profile, "base64");
+    const imageBuffer = Buffer.from(profile.image_profile, "base64");
 
     // Responder con la imagen
     return new Response(imageBuffer, {
-      headers: { "Content-Type": "image/png" },
+      headers: { "Content-Type": "image/jpeg" }, // o "image/png" según el formato de tu imagen
     });
   } catch (error) {
-    console.error("Error al procesar la solicitud:", error);
+    console.error("Error al obtener la imagen de perfil:", error);
     return NextResponse.json(
-      { message: "Error interno del servidor" },
+      { message: "Error al obtener la imagen de perfil" },
       { status: 500 }
     );
   }

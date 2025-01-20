@@ -1,43 +1,70 @@
-import { NextRequest, NextResponse } from "next/server";
-import * as jose from "jose";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { jwtVerify } from "jose";
 
-const JWT_SECRET = process.env.JWT_SECRET;
+// Rutas que no requieren autenticación
+const publicRoutes = ["/login", "/api/login"];
 
-export async function middleware(req: NextRequest) {
-  const publicRoutes = ["/login", "/api/login"];
-  const { pathname } = req.nextUrl;
+export async function middleware(request: NextRequest) {
+  const token = request.cookies.get("token")?.value;
+  const { pathname } = request.nextUrl;
 
-  // Permitir acceso a rutas públicas
+  // Si es una ruta pública, permitir acceso
   if (publicRoutes.some((route) => pathname.startsWith(route))) {
     return NextResponse.next();
   }
 
-  const token = req.cookies.get("token")?.value;
-
+  // Si no hay token, redirigir inmediatamente
   if (!token) {
-    console.error("Token no encontrado, redirigiendo a /login");
-    return NextResponse.redirect(new URL("/login", req.nextUrl.origin));
-  }
-
-  if (!JWT_SECRET) {
-    console.error("JWT_SECRET no está definido");
-    return NextResponse.redirect(new URL("/login", req.nextUrl.origin));
+    // Para APIs retornar 401 con respuesta JSON
+    if (pathname.includes("/api/")) {
+      return new NextResponse(
+        JSON.stringify({ error: "No autorizado" }),
+        { 
+          status: 401,
+          headers: {
+            "Content-Type": "application/json",
+          }
+        }
+      );
+    }
+    // Para rutas normales, redirigir a login sin mensaje
+    return NextResponse.redirect(new URL("/login", request.url));
   }
 
   try {
-    const secret = new TextEncoder().encode(JWT_SECRET);
-    const { payload } = await jose.jwtVerify(token, secret);
-
-    if (!payload.userId) {
-      console.error("El token no contiene userId");
-      return NextResponse.redirect(new URL("/login", req.nextUrl.origin));
+    // Verificar token solo si existe JWT_SECRET
+    if (!process.env.JWT_SECRET) {
+      throw new Error("JWT_SECRET no definido");
     }
 
-    // Adjuntar encabezados para el uso en las APIs
-    const requestHeaders = new Headers(req.headers);
+    const { payload } = await jwtVerify(
+      token,
+      new TextEncoder().encode(process.env.JWT_SECRET)
+    );
+
+    // Si el token está expirado, tratar como no autenticado
+    const exp = payload.exp as number;
+    if (exp && Date.now() >= exp * 1000) {
+      if (pathname.includes("/api/")) {
+        return new NextResponse(
+          JSON.stringify({ error: "Token expirado" }),
+          { 
+            status: 401,
+            headers: {
+              "Content-Type": "application/json",
+            }
+          }
+        );
+      }
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+
+    // Token válido, adjuntar headers y continuar
+    const requestHeaders = new Headers(request.headers);
     requestHeaders.set("user-id", String(payload.userId));
     requestHeaders.set("Authorization", `Bearer ${token}`);
-    requestHeaders.set("role", String(payload.role)); // Adjuntar el rol del usuario
+    requestHeaders.set("role", String(payload.role));
 
     return NextResponse.next({
       request: {
@@ -45,13 +72,24 @@ export async function middleware(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Error verificando token:", error);
-    return NextResponse.redirect(new URL("/login", req.nextUrl.origin));
+    console.error("Error al verificar token:", error);
+    if (pathname.includes("/api/")) {
+      return new NextResponse(
+        JSON.stringify({ error: "Token inválido" }),
+        { 
+          status: 401,
+          headers: {
+            "Content-Type": "application/json",
+          }
+        }
+      );
+    }
+    return NextResponse.redirect(new URL("/login", request.url));
   }
 }
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.svg|.*\\.png|.*\\.jpg|.*\\.css|.*\\.js|.*\\.map).*)",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|ico)$).*)",
   ],
 };

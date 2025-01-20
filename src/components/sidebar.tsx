@@ -18,25 +18,41 @@ export default function Sidebar({
   useEffect(() => {
     const fetchMenu = async () => {
       try {
-        const token = document.cookie.replace(
-          /(?:(?:^|.*;\s*)token\s*=\s*([^;]*).*$)|^.*$/,
-          "$1"
-        );
+        // Verificar si hay token antes de hacer el fetch
+        const token = document.cookie.includes("token=");
+        if (!token) {
+          setMenuItems([]);
+          return;
+        }
 
         const res = await fetch("/api/menu", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          method: "GET",
+          credentials: "include",
         });
 
-        if (res.ok) {
-          const data = await res.json();
+        if (!res.ok) {
+          setMenuItems([]);
+          return;
+        }
+
+        // Verificar que hay contenido antes de hacer parse
+        const text = await res.text();
+        if (!text) {
+          setMenuItems([]);
+          return;
+        }
+
+        // Intentar parsear el JSON
+        const data = JSON.parse(text);
+        if (Array.isArray(data)) {
           setMenuItems(data);
         } else {
-          console.error("Error al obtener el menú:", await res.json());
+          setMenuItems([]);
         }
       } catch (error) {
-        console.error("Error al realizar fetch del menú:", error);
+        // Silenciosamente limpiar el menú en caso de error
+        console.error("Error al cerrar sesión:", error);
+        setMenuItems([]);
       }
     };
 

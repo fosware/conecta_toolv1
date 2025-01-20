@@ -16,28 +16,32 @@ import {
 } from "@/components/ui/table";
 import Image from "next/image";
 import React from "react";
-import toast from "react-hot-toast";
+import { showToast } from "@/components/ui/custom-toast";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { catCertificationsFormData } from "@/lib/schemas/cat_certifications";
 import { CatCertificacionesModal } from "@/components/ui/cat-certificaciones-modal";
 import { useCurrentUser } from "@/lib/hooks/useCurrentUser";
+import { useAuth } from "@/hooks/useAuth";
 
 const CatalogCertifications = () => {
-  const { userId, isAuthenticated } = useCurrentUser();
+  const { userId } = useCurrentUser();
+  const { isAuthenticated, isLoading } = useAuth();
   const [certificaciones, setCertificaciones] = useState<Certificacion[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [onlyActive, setOnlyActive] = useState<boolean>(true);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(1);
   const [itemsPerPage, setItemsPerPage] = useState<number>(15);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  //const [isLoading, setIsLoading] = useState<boolean>(true);
+
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [editingCertification, setEditingCertification] =
     useState<Certificacion | null>(null);
 
   // Función para obtener certificaciones
   const fetchCertificaciones = useCallback(async () => {
-    setIsLoading(true);
+    if (!isAuthenticated || isLoading) return;
+
     try {
       const params = new URLSearchParams({
         page: currentPage.toString(),
@@ -46,98 +50,115 @@ const CatalogCertifications = () => {
         onlyActive: onlyActive.toString(),
       });
 
-      const response = await fetch(`/cat_certificaciones/api?${params}`);
-      const data = await response.json();
+      const res = await fetch(`/cat_certificaciones/api?${params}`);
+      const data = await res.json();
 
-      if (data && Array.isArray(data)) {
-        setCertificaciones(data);
-        setTotalPages(Math.ceil(data.length / itemsPerPage));
-      } else if (data && Array.isArray(data.certificaciones)) {
-        setCertificaciones(data.certificaciones);
-        setTotalPages(
-          Math.ceil((data.total || data.certificaciones.length) / itemsPerPage)
-        );
+      if (res.ok) {
+        setCertificaciones(data.certificaciones || []);
+        setTotalPages(data.totalPages || 1);
+
+        // Solo mostrar mensaje de "no hay certificaciones" si es una búsqueda o filtro
+        /*
+        if (data.certificaciones.length === 0 && (searchTerm || onlyActive)) {
+          showToast({
+            message: "No se encontraron certificaciones con los filtros actuales",
+            type: "warning"
+          });
+        } */
       } else {
-        console.error("Unexpected data format:", data);
+        showToast({
+          message: data.message || "Error al obtener las certificaciones",
+          type: "error",
+        });
         setCertificaciones([]);
+        setTotalPages(1);
       }
     } catch (error) {
       console.error("Error fetching certificaciones:", error);
-      toast.error("Error al obtener las certificaciones");
+      showToast({
+        message: "Error al obtener las certificaciones",
+        type: "error",
+      });
       setCertificaciones([]);
-    } finally {
-      setIsLoading(false);
+      setTotalPages(1);
     }
-  }, [currentPage, itemsPerPage, searchTerm, onlyActive]);
-
+  }, [
+    currentPage,
+    itemsPerPage,
+    searchTerm,
+    onlyActive,
+    isAuthenticated,
+    isLoading,
+  ]);
+  //setIsLoading(false);
   useEffect(() => {
     fetchCertificaciones();
   }, [fetchCertificaciones]);
 
-  useEffect(() => {
-    if (searchTerm !== "" || !onlyActive || currentPage > 1) {
-      fetchCertificaciones();
-    }
-  }, [searchTerm, onlyActive, currentPage, fetchCertificaciones]);
-
   const handleRegister = async (data: catCertificationsFormData) => {
-    if (!isAuthenticated || !userId) {
-      toast.error("Debes iniciar sesión para realizar esta acción");
-      setModalOpen(false);
-      return;
-    }
+    if (!isAuthenticated || isLoading) return;
 
     try {
-      const jsonData = {
-        ...data,
-        userId: userId.toString(),
-      };
+      // Obtener el userId del token
+      const token = document.cookie.replace(
+        /(?:(?:^|.*;\s*)token\s*=\s*([^;]*).*$)|^.*$/,
+        "$1"
+      );
+      const payload = token ? JSON.parse(atob(token.split(".")[1])) : null;
+      const userId = payload?.userId;
+
+      if (!userId) {
+        showToast({
+          message: "Error: No se pudo obtener el ID del usuario",
+          type: "error",
+        });
+        return;
+      }
 
       const res = await fetch("/cat_certificaciones/api", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(jsonData),
-        credentials: "include",
+        body: JSON.stringify({
+          ...data,
+          userId: userId
+        }),
       });
 
-      if (!res.ok) {
-        const responseData = await res
-          .json()
-          .catch(() => ({ message: "Error al crear la certificación" }));
-        toast.error(responseData?.message || "Error al crear la certificación");
-        return;
+      if (res.ok) {
+        showToast({
+          message: "Certificación creada correctamente.",
+          type: "success",
+        });
+        fetchCertificaciones(); // Actualiza la lista tras el registro
+      } else {
+        const errorData = await res.json();
+        showToast({
+          message: errorData.message || "Error al crear la certificación.",
+          type: "error",
+        });
       }
-
-      await res.json().catch(() => null);
-      toast.success("Certificación creada correctamente");
-      setModalOpen(false);
-      fetchCertificaciones();
-    } catch {
-      toast.error("Error al crear la certificación");
+    } catch (error) {
+      console.error("Error al crear la certificación:", error);
+      showToast({
+        message: "Error al crear la certificación",
+        type: "error",
+      });
     }
   };
 
-  const handleUpdate = async (data: catCertificationsFormData) => {
-    if (!isAuthenticated || !userId) {
-      toast.error("Debes iniciar sesión para realizar esta acción");
-      setModalOpen(false);
-      return;
-    }
+  const handleEdit = async (data: catCertificationsFormData) => {
+    if (!isAuthenticated || isLoading) return;
 
     try {
       if (!editingCertification) {
-        toast.error("Error: Certificación no válida");
-        setModalOpen(false);
+        showToast({
+          message: "Error: Certificación no válida",
+          type: "error",
+        });
         return;
       }
-
-      const jsonData = {
-        ...data,
-        userId: userId.toString(),
-        id: editingCertification.id,
-      };
 
       const res = await fetch(
         `/cat_certificaciones/api/${editingCertification.id}`,
@@ -146,28 +167,30 @@ const CatalogCertifications = () => {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(jsonData),
-          credentials: "include",
+          body: JSON.stringify({
+            ...data,
+            userId: userId?.toString(),
+          }),
         }
       );
 
       if (!res.ok) {
-        const responseData = await res
-          .json()
-          .catch(() => ({ message: "Error al actualizar la certificación" }));
-        toast.error(
-          responseData?.message || "Error al actualizar la certificación"
-        );
+        const errorData = await res.json();
+        showToast({
+          message: errorData.message || "Error al actualizar la certificación",
+          type: "error",
+        });
         return;
       }
 
-      await res.json().catch(() => null);
-      toast.success("Certificación actualizada correctamente");
       setModalOpen(false);
-      setEditingCertification(null);
       fetchCertificaciones();
-    } catch {
-      toast.error("Error al actualizar la certificación");
+    } catch (error) {
+      console.error("Error al actualizar la certificación:", error);
+      showToast({
+        message: "Error al actualizar la certificación",
+        type: "error",
+      });
     }
   };
 
@@ -208,7 +231,7 @@ const CatalogCertifications = () => {
             onCheckedChange={(checked) => {
               setOnlyActive(checked);
               setCurrentPage(1);
-              setIsLoading(true);
+              //setIsLoading(true);
             }}
           />
         </div>
@@ -238,122 +261,121 @@ const CatalogCertifications = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center py-4">
-                  Cargando...
-                </TableCell>
-              </TableRow>
-            ) : certificaciones.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center py-4">
-                  No hay certificaciones disponibles
-                </TableCell>
-              </TableRow>
-            ) : (
-              certificaciones.map((certificacion) => (
-                <TableRow key={certificacion.id}>
-                  <TableCell>{certificacion.name}</TableCell>
-                  <TableCell>{certificacion.description}</TableCell>
-                  <TableCell>
-                    <Switch
-                      checked={certificacion.isActive}
-                      onCheckedChange={async (isActive) => {
-                        try {
-                          const res = await fetch(
-                            `/cat_certificaciones/api/${certificacion.id}/toggle-status`,
-                            {
-                              method: "PATCH",
-                              headers: { "Content-Type": "application/json" },
-                              credentials: "include",
-                            }
-                          );
-                          if (res.ok) {
-                            toast.success(
-                              `Certificación ${isActive ? "habilitada" : "inhabilitada"}`
-                            );
-                            const updatedCertificaciones = certificaciones.map(
-                              (cert) =>
-                                cert.id === certificacion.id
-                                  ? { ...cert, isActive }
-                                  : cert
-                            );
-                            setCertificaciones(updatedCertificaciones);
-                          } else {
-                            toast.error("Error al actualizar el estado");
+            {certificaciones.map((certificacion) => (
+              <TableRow key={certificacion.id}>
+                <TableCell>{certificacion.name}</TableCell>
+                <TableCell>{certificacion.description}</TableCell>
+                <TableCell>
+                  <Switch
+                    checked={certificacion.isActive}
+                    onCheckedChange={async (isActive) => {
+                      if (!isAuthenticated || isLoading) return;
+
+                      try {
+                        const res = await fetch(
+                          `/cat_certificaciones/api/${certificacion.id}/toggle-status`,
+                          {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            credentials: "include",
                           }
-                        } catch (error) {
-                          toast.error("Error al actualizar el estado");
-                          console.error(
-                            "Error al actualizar el estado:",
-                            error
-                          );
+                        );
+                        if (res.ok) {
+                          showToast({
+                            message: `Certificación ${isActive ? "habilitada" : "inhabilitada"}`,
+                            type: "success",
+                          });
+                          fetchCertificaciones();
+                        } else {
+                          showToast({
+                            message: "Error al actualizar el estado",
+                            type: "error",
+                          });
                         }
-                      }}
-                    />
-                  </TableCell>
-                  <TableCell className="flex gap-3">
-                    <Button
-                      className="w-10 h-10 flex items-center justify-center bg-transparent p-0"
-                      onClick={() => {
-                        setEditingCertification(certificacion);
-                        setModalOpen(true);
-                      }}
-                    >
-                      <Image
-                        alt="edit icon"
-                        src="/icons/edit.svg"
-                        width={20}
-                        height={20}
-                        className="dark:invert dark:backdrop-brightness-1"
-                      />
-                    </Button>
-                    <ConfirmationDialog
-                      question="¿Deseas eliminar la certificación?"
-                      onConfirm={async () => {
-                        try {
-                          const res = await fetch(
-                            `/cat_certificaciones/api/${certificacion.id}/delete`,
-                            {
-                              method: "PATCH",
-                              headers: {
-                                "Content-Type": "application/json",
-                              },
-                              credentials: "include",
-                            }
-                          );
-                          if (res.ok) {
-                            toast.success(
-                              "Certificación eliminada correctamente"
-                            );
-                            fetchCertificaciones();
-                          } else {
-                            toast.error("Error al eliminar la certificación");
-                          }
-                        } catch (error) {
-                          toast.error("Error al eliminar la certificación");
-                          console.error(
-                            "Error al eliminar la certificación:",
-                            error
-                          );
-                        }
-                      }}
-                      trigger={
-                        <Button className="w-10 h-10 flex items-center justify-center bg-transparent p-0">
-                          <Image
-                            alt="delete icon"
-                            src="/icons/delete.svg"
-                            width={20}
-                            height={20}
-                            className="dark:invert dark:backdrop-brightness-1"
-                          />
-                        </Button>
+                      } catch (error) {
+                        showToast({
+                          message: "Error al actualizar el estado",
+                          type: "error",
+                        });
+                        console.error("Error al actualizar el estado:", error);
                       }
+                    }}
+                  />
+                </TableCell>
+                <TableCell className="flex gap-3">
+                  <Button
+                    className="w-10 h-10 flex items-center justify-center bg-transparent p-0"
+                    onClick={() => {
+                      console.log(
+                        "Edit button clicked, certification:",
+                        certificacion
+                      );
+                      setEditingCertification(certificacion);
+                      setModalOpen(true);
+                    }}
+                  >
+                    <Image
+                      alt="edit icon"
+                      src="/icons/edit.svg"
+                      width={20}
+                      height={20}
+                      className="dark:invert dark:backdrop-brightness-1"
                     />
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
+                  </Button>
+                  <ConfirmationDialog
+                    question="¿Deseas eliminar la certificación?"
+                    onConfirm={async () => {
+                      if (!isAuthenticated || isLoading) return;
+
+                      try {
+                        const res = await fetch(
+                          `/cat_certificaciones/api/${certificacion.id}/delete`,
+                          {
+                            method: "PATCH",
+                            headers: {
+                              "Content-Type": "application/json",
+                            },
+                            credentials: "include",
+                          }
+                        );
+                        if (res.ok) {
+                          showToast({
+                            message: "Certificación eliminada correctamente",
+                            type: "success",
+                          });
+                          fetchCertificaciones();
+                        } else {
+                          showToast({
+                            message: "Error al eliminar la certificación",
+                            type: "error",
+                          });
+                        }
+                      } catch (error) {
+                        showToast({
+                          message: "Error al eliminar la certificación",
+                          type: "error",
+                        });
+                        console.error(
+                          "Error al eliminar la certificación:",
+                          error
+                        );
+                      }
+                    }}
+                    trigger={
+                      <Button className="w-10 h-10 flex items-center justify-center bg-transparent p-0">
+                        <Image
+                          alt="delete icon"
+                          src="/icons/delete.svg"
+                          width={20}
+                          height={20}
+                          className="dark:invert dark:backdrop-brightness-1"
+                        />
+                      </Button>
+                    }
+                  />
+                </TableCell>
+              </TableRow>
+            ))}
           </TableBody>
         </Table>
       </div>
@@ -370,9 +392,19 @@ const CatalogCertifications = () => {
           setModalOpen(false);
           setEditingCertification(null);
         }}
-        onSubmit={editingCertification ? handleUpdate : handleRegister}
-        initialData={editingCertification || undefined}
+        onSubmit={editingCertification ? handleEdit : handleRegister}
+        initialData={
+          editingCertification
+            ? {
+                name: editingCertification.name,
+                description: editingCertification.description,
+                isActive: editingCertification.isActive,
+                isDeleted: editingCertification.isDeleted,
+              }
+            : undefined
+        }
         mode={editingCertification ? "edit" : "create"}
+        onSuccess={fetchCertificaciones}
       />
     </div>
   );
