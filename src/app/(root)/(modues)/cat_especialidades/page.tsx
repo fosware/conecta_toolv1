@@ -1,7 +1,7 @@
 import React from "react";
 
 const page = () => {
-  return <div>Especialidades</div>;
+  return <div>Cat Especialidades</div>;
 };
 
 export default page;

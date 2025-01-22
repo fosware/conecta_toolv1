@@ -40,7 +40,7 @@ model Specialties {
   user        User     @relation(fields: [userId], references: [id])
   Scopes      Scopes[]
 
-  @@map("d_specialties")
+  @@map("c_specialties")
 }
 
 model Scopes {
@@ -58,7 +58,7 @@ model Scopes {
   specialty Specialties @relation(fields: [specialtyId], references: [id])
   Subscopes Subscopes[]
 
-  @@map("d_scopes")
+  @@map("c_scopes")
 }
 
 model Subscopes {
@@ -74,7 +74,7 @@ model Subscopes {
   user  User   @relation(fields: [userId], references: [id])
   scope Scopes @relation(fields: [scopeId], references: [id])
 
-  @@map("d_subscopes")
+  @@map("c_subscopes")
 }
 
 model Certifications {

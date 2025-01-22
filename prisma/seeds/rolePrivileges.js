@@ -18,7 +18,7 @@ export async function seedRolePrivileges() {
   // Mapear privilegios específicos para Admin
   const adminPrivileges = [
     "Dashboard",
-    "Projects",
+    "Proyectos",
     "Asociados",
     "Clientes",
     "Especialidades",

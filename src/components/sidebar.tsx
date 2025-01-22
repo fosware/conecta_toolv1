@@ -91,7 +91,7 @@ export default function Sidebar({
         <SheetTitle></SheetTitle>
         <SheetContent
           side="left"
-          className="w-64 bg-background dark:bg-background-dark text-foreground dark:text-foreground-dark border-r border-border dark:border-border-dark"
+          className="w-68 bg-background dark:bg-background-dark text-foreground dark:text-foreground-dark border-r border-border dark:border-border-dark"
           tabIndex={-1}
         >
           <div className="lg:hidden flex items-center space-x-3 px-4 py-4 border-b border-border dark:border-border-dark">
