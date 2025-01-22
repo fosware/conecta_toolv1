@@ -6,7 +6,7 @@ const privileges = [
   { name: "Proyectos" },
   { name: "Asociados" },
   { name: "Clientes" },
-  { name: "Especialidades" },
+  { name: "Cat Especialidades" },
   { name: "Certificaciones" },
   { name: "Usuarios" },
   { name: "Cat Certificaciones" },

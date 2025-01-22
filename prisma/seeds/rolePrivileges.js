@@ -21,7 +21,7 @@ export async function seedRolePrivileges() {
     "Proyectos",
     "Asociados",
     "Clientes",
-    "Especialidades",
+    "Cat Especialidades",
     "Certificaciones",
     "Usuarios",
     "View Reports",

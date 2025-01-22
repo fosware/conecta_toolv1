@@ -63,9 +63,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ token }, { status: 200 });
   } catch (error) {
     console.error("Error en el login:", error);
-    return NextResponse.json(
-      { message: "Error interno del servidor" },
-      { status: 500 }
-    );
+    return NextResponse.json({ message: "Error interno del servidor", status: 500 });
   }
 }
