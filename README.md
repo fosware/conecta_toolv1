@@ -111,13 +111,13 @@ npm run prisma:seed
 
 ```
 conecta_toolv1/
-├── prisma/                 # Esquemas y migraciones de base de datos
-│   ├── schema.prisma      # Definición del modelo de datos
-│   ├── migrations/        # Migraciones de la base de datos
-│   └── seeds/            # Datos iniciales
+├── prisma/              # Esquemas y migraciones de base de datos
+│   ├── schema.prisma    # Definición del modelo de datos
+│   ├── migrations/      # Migraciones de la base de datos
+│   └── seeds/           # Datos iniciales
 ├── src/
-│   ├── app/              # Rutas y páginas de Next.js
-│   ├── components/       # Componentes React reutilizables
+│   ├── app/             # Rutas y páginas de Next.js
+│   ├── components/      # Componentes React reutilizables
 │   └── lib/             # Utilidades y configuraciones
 ├── public/              # Archivos estáticos
 └── docker-compose.yml   # Configuración de Docker
@@ -152,13 +152,3 @@ El proyecto utiliza Docker para la base de datos PostgreSQL. La configuración s
    - Verificar que las migraciones se han aplicado
    - Ejecutar `npx prisma migrate reset --force` para un reinicio completo
 
-## 📝 Contribuir
-
-1. Crear una rama para tu feature
-2. Hacer commit de tus cambios
-3. Empujar los cambios a tu rama
-4. Crear un Pull Request
-
-## 📄 Licencia
-
-Este proyecto está bajo la Licencia [TU_LICENCIA].
