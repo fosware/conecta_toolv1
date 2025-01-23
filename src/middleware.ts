@@ -60,19 +60,21 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
 
-    // Token válido, adjuntar headers y continuar
+    // Clonar la petición y agregar el token como header de autorización
     const requestHeaders = new Headers(request.headers);
-    requestHeaders.set("user-id", String(payload.userId));
-    requestHeaders.set("Authorization", `Bearer ${token}`);
-    requestHeaders.set("role", String(payload.role));
+    requestHeaders.set("authorization", `Bearer ${token}`);
 
-    return NextResponse.next({
+    // Continuar con la petición modificada
+    const response = NextResponse.next({
       request: {
         headers: requestHeaders,
       },
     });
+
+    return response;
   } catch (error) {
     console.error("Error al verificar token:", error);
+
     if (pathname.includes("/api/")) {
       return new NextResponse(
         JSON.stringify({ error: "Token inválido" }),

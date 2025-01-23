@@ -29,28 +29,32 @@ model User {
 }
 
 model Specialties {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique
-  num         Int      @unique
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  num         Int       @unique
   description String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  isActive    Boolean   @default(true)
+  isDeleted   Boolean   @default(false)
+  dateDeleted DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   userId      Int
-  user        User     @relation(fields: [userId], references: [id])
+  user        User      @relation(fields: [userId], references: [id])
   Scopes      Scopes[]
 
   @@map("c_specialties")
 }
 
 model Scopes {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
   num         Int
   description String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  isActive    Boolean   @default(true)
+  isDeleted   Boolean   @default(false)
+  dateDeleted DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   userId      Int
   specialtyId Int
 
@@ -62,14 +66,16 @@ model Scopes {
 }
 
 model Subscopes {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique
-  num       Int
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  userId    Int
-  scopeId   Int
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  num         Int
+  isActive    Boolean   @default(true)
+  isDeleted   Boolean   @default(false)
+  dateDeleted DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  userId      Int
+  scopeId     Int
 
   user  User   @relation(fields: [userId], references: [id])
   scope Scopes @relation(fields: [scopeId], references: [id])
