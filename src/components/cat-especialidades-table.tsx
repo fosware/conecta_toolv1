@@ -14,6 +14,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { toast } from "sonner";
 import clsx from "clsx";
 import { Switch } from "@/components/ui/switch";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 
 interface Especialidad {
   id: number;
@@ -56,6 +57,28 @@ export function CatEspecialidadesTable({
     } catch (error) {
       console.error("Error:", error);
       toast.error("Error al actualizar el estado de la especialidad");
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    try {
+      const response = await fetch(`/cat_especialidades/api`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Error al eliminar la especialidad");
+      }
+
+      toast.success("Especialidad eliminada correctamente");
+      onRefresh();
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Error al eliminar la especialidad");
     }
   };
 
@@ -105,16 +128,15 @@ export function CatEspecialidadesTable({
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSelect(especialidad);
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <ConfirmationDialog
+                      question="¿Está seguro de eliminar esta especialidad?"
+                      onConfirm={() => handleDelete(especialidad.id)}
+                      trigger={
+                        <Button variant="ghost" size="icon">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      }
+                    />
                   </div>
                 </TableCell>
               </TableRow>

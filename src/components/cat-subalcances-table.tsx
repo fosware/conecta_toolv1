@@ -14,6 +14,7 @@ import { Edit, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Pagination } from "@/components/ui/pagination";
 import clsx from "clsx";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 
 interface Subalcance {
   id: number;
@@ -34,6 +35,7 @@ interface SubalcancesTableProps {
   onPageChange: (page: number) => void;
   onSelect: (subalcance: Subalcance) => void;
   selectedId: number;
+  onRefresh: () => void;
 }
 
 export function CatSubalcancesTable({
@@ -46,25 +48,27 @@ export function CatSubalcancesTable({
   onPageChange,
   onSelect,
   selectedId,
+  onRefresh,
 }: SubalcancesTableProps) {
-  const handleToggleStatus = async (id: number) => {
+  const handleDelete = async (id: number) => {
     try {
-      const response = await fetch(`/cat_especialidades/api/subalcances/${id}/toggle-status`, {
-        method: "PATCH",
+      const response = await fetch(`/cat_especialidades/api/subalcances`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id }),
       });
 
       if (!response.ok) {
-        throw new Error("Error al actualizar el estado");
+        throw new Error("Error al eliminar el subalcance");
       }
 
-      onToggleStatus({
-        id,
-        isActive: !subalcances.find((subalcance) => subalcance.id === id).isActive,
-      });
-      toast.success("Estado actualizado correctamente");
+      toast.success("Subalcance eliminado correctamente");
+      onRefresh();
     } catch (error) {
       console.error("Error:", error);
-      toast.error("Error al actualizar el estado del subalcance");
+      toast.error("Error al eliminar el subalcance");
     }
   };
 
@@ -95,10 +99,11 @@ export function CatSubalcancesTable({
                 <TableCell>
                   <Switch
                     checked={subalcance.isActive}
-                    onCheckedChange={(checked) => {}}
+                    onCheckedChange={() => {
+                      onToggleStatus(subalcance);
+                    }}
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleToggleStatus(subalcance.id);
                     }}
                   />
                 </TableCell>
@@ -114,16 +119,15 @@ export function CatSubalcancesTable({
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDelete(subalcance);
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <ConfirmationDialog
+                      question="¿Está seguro de eliminar este subalcance?"
+                      onConfirm={() => handleDelete(subalcance.id)}
+                      trigger={
+                        <Button variant="ghost" size="icon">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      }
+                    />
                   </div>
                 </TableCell>
               </TableRow>

@@ -106,7 +106,9 @@ export default function CatEspecialidadesPage() {
     try {
       setLoadingAlcances(true);
       const searchParams = new URLSearchParams();
-      if (searchAlcance) searchParams.append("search", searchAlcance);
+      if (searchAlcance?.trim()) {
+        searchParams.append("search", searchAlcance.trim());
+      }
       searchParams.append("showActive", showActiveAlcances.toString());
       searchParams.append("specialtyId", selectedEspecialidadId.toString());
       searchParams.append("page", currentPageAlcances.toString());
@@ -115,9 +117,12 @@ export default function CatEspecialidadesPage() {
       const response = await fetch(
         `/cat_especialidades/api/alcances?${searchParams.toString()}`
       );
-      if (!response.ok) throw new Error("Error al cargar alcances");
-
+      
       const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Error al cargar alcances");
+      }
+
       setAlcances(data.items);
       setTotalPagesAlcances(data.totalPages);
     } catch (error) {
@@ -132,13 +137,16 @@ export default function CatEspecialidadesPage() {
   const loadSubalcances = async () => {
     if (!selectedAlcanceId) {
       setSubalcances([]);
+      setTotalPagesSubalcances(1);
       return;
     }
 
     try {
       setLoadingSubalcances(true);
       const searchParams = new URLSearchParams();
-      if (searchSubalcance) searchParams.append("search", searchSubalcance);
+      if (searchSubalcance?.trim()) {
+        searchParams.append("search", searchSubalcance.trim());
+      }
       searchParams.append("showActive", showActiveSubalcances.toString());
       searchParams.append("scopeId", selectedAlcanceId.toString());
       searchParams.append("page", currentPageSubalcances.toString());
@@ -147,9 +155,12 @@ export default function CatEspecialidadesPage() {
       const response = await fetch(
         `/cat_especialidades/api/subalcances?${searchParams.toString()}`
       );
-      if (!response.ok) throw new Error("Error al cargar subalcances");
 
       const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Error al cargar subalcances");
+      }
+
       setSubalcances(data.items);
       setTotalPagesSubalcances(data.totalPages);
     } catch (error) {
@@ -162,30 +173,37 @@ export default function CatEspecialidadesPage() {
 
   // Efectos para cargar datos
   useEffect(() => {
-    loadEspecialidades();
+    const timer = setTimeout(() => {
+      loadEspecialidades();
+    }, 300); // Esperar 300ms después de la última escritura
+
+    return () => clearTimeout(timer);
   }, [searchEspecialidad, showActiveEspecialidades, currentPageEspecialidades]);
 
   useEffect(() => {
-    setCurrentPageAlcances(1);
-    loadAlcances();
-  }, [selectedEspecialidadId, searchAlcance, showActiveAlcances]);
-
-  useEffect(() => {
-    if (currentPageAlcances > 1) {
+    const timer = setTimeout(() => {
       loadAlcances();
-    }
-  }, [currentPageAlcances]);
+    }, 300); // Esperar 300ms después de la última escritura
+
+    return () => clearTimeout(timer);
+  }, [selectedEspecialidadId, searchAlcance, showActiveAlcances, currentPageAlcances]);
 
   useEffect(() => {
-    setCurrentPageSubalcances(1);
-    loadSubalcances();
-  }, [selectedAlcanceId, searchSubalcance, showActiveSubalcances]);
-
-  useEffect(() => {
-    if (currentPageSubalcances > 1) {
+    const timer = setTimeout(() => {
       loadSubalcances();
-    }
-  }, [currentPageSubalcances]);
+    }, 300); // Esperar 300ms después de la última escritura
+
+    return () => clearTimeout(timer);
+  }, [selectedAlcanceId, searchSubalcance, showActiveSubalcances, currentPageSubalcances]);
+
+  // Función para obtener el token de la cookie
+  const getToken = () => {
+    const cookies = document.cookie.split(';');
+    const tokenCookie = cookies.find(cookie => cookie.trim().startsWith('token='));
+    if (!tokenCookie) return null;
+    const token = tokenCookie.split('=')[1];
+    return token;
+  };
 
   // Handlers para Especialidades
   const handleEditEspecialidad = (especialidad: Especialidad) => {
@@ -194,10 +212,19 @@ export default function CatEspecialidadesPage() {
 
   const handleDeleteEspecialidad = async (especialidad: Especialidad) => {
     try {
+      const token = getToken();
+      if (!token) {
+        toast.error("No autorizado");
+        return;
+      }
+
       const response = await fetch(
         `/cat_especialidades/api?id=${especialidad.id}`,
         {
           method: "DELETE",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+          },
         }
       );
 
@@ -225,10 +252,19 @@ export default function CatEspecialidadesPage() {
 
   const handleDeleteAlcance = async (alcance: Alcance) => {
     try {
+      const token = getToken();
+      if (!token) {
+        toast.error("No autorizado");
+        return;
+      }
+
       const response = await fetch(
         `/cat_especialidades/api/alcances?id=${alcance.id}`,
         {
           method: "DELETE",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+          },
         }
       );
 
@@ -254,10 +290,19 @@ export default function CatEspecialidadesPage() {
 
   const handleDeleteSubalcance = async (subalcance: Subalcance) => {
     try {
+      const token = getToken();
+      if (!token) {
+        toast.error("No autorizado");
+        return;
+      }
+
       const response = await fetch(
         `/cat_especialidades/api/subalcances?id=${subalcance.id}`,
         {
           method: "DELETE",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+          },
         }
       );
 
@@ -295,6 +340,215 @@ export default function CatEspecialidadesPage() {
     setCurrentPageSubalcances(page);
   };
 
+  // Handlers para toggle status
+  const handleToggleAlcanceStatus = async (alcance: Alcance) => {
+    try {
+      const token = getToken();
+      if (!token) {
+        toast.error("No autorizado");
+        return;
+      }
+
+      const response = await fetch(
+        `/cat_especialidades/api/alcances/${alcance.id}/toggle-status`,
+        {
+          method: "PATCH",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) throw new Error("Error al actualizar el estado");
+
+      const updatedAlcance = await response.json();
+      
+      // Si estamos desactivando un elemento y el filtro de activos está habilitado
+      if (alcance.isActive && showActiveAlcances) {
+        // Removemos el elemento del estado local inmediatamente
+        setAlcances(alcances.filter(a => a.id !== alcance.id));
+      } else if (!alcance.isActive && !showActiveAlcances) {
+        // Si estamos activando un elemento y mostramos todos, actualizamos su estado
+        setAlcances(alcances.map(a => 
+          a.id === alcance.id ? { ...a, isActive: true } : a
+        ));
+      }
+
+      toast.success(`Alcance ${alcance.isActive ? "desactivado" : "activado"} correctamente`);
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Error al actualizar el estado");
+    }
+  };
+
+  const handleToggleSubalcanceStatus = async (subalcance: Subalcance) => {
+    try {
+      const token = getToken();
+      if (!token) {
+        toast.error("No autorizado");
+        return;
+      }
+
+      const response = await fetch(
+        `/cat_especialidades/api/subalcances/${subalcance.id}/toggle-status`,
+        {
+          method: "PATCH",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) throw new Error("Error al actualizar el estado");
+
+      const updatedSubalcance = await response.json();
+      
+      // Si está activado "mostrar solo activos" y se está desactivando un elemento,
+      // recargamos toda la lista para que se filtre
+      if (showActiveSubalcances && subalcance.isActive) {
+        loadSubalcances();
+      } else {
+        // Si no, actualizamos solo el elemento en el estado local
+        setSubalcances(subalcances.map(s => 
+          s.id === subalcance.id ? { ...s, isActive: !s.isActive } : s
+        ));
+      }
+
+      toast.success(`Subalcance ${subalcance.isActive ? "desactivado" : "activado"} correctamente`);
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Error al actualizar el estado");
+    }
+  };
+
+  // Handlers para crear nuevos registros
+  const handleCreateEspecialidad = async () => {
+    if (!searchEspecialidad.trim()) {
+      toast.error("El nombre de la especialidad es obligatorio");
+      return;
+    }
+
+    try {
+      const token = getToken();
+      if (!token) {
+        toast.error("No autorizado - Por favor inicie sesión nuevamente");
+        return;
+      }
+
+      const response = await fetch("/cat_especialidades/api", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token.trim()}`
+        },
+        body: JSON.stringify({
+          name: searchEspecialidad.trim()
+        }),
+      });
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        throw new Error(responseData.error || "Error al crear la especialidad");
+      }
+
+      toast.success("Especialidad creada correctamente");
+      setSearchEspecialidad("");
+      loadEspecialidades();
+    } catch (error: any) {
+      console.error("Error:", error);
+      toast.error(error.message || "Error al crear la especialidad");
+    }
+  };
+
+  const handleCreateAlcance = async () => {
+    if (!selectedEspecialidadId) {
+      toast.error("Debe seleccionar una especialidad");
+      return;
+    }
+
+    if (!searchAlcance.trim()) {
+      toast.error("El nombre del alcance es obligatorio");
+      return;
+    }
+
+    try {
+      const token = getToken();
+      if (!token) {
+        toast.error("No autorizado");
+        return;
+      }
+
+      const response = await fetch("/cat_especialidades/api/alcances", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: searchAlcance.trim(),
+          specialtyId: selectedEspecialidadId
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Error al crear el alcance");
+      }
+
+      toast.success("Alcance creado correctamente");
+      setSearchAlcance("");
+      loadAlcances();
+    } catch (error: any) {
+      console.error("Error:", error);
+      toast.error(error.message || "Error al crear el alcance");
+    }
+  };
+
+  const handleCreateSubalcance = async () => {
+    if (!selectedAlcanceId) {
+      toast.error("Debe seleccionar un alcance");
+      return;
+    }
+
+    if (!searchSubalcance.trim()) {
+      toast.error("El nombre del subalcance es obligatorio");
+      return;
+    }
+
+    try {
+      const token = getToken();
+      if (!token) {
+        toast.error("No autorizado");
+        return;
+      }
+
+      const response = await fetch("/cat_especialidades/api/subalcances", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: searchSubalcance.trim(),
+          scopeId: selectedAlcanceId
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Error al crear el subalcance");
+      }
+
+      toast.success("Subalcance creado correctamente");
+      setSearchSubalcance("");
+      loadSubalcances();
+    } catch (error: any) {
+      console.error("Error:", error);
+      toast.error(error.message || "Error al crear el subalcance");
+    }
+  };
+
   return (
     <div className="container mx-auto py-10 space-y-6">
       <div className="grid grid-cols-1 gap-6">
@@ -318,19 +572,22 @@ export default function CatEspecialidadesPage() {
                       <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="search-especialidad"
-                        placeholder="Buscar especialidad..."
+                        placeholder="Buscar o agregar especialidad..."
                         value={searchEspecialidad}
-                        onChange={(e) => setSearchEspecialidad(e.target.value)}
+                        onChange={(e) => {
+                          setSearchEspecialidad(e.target.value);
+                          setCurrentPageEspecialidades(1);
+                        }}
                         className="pl-8 min-w-[300px]"
                       />
                     </div>
                   </div>
                   <div className="flex flex-col justify-end">
                     <div className="h-[40px] flex items-center">
-                      <Button>
+                      <Button onClick={handleCreateEspecialidad}>
                         <Plus className="h-4 w-4 md:hidden" />
                         <span className="hidden md:inline">
-                          Nueva Especialidad
+                          Agregar Especialidad
                         </span>
                       </Button>
                     </div>
@@ -403,9 +660,12 @@ export default function CatEspecialidadesPage() {
                       <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="search-alcance"
-                        placeholder="Buscar alcance..."
+                        placeholder="Buscar o agregar alcance..."
                         value={searchAlcance}
-                        onChange={(e) => setSearchAlcance(e.target.value)}
+                        onChange={(e) => {
+                          setSearchAlcance(e.target.value);
+                          setCurrentPageAlcances(1);
+                        }}
                         className="pl-8 min-w-[300px]"
                         disabled={!selectedEspecialidadId}
                       />
@@ -413,9 +673,14 @@ export default function CatEspecialidadesPage() {
                   </div>
                   <div className="flex flex-col justify-end">
                     <div className="h-[40px] flex items-center">
-                      <Button disabled={!selectedEspecialidadId}>
+                      <Button 
+                        onClick={handleCreateAlcance}
+                        disabled={!selectedEspecialidadId}
+                      >
                         <Plus className="h-4 w-4 md:hidden" />
-                        <span className="hidden md:inline">Nuevo Alcance</span>
+                        <span className="hidden md:inline">
+                          Agregar Alcance
+                        </span>
                       </Button>
                     </div>
                   </div>
@@ -441,6 +706,7 @@ export default function CatEspecialidadesPage() {
                 currentPage={currentPageAlcances}
                 totalPages={totalPagesAlcances}
                 onPageChange={handlePageChangeAlcances}
+                onToggleStatus={handleToggleAlcanceStatus}
               />
             </div>
           </CardContent>
@@ -477,9 +743,12 @@ export default function CatEspecialidadesPage() {
                       <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="search-subalcance"
-                        placeholder="Buscar subalcance..."
+                        placeholder="Buscar o agregar subalcance..."
                         value={searchSubalcance}
-                        onChange={(e) => setSearchSubalcance(e.target.value)}
+                        onChange={(e) => {
+                          setSearchSubalcance(e.target.value);
+                          setCurrentPageSubalcances(1);
+                        }}
                         className="pl-8 min-w-[300px]"
                         disabled={!selectedAlcanceId}
                       />
@@ -487,10 +756,13 @@ export default function CatEspecialidadesPage() {
                   </div>
                   <div className="flex flex-col justify-end">
                     <div className="h-[40px] flex items-center">
-                      <Button disabled={!selectedAlcanceId}>
+                      <Button 
+                        onClick={handleCreateSubalcance}
+                        disabled={!selectedAlcanceId}
+                      >
                         <Plus className="h-4 w-4 md:hidden" />
                         <span className="hidden md:inline">
-                          Nuevo Subalcance
+                          Agregar Subalcance
                         </span>
                       </Button>
                     </div>
@@ -517,6 +789,7 @@ export default function CatEspecialidadesPage() {
                 currentPage={currentPageSubalcances}
                 totalPages={totalPagesSubalcances}
                 onPageChange={handlePageChangeSubalcances}
+                onToggleStatus={handleToggleSubalcanceStatus}
               />
             </div>
           </CardContent>

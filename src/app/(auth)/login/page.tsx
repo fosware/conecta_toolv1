@@ -26,9 +26,6 @@ const LoginPage = () => {
     if (res.ok) {
       const data = await res.json();
       document.cookie = `token=${data.token}; path=/`;
-      {
-        /* toast.success("Bienvenido"); */
-      }
       router.push("/dashboard");
     } else {
       toast.error("Credenciales incorrectas");

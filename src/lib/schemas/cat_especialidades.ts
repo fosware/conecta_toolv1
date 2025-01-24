@@ -4,10 +4,9 @@ export const catEspecialidadesSchema = z.object({
   id: z.number().optional(),
   name: z.string().min(1, "El nombre es obligatorio"),
   num: z.number().min(1, "El número es obligatorio"),
-  description: z.string().nullable().optional(),
   isActive: z.boolean().default(true),
   isDeleted: z.boolean().default(false),
-  userId: z.string(),
+  userId: z.number().optional(),
   createdAt: z.union([z.string(), z.date()]).optional(),
   updatedAt: z.union([z.string(), z.date()]).optional(),
 });
@@ -24,11 +23,10 @@ export const catAlcancesSchema = z.object({
   id: z.number().optional(),
   name: z.string().min(1, "El nombre es obligatorio"),
   num: z.number().min(1, "El número es obligatorio"),
-  description: z.string().nullable().optional(),
   specialtyId: z.number(),
   isActive: z.boolean().default(true),
   isDeleted: z.boolean().default(false),
-  userId: z.string(),
+  userId: z.number().optional(),
   createdAt: z.union([z.string(), z.date()]).optional(),
   updatedAt: z.union([z.string(), z.date()]).optional(),
 });
@@ -48,7 +46,7 @@ export const catSubalcancesSchema = z.object({
   scopeId: z.number(),
   isActive: z.boolean().default(true),
   isDeleted: z.boolean().default(false),
-  userId: z.string(),
+  userId: z.number().optional(),
   createdAt: z.union([z.string(), z.date()]).optional(),
   updatedAt: z.union([z.string(), z.date()]).optional(),
 });

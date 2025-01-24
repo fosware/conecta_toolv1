@@ -9,24 +9,40 @@ interface JWTPayload {
 }
 
 export async function getUserFromToken(): Promise<number> {
-  const headersList = headers();
-  const token = headersList.get("authorization")?.split(" ")[1];
-
-  if (!token || !process.env.JWT_SECRET) {
-    throw new Error("No autorizado");
-  }
-
   try {
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET);
-    const { payload } = await jwtVerify(token, secret);
-    const jwtPayload = payload as JWTPayload;
-
-    if (!jwtPayload.userId) {
-      throw new Error("Token inválido");
+    const headersList = await headers();
+    const authHeader = headersList.get("authorization");
+    
+    if (!authHeader?.startsWith('Bearer ')) {
+      throw new Error("No autorizado: Header de autorización inválido");
     }
 
-    return jwtPayload.userId;
+    const token = authHeader.split(" ")[1];
+    if (!token || !process.env.JWT_SECRET) {
+      throw new Error("No autorizado: Token no encontrado");
+    }
+
+    try {
+      const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+      const verifyResult = await jwtVerify(token, secret);
+      
+      if (!verifyResult.payload || typeof verifyResult.payload !== 'object') {
+        throw new Error("Payload del token inválido");
+      }
+
+      const jwtPayload = verifyResult.payload as JWTPayload;
+
+      if (!jwtPayload.userId || typeof jwtPayload.userId !== 'number') {
+        throw new Error("UserId no encontrado en el token");
+      }
+
+      return jwtPayload.userId;
+    } catch (verifyError) {
+      console.error("Error al verificar el token:", verifyError);
+      throw new Error("Token inválido o expirado");
+    }
   } catch (error) {
-    throw new Error("No autorizado");
+    console.error("Error en getUserFromToken:", error);
+    throw new Error(error instanceof Error ? error.message : "Error de autorización");
   }
 }

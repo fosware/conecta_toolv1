@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 import { catSubalcancesSchema } from "@/lib/schemas/cat_subalcances";
 import { getUserFromToken } from "@/lib/get-user-from-token";
 
@@ -16,15 +16,24 @@ export async function GET(req: Request) {
     const limit = parseInt(searchParams.get("limit") || "10");
     const skip = (page - 1) * limit;
 
-    const where = {
+    if (!scopeId) {
+      return NextResponse.json({
+        items: [],
+        total: 0,
+        totalPages: 1,
+        currentPage: page,
+      });
+    }
+
+    const where: Prisma.SubscopesWhereInput = {
       isDeleted: false,
+      scopeId: parseInt(scopeId),
       ...(showActive && { isActive: true }),
-      ...(scopeId && { scopeId: parseInt(scopeId) }),
       ...(search && {
-        OR: [
-          { name: { contains: search, mode: "insensitive" } },
-          { description: { contains: search, mode: "insensitive" } },
-        ],
+        name: {
+          contains: search,
+          mode: Prisma.QueryMode.insensitive,
+        },
       }),
     };
 
@@ -47,7 +56,13 @@ export async function GET(req: Request) {
   } catch (error) {
     console.error("Error al obtener subalcances:", error);
     return NextResponse.json(
-      { error: "Error al obtener subalcances" },
+      {
+        items: [],
+        total: 0,
+        totalPages: 1,
+        currentPage: 1,
+        error: "Error al obtener subalcances",
+      },
       { status: 500 }
     );
   }
@@ -56,28 +71,95 @@ export async function GET(req: Request) {
 // Crear un nuevo subalcance
 export async function POST(req: Request) {
   try {
-    const userId = await getUserFromToken();
-    const body = await req.json();
-    const validatedData = catSubalcancesSchema.parse({
-      ...body,
-      userId,
+    let userId: number;
+    try {
+      userId = await getUserFromToken();
+    } catch (error) {
+      console.error("Error al obtener el userId:", error);
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : "Error de autorización" },
+        { status: 401 }
+      );
+    }
+
+    let body;
+    try {
+      body = await req.json();
+    } catch (error) {
+      console.error("Error al parsear el body:", error);
+      return NextResponse.json(
+        { error: "Error al procesar la solicitud" },
+        { status: 400 }
+      );
+    }
+
+    // Verificar si ya existe un subalcance con el mismo nombre en el mismo alcance
+    const existingSubalcance = await prisma.subscopes.findFirst({
+      where: {
+        name: {
+          equals: body.name,
+          mode: 'insensitive'
+        },
+        scopeId: body.scopeId,
+        isDeleted: false,
+      },
     });
 
+    if (existingSubalcance) {
+      return NextResponse.json(
+        { error: "Ya existe un subalcance con este nombre en este alcance" },
+        { status: 400 }
+      );
+    }
+
+    // Obtener el último número de subalcance para este alcance
+    const lastSubalcance = await prisma.subscopes.findFirst({
+      where: {
+        scopeId: body.scopeId,
+        isDeleted: false,
+      },
+      orderBy: {
+        num: 'desc',
+      },
+    });
+
+    const nextNum = lastSubalcance ? lastSubalcance.num + 1 : 1;
+
+    // Validar los datos con el schema
+    let validatedData;
+    try {
+      validatedData = catSubalcancesSchema.parse({
+        name: body.name,
+        num: nextNum,
+        scopeId: body.scopeId,
+        isActive: true,
+        isDeleted: false,
+      });
+    } catch (error) {
+      console.error("Error de validación:", error);
+      return NextResponse.json(
+        { error: "Datos inválidos" },
+        { status: 400 }
+      );
+    }
+
+    // Crear el subalcance
     const subalcance = await prisma.subscopes.create({
-      data: validatedData,
+      data: {
+        name: validatedData.name,
+        num: validatedData.num,
+        scopeId: validatedData.scopeId,
+        userId,
+        isActive: validatedData.isActive,
+        isDeleted: validatedData.isDeleted,
+      },
     });
 
     return NextResponse.json(subalcance);
   } catch (error) {
     console.error("Error al crear subalcance:", error);
-    if (error instanceof Error && error.message === "No autorizado") {
-      return NextResponse.json(
-        { error: "No autorizado" },
-        { status: 401 }
-      );
-    }
     return NextResponse.json(
-      { error: "Error al crear subalcance" },
+      { error: "Error interno del servidor" },
       { status: 500 }
     );
   }
@@ -88,10 +170,8 @@ export async function PUT(req: Request) {
   try {
     const userId = await getUserFromToken();
     const body = await req.json();
-    const { id, ...updateData } = catSubalcancesSchema.parse({
-      ...body,
-      userId,
-    });
+    const { id, ...rest } = body;
+    const validatedData = catSubalcancesSchema.parse(rest);
 
     if (!id) {
       return NextResponse.json(
@@ -102,17 +182,17 @@ export async function PUT(req: Request) {
 
     const subalcance = await prisma.subscopes.update({
       where: { id },
-      data: updateData,
+      data: {
+        ...validatedData,
+        userId,
+      },
     });
 
     return NextResponse.json(subalcance);
   } catch (error) {
     console.error("Error al actualizar subalcance:", error);
     if (error instanceof Error && error.message === "No autorizado") {
-      return NextResponse.json(
-        { error: "No autorizado" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
     return NextResponse.json(
       { error: "Error al actualizar subalcance" },
@@ -125,8 +205,7 @@ export async function PUT(req: Request) {
 export async function DELETE(req: Request) {
   try {
     const userId = await getUserFromToken();
-    const { searchParams } = new URL(req.url);
-    const id = searchParams.get("id");
+    const { id } = await req.json();
 
     if (!id) {
       return NextResponse.json(
@@ -144,14 +223,14 @@ export async function DELETE(req: Request) {
       },
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json(
+      { message: "Subalcance eliminado correctamente" },
+      { status: 200 }
+    );
   } catch (error) {
     console.error("Error al eliminar subalcance:", error);
     if (error instanceof Error && error.message === "No autorizado") {
-      return NextResponse.json(
-        { error: "No autorizado" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
     return NextResponse.json(
       { error: "Error al eliminar subalcance" },
@@ -164,10 +243,7 @@ export async function DELETE(req: Request) {
 export async function PATCH(req: Request) {
   try {
     const userId = await getUserFromToken();
-    const { searchParams } = new URL(req.url);
-    const id = searchParams.get("id");
-    const body = await req.json();
-    const { isActive } = body;
+    const { id, isActive } = await req.json();
 
     if (!id) {
       return NextResponse.json(
@@ -178,7 +254,7 @@ export async function PATCH(req: Request) {
 
     const subalcance = await prisma.subscopes.update({
       where: { id: parseInt(id) },
-      data: { 
+      data: {
         isActive,
         userId,
       },
@@ -188,10 +264,7 @@ export async function PATCH(req: Request) {
   } catch (error) {
     console.error("Error al actualizar estado de subalcance:", error);
     if (error instanceof Error && error.message === "No autorizado") {
-      return NextResponse.json(
-        { error: "No autorizado" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
     return NextResponse.json(
       { error: "Error al actualizar estado de subalcance" },

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 import { catAlcancesSchema } from "@/lib/schemas/cat_alcances";
 import { getUserFromToken } from "@/lib/get-user-from-token";
 
@@ -16,15 +16,24 @@ export async function GET(req: Request) {
     const limit = parseInt(searchParams.get("limit") || "10");
     const skip = (page - 1) * limit;
 
-    const where = {
+    if (!specialtyId) {
+      return NextResponse.json({
+        items: [],
+        total: 0,
+        totalPages: 1,
+        currentPage: page,
+      });
+    }
+
+    const where: Prisma.ScopesWhereInput = {
       isDeleted: false,
+      specialtyId: parseInt(specialtyId),
       ...(showActive && { isActive: true }),
-      ...(specialtyId && { specialtyId: parseInt(specialtyId) }),
       ...(search && {
-        OR: [
-          { name: { contains: search, mode: "insensitive" } },
-          { description: { contains: search, mode: "insensitive" } },
-        ],
+        name: {
+          contains: search,
+          mode: Prisma.QueryMode.insensitive,
+        },
       }),
     };
 
@@ -46,38 +55,108 @@ export async function GET(req: Request) {
     });
   } catch (error) {
     console.error("Error al obtener alcances:", error);
-    return NextResponse.json(
-      { error: "Error al obtener alcances" },
-      { status: 500 }
-    );
+    return NextResponse.json({
+      items: [],
+      total: 0,
+      totalPages: 1,
+      currentPage: 1,
+      error: "Error al obtener alcances"
+    }, { status: 500 });
   }
 }
 
 // Crear un nuevo alcance
 export async function POST(req: Request) {
   try {
-    const userId = await getUserFromToken();
-    const body = await req.json();
-    const validatedData = catAlcancesSchema.parse({
-      ...body,
-      userId,
+    let userId: number;
+    try {
+      userId = await getUserFromToken();
+    } catch (error) {
+      console.error("Error al obtener el userId:", error);
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : "Error de autorización" },
+        { status: 401 }
+      );
+    }
+
+    let body;
+    try {
+      body = await req.json();
+    } catch (error) {
+      console.error("Error al parsear el body:", error);
+      return NextResponse.json(
+        { error: "Error al procesar la solicitud" },
+        { status: 400 }
+      );
+    }
+
+    // Verificar si ya existe un alcance con el mismo nombre en la misma especialidad
+    const existingAlcance = await prisma.scopes.findFirst({
+      where: {
+        name: {
+          equals: body.name,
+          mode: 'insensitive'
+        },
+        specialtyId: body.specialtyId,
+        isDeleted: false,
+      },
     });
 
+    if (existingAlcance) {
+      return NextResponse.json(
+        { error: "Ya existe un alcance con este nombre en esta especialidad" },
+        { status: 400 }
+      );
+    }
+
+    // Obtener el último número de alcance para esta especialidad
+    const lastAlcance = await prisma.scopes.findFirst({
+      where: {
+        specialtyId: body.specialtyId,
+        isDeleted: false,
+      },
+      orderBy: {
+        num: 'desc',
+      },
+    });
+
+    const nextNum = lastAlcance ? lastAlcance.num + 1 : 1;
+
+    // Validar los datos con el schema
+    let validatedData;
+    try {
+      validatedData = catAlcancesSchema.parse({
+        name: body.name,
+        num: nextNum,
+        specialtyId: body.specialtyId,
+        isActive: true,
+        isDeleted: false,
+      });
+    } catch (error) {
+      console.error("Error de validación:", error);
+      return NextResponse.json(
+        { error: "Datos inválidos" },
+        { status: 400 }
+      );
+    }
+
+    // Crear el alcance
     const alcance = await prisma.scopes.create({
-      data: validatedData,
+      data: {
+        name: validatedData.name,
+        num: validatedData.num,
+        specialtyId: validatedData.specialtyId,
+        userId,
+        isActive: validatedData.isActive,
+        isDeleted: validatedData.isDeleted,
+      },
     });
 
     return NextResponse.json(alcance);
   } catch (error) {
     console.error("Error al crear alcance:", error);
-    if (error instanceof Error && error.message === "No autorizado") {
-      return NextResponse.json(
-        { error: "No autorizado" },
-        { status: 401 }
-      );
-    }
     return NextResponse.json(
-      { error: "Error al crear alcance" },
+      { error: "Error interno del servidor" },
       { status: 500 }
     );
   }
@@ -88,10 +167,8 @@ export async function PUT(req: Request) {
   try {
     const userId = await getUserFromToken();
     const body = await req.json();
-    const { id, ...updateData } = catAlcancesSchema.parse({
-      ...body,
-      userId,
-    });
+    const { id, ...rest } = body;
+    const validatedData = catAlcancesSchema.parse(rest);
 
     if (!id) {
       return NextResponse.json(
@@ -102,7 +179,10 @@ export async function PUT(req: Request) {
 
     const alcance = await prisma.scopes.update({
       where: { id },
-      data: updateData,
+      data: {
+        ...validatedData,
+        userId,
+      },
     });
 
     return NextResponse.json(alcance);
@@ -125,8 +205,7 @@ export async function PUT(req: Request) {
 export async function DELETE(req: Request) {
   try {
     const userId = await getUserFromToken();
-    const { searchParams } = new URL(req.url);
-    const id = searchParams.get("id");
+    const { id } = await req.json();
 
     if (!id) {
       return NextResponse.json(
@@ -144,7 +223,10 @@ export async function DELETE(req: Request) {
       },
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json(
+      { message: "Alcance eliminado correctamente" },
+      { status: 200 }
+    );
   } catch (error) {
     console.error("Error al eliminar alcance:", error);
     if (error instanceof Error && error.message === "No autorizado") {
@@ -164,10 +246,7 @@ export async function DELETE(req: Request) {
 export async function PATCH(req: Request) {
   try {
     const userId = await getUserFromToken();
-    const { searchParams } = new URL(req.url);
-    const id = searchParams.get("id");
-    const body = await req.json();
-    const { isActive } = body;
+    const { id, isActive } = await req.json();
 
     if (!id) {
       return NextResponse.json(
@@ -178,7 +257,7 @@ export async function PATCH(req: Request) {
 
     const alcance = await prisma.scopes.update({
       where: { id: parseInt(id) },
-      data: { 
+      data: {
         isActive,
         userId,
       },

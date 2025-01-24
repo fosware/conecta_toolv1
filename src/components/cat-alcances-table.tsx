@@ -14,6 +14,7 @@ import { Edit, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Pagination } from "@/components/ui/pagination";
 import clsx from "clsx";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 
 interface Alcance {
   id: number;
@@ -30,6 +31,7 @@ interface AlcancesTableProps {
   onDelete: (alcance: Alcance) => void;
   onSelect: (alcance: Alcance) => void;
   onToggleStatus: (alcance: Alcance) => void;
+  onRefresh: () => void;
   selectedId?: number;
   currentPage: number;
   totalPages: number;
@@ -42,35 +44,31 @@ export function CatAlcancesTable({
   onDelete,
   onSelect,
   onToggleStatus,
+  onRefresh,
   selectedId,
   currentPage,
   totalPages,
   onPageChange,
 }: AlcancesTableProps) {
-  const handleToggleStatus = async (alcance: Alcance) => {
+  const handleDelete = async (id: number) => {
     try {
-      const response = await fetch(
-        `/cat_especialidades/api/alcances/${alcance.id}/toggle-status`,
-        {
-          method: "PATCH",
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Error al actualizar el estado");
-      }
-
-      onToggleStatus({
-        ...alcance,
-        isActive: !alcance.isActive,
+      const response = await fetch(`/cat_especialidades/api/alcances`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id }),
       });
 
-      toast.success(
-        `Alcance ${alcance.isActive ? "desactivado" : "activado"} correctamente`
-      );
+      if (!response.ok) {
+        throw new Error("Error al eliminar el alcance");
+      }
+
+      toast.success("Alcance eliminado correctamente");
+      onRefresh();
     } catch (error) {
       console.error("Error:", error);
-      toast.error("Error al actualizar el estado del alcance");
+      toast.error("Error al eliminar el alcance");
     }
   };
 
@@ -101,10 +99,11 @@ export function CatAlcancesTable({
                 <TableCell>
                   <Switch
                     checked={alcance.isActive}
-                    onCheckedChange={(checked) => {}}
+                    onCheckedChange={() => {
+                      onToggleStatus(alcance);
+                    }}
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleToggleStatus(alcance);
                     }}
                   />
                 </TableCell>
@@ -120,16 +119,15 @@ export function CatAlcancesTable({
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDelete(alcance);
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <ConfirmationDialog
+                      question="¿Está seguro de eliminar este alcance?"
+                      onConfirm={() => handleDelete(alcance.id)}
+                      trigger={
+                        <Button variant="ghost" size="icon">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      }
+                    />
                   </div>
                 </TableCell>
               </TableRow>

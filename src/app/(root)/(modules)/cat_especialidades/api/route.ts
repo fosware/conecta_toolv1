@@ -53,28 +53,93 @@ export async function GET(req: Request) {
 // Crear una nueva especialidad
 export async function POST(req: Request) {
   try {
-    const userId = await getUserFromToken();
-    const body = await req.json();
-    const validatedData = catEspecialidadesSchema.parse({
-      ...body,
-      userId,
+    // Obtener el userId del token
+    let userId: number;
+    try {
+      userId = await getUserFromToken();
+    } catch (error) {
+      console.error("Error al obtener el userId:", error);
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : "Error de autorización" },
+        { status: 401 }
+      );
+    }
+
+    // Obtener y validar el body
+    let body;
+    try {
+      body = await req.json();
+    } catch (error) {
+      console.error("Error al parsear el body:", error);
+      return NextResponse.json(
+        { error: "Error al procesar la solicitud" },
+        { status: 400 }
+      );
+    }
+
+    // Verificar si ya existe una especialidad con el mismo nombre
+    const existingEspecialidad = await prisma.specialties.findFirst({
+      where: {
+        name: {
+          equals: body.name,
+          mode: 'insensitive'
+        },
+        isDeleted: false,
+      },
     });
 
-    // Remove id from the data before creating
-    const { ...createData } = validatedData;
+    if (existingEspecialidad) {
+      return NextResponse.json(
+        { error: "Ya existe una especialidad con este nombre" },
+        { status: 400 }
+      );
+    }
 
+    // Obtener el último número de especialidad
+    const lastEspecialidad = await prisma.specialties.findFirst({
+      where: {
+        isDeleted: false,
+      },
+      orderBy: {
+        num: 'desc',
+      },
+    });
+
+    const nextNum = lastEspecialidad ? lastEspecialidad.num + 1 : 1;
+
+    // Validar los datos con el schema
+    let validatedData;
+    try {
+      validatedData = catEspecialidadesSchema.parse({
+        name: body.name,
+        num: nextNum,
+        isActive: true,
+        isDeleted: false,
+      });
+    } catch (error) {
+      console.error("Error de validación:", error);
+      return NextResponse.json(
+        { error: "Datos inválidos" },
+        { status: 400 }
+      );
+    }
+
+    // Crear la especialidad
     const especialidad = await prisma.specialties.create({
-      data: createData,
+      data: {
+        name: validatedData.name,
+        num: validatedData.num,
+        userId,
+        isActive: validatedData.isActive,
+        isDeleted: validatedData.isDeleted,
+      },
     });
 
     return NextResponse.json(especialidad);
   } catch (error) {
     console.error("Error al crear especialidad:", error);
-    if (error instanceof Error && error.message === "No autorizado") {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-    }
     return NextResponse.json(
-      { error: "Error al crear especialidad" },
+      { error: "Error interno del servidor" },
       { status: 500 }
     );
   }
@@ -106,7 +171,10 @@ export async function PUT(req: Request) {
   } catch (error) {
     console.error("Error al actualizar especialidad:", error);
     if (error instanceof Error && error.message === "No autorizado") {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+      return NextResponse.json(
+        { error: "No autorizado" },
+        { status: 401 }
+      );
     }
     return NextResponse.json(
       { error: "Error al actualizar especialidad" },
@@ -119,8 +187,7 @@ export async function PUT(req: Request) {
 export async function DELETE(req: Request) {
   try {
     const userId = await getUserFromToken();
-    const { searchParams } = new URL(req.url);
-    const id = searchParams.get("id");
+    const { id } = await req.json();
 
     if (!id) {
       return NextResponse.json(
@@ -138,11 +205,17 @@ export async function DELETE(req: Request) {
       },
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json(
+      { message: "Especialidad eliminada correctamente" },
+      { status: 200 }
+    );
   } catch (error) {
     console.error("Error al eliminar especialidad:", error);
     if (error instanceof Error && error.message === "No autorizado") {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+      return NextResponse.json(
+        { error: "No autorizado" },
+        { status: 401 }
+      );
     }
     return NextResponse.json(
       { error: "Error al eliminar especialidad" },
@@ -155,10 +228,7 @@ export async function DELETE(req: Request) {
 export async function PATCH(req: Request) {
   try {
     const userId = await getUserFromToken();
-    const { searchParams } = new URL(req.url);
-    const id = searchParams.get("id");
-    const body = await req.json();
-    const { isActive } = body;
+    const { id, isActive } = await req.json();
 
     if (!id) {
       return NextResponse.json(
@@ -179,7 +249,10 @@ export async function PATCH(req: Request) {
   } catch (error) {
     console.error("Error al actualizar estado de especialidad:", error);
     if (error instanceof Error && error.message === "No autorizado") {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+      return NextResponse.json(
+        { error: "No autorizado" },
+        { status: 401 }
+      );
     }
     return NextResponse.json(
       { error: "Error al actualizar estado de especialidad" },
