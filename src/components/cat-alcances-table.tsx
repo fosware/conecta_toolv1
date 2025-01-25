@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -8,64 +9,53 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Edit, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { Alcance } from "@/types";
 import { Pagination } from "@/components/ui/pagination";
 import clsx from "clsx";
+import { Switch } from "@/components/ui/switch";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { Edit, Trash2 } from "lucide-react";
 
-interface Alcance {
-  id: number;
-  name: string;
-  num: number;
-  description?: string;
-  specialtyId: number;
-  isActive: boolean;
-}
-
-interface AlcancesTableProps {
+interface CatAlcancesTableProps {
   alcances: Alcance[];
-  onEdit: (alcance: Alcance) => void;
   onDelete: (alcance: Alcance) => void;
-  onSelect: (alcance: Alcance) => void;
+  onEdit: (alcance: Alcance) => void;
   onToggleStatus: (alcance: Alcance) => void;
-  onRefresh: () => void;
+  onSelect: (alcance: Alcance) => void;
   selectedId?: number;
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
+  isLoading?: boolean;
+  showActive?: boolean;
 }
 
 export function CatAlcancesTable({
   alcances,
-  onEdit,
   onDelete,
-  onSelect,
+  onEdit,
   onToggleStatus,
-  onRefresh,
+  onSelect,
   selectedId,
   currentPage,
   totalPages,
   onPageChange,
-}: AlcancesTableProps) {
+  isLoading = false,
+  showActive = true,
+}: CatAlcancesTableProps) {
   const handleDelete = async (id: number) => {
     try {
-      const response = await fetch(`/cat_especialidades/api/alcances`, {
+      const response = await fetch(`/cat_especialidades/api/${id}/alcances`, {
         method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ id }),
       });
 
       if (!response.ok) {
         throw new Error("Error al eliminar el alcance");
       }
 
+      onDelete(alcances.find((alcance) => alcance.id === id)!);
       toast.success("Alcance eliminado correctamente");
-      onRefresh();
     } catch (error) {
       console.error("Error:", error);
       toast.error("Error al eliminar el alcance");
@@ -85,53 +75,67 @@ export function CatAlcancesTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {alcances.map((alcance) => (
-              <TableRow
-                key={alcance.id}
-                className={clsx(
-                  "cursor-pointer hover:bg-muted/50 transition-colors",
-                  selectedId === alcance.id && "bg-primary/25 hover:bg-primary/35"
-                )}
-                onClick={() => onSelect(alcance)}
-              >
-                <TableCell className="font-medium">{alcance.num}</TableCell>
-                <TableCell>{alcance.name}</TableCell>
-                <TableCell>
-                  <Switch
-                    checked={alcance.isActive}
-                    onCheckedChange={() => {
-                      onToggleStatus(alcance);
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                    }}
-                  />
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onEdit(alcance);
-                      }}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <ConfirmationDialog
-                      question="¿Está seguro de eliminar este alcance?"
-                      onConfirm={() => handleDelete(alcance.id)}
-                      trigger={
-                        <Button variant="ghost" size="icon">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      }
-                    />
-                  </div>
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center">
+                  Cargando...
                 </TableCell>
               </TableRow>
-            ))}
+            ) : alcances.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center">
+                  No hay alcances
+                </TableCell>
+              </TableRow>
+            ) : (
+              alcances.map((alcance) => (
+                <TableRow
+                  key={alcance.id}
+                  className={clsx(
+                    "cursor-pointer hover:bg-muted/50 transition-colors",
+                    selectedId === alcance.id && "bg-primary/25 hover:bg-primary/35"
+                  )}
+                  onClick={() => onSelect(alcance)}
+                >
+                  <TableCell className="font-medium">{alcance.num}</TableCell>
+                  <TableCell>{alcance.name}</TableCell>
+                  <TableCell>
+                    <Switch
+                      checked={alcance.isActive}
+                      onCheckedChange={() => {
+                        onToggleStatus(alcance);
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                      }}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEdit(alcance);
+                        }}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <ConfirmationDialog
+                        question="¿Está seguro de eliminar este alcance?"
+                        onConfirm={() => handleDelete(alcance.id)}
+                        trigger={
+                          <Button variant="ghost" size="icon">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        }
+                      />
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>

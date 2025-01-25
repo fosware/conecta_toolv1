@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -8,64 +9,53 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Edit, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { Subalcance } from "@/types";
 import { Pagination } from "@/components/ui/pagination";
 import clsx from "clsx";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 
-interface Subalcance {
-  id: number;
-  name: string;
-  num: number;
-  scopeId: number;
-  isActive: boolean;
-  description: string;
-}
-
-interface SubalcancesTableProps {
+interface CatSubalcancesTableProps {
   subalcances: Subalcance[];
-  onEdit: (subalcance: Subalcance) => void;
   onDelete: (subalcance: Subalcance) => void;
+  onEdit: (subalcance: Subalcance) => void;
   onToggleStatus: (subalcance: Subalcance) => void;
+  onSelect: (subalcance: Subalcance) => void;
+  selectedId?: number;
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
-  onSelect: (subalcance: Subalcance) => void;
-  selectedId: number;
-  onRefresh: () => void;
+  isLoading?: boolean;
+  showActive?: boolean;
 }
 
 export function CatSubalcancesTable({
   subalcances,
-  onEdit,
   onDelete,
+  onEdit,
   onToggleStatus,
+  onSelect,
+  selectedId,
   currentPage,
   totalPages,
   onPageChange,
-  onSelect,
-  selectedId,
-  onRefresh,
-}: SubalcancesTableProps) {
+  isLoading = false,
+  showActive = true,
+}: CatSubalcancesTableProps) {
   const handleDelete = async (id: number) => {
     try {
-      const response = await fetch(`/cat_especialidades/api/subalcances`, {
+      const response = await fetch(`/cat_especialidades/api/${id}/subalcances`, {
         method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ id }),
       });
 
       if (!response.ok) {
         throw new Error("Error al eliminar el subalcance");
       }
 
+      onDelete(subalcances.find((subalcance) => subalcance.id === id)!);
       toast.success("Subalcance eliminado correctamente");
-      onRefresh();
     } catch (error) {
       console.error("Error:", error);
       toast.error("Error al eliminar el subalcance");
@@ -85,53 +75,67 @@ export function CatSubalcancesTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {subalcances.map((subalcance) => (
-              <TableRow
-                key={subalcance.id}
-                className={clsx(
-                  "cursor-pointer hover:bg-muted/50 transition-colors",
-                  selectedId === subalcance.id && "bg-primary/25 hover:bg-primary/35"
-                )}
-                onClick={() => onSelect(subalcance)}
-              >
-                <TableCell className="font-medium">{subalcance.num}</TableCell>
-                <TableCell>{subalcance.name}</TableCell>
-                <TableCell>
-                  <Switch
-                    checked={subalcance.isActive}
-                    onCheckedChange={() => {
-                      onToggleStatus(subalcance);
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                    }}
-                  />
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onEdit(subalcance);
-                      }}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <ConfirmationDialog
-                      question="¿Está seguro de eliminar este subalcance?"
-                      onConfirm={() => handleDelete(subalcance.id)}
-                      trigger={
-                        <Button variant="ghost" size="icon">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      }
-                    />
-                  </div>
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center">
+                  Cargando...
                 </TableCell>
               </TableRow>
-            ))}
+            ) : subalcances.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center">
+                  No hay subalcances
+                </TableCell>
+              </TableRow>
+            ) : (
+              subalcances.map((subalcance) => (
+                <TableRow
+                  key={subalcance.id}
+                  className={clsx(
+                    "cursor-pointer hover:bg-muted/50 transition-colors",
+                    selectedId === subalcance.id && "bg-primary/25 hover:bg-primary/35"
+                  )}
+                  onClick={() => onSelect(subalcance)}
+                >
+                  <TableCell className="font-medium">{subalcance.num}</TableCell>
+                  <TableCell>{subalcance.name}</TableCell>
+                  <TableCell>
+                    <Switch
+                      checked={subalcance.isActive}
+                      onCheckedChange={() => {
+                        onToggleStatus(subalcance);
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                      }}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEdit(subalcance);
+                        }}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <ConfirmationDialog
+                        question="¿Está seguro de eliminar este subalcance?"
+                        onConfirm={() => handleDelete(subalcance.id)}
+                        trigger={
+                          <Button variant="ghost" size="icon">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        }
+                      />
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>

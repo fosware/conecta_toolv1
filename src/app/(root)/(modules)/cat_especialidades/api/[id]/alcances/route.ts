@@ -2,12 +2,13 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserFromToken } from "@/lib/get-user-from-token";
 
-export async function PATCH(
+// Eliminar un alcance
+export async function DELETE(
   req: Request,
   context: { params: { id: string } }
 ) {
   try {
-    const { id } = context.params;
+    const { id } = await context.params;
     
     let userId: number;
     try {
@@ -22,37 +23,25 @@ export async function PATCH(
 
     if (!id || isNaN(Number(id))) {
       return NextResponse.json(
-        { error: "ID de especialidad no proporcionado o inválido" },
+        { error: "ID de alcance no proporcionado o inválido" },
         { status: 400 }
       );
     }
 
-    // Obtener el estado actual
-    const currentSpecialty = await prisma.specialties.findUnique({
-      where: { id: parseInt(id) },
-    });
-
-    if (!currentSpecialty) {
-      return NextResponse.json(
-        { error: "Especialidad no encontrada" },
-        { status: 404 }
-      );
-    }
-
-    // Actualizar al estado opuesto
-    const specialty = await prisma.specialties.update({
+    // Marcar como eliminado en lugar de eliminar físicamente
+    const alcance = await prisma.scopes.update({
       where: {
         id: parseInt(id),
       },
       data: {
-        isActive: !currentSpecialty.isActive,
+        isDeleted: true,
         userId,
       },
     });
 
-    return NextResponse.json(specialty);
+    return NextResponse.json(alcance);
   } catch (error) {
-    console.error("Error al actualizar estado de especialidad:", error);
+    console.error("Error al eliminar alcance:", error);
     return NextResponse.json(
       { error: "Error interno del servidor" },
       { status: 500 }

@@ -162,25 +162,78 @@ export async function POST(req: Request) {
   }
 }
 
-// Actualizar un alcance
+// Editar un alcance
 export async function PUT(req: Request) {
   try {
-    const userId = await getUserFromToken();
-    const body = await req.json();
-    const { id, ...rest } = body;
-    const validatedData = catAlcancesSchema.parse(rest);
-
-    if (!id) {
+    let userId: number;
+    try {
+      userId = await getUserFromToken();
+    } catch (error) {
+      console.error("Error al obtener el userId:", error);
       return NextResponse.json(
-        { error: "ID de alcance no proporcionado" },
+        { error: error instanceof Error ? error.message : "Error de autorización" },
+        { status: 401 }
+      );
+    }
+
+    let body;
+    try {
+      body = await req.json();
+    } catch (error) {
+      console.error("Error al parsear el body:", error);
+      return NextResponse.json(
+        { error: "Error al procesar la solicitud" },
         { status: 400 }
       );
     }
 
+    // Verificar si ya existe un alcance con el mismo nombre en la misma especialidad
+    const existingAlcance = await prisma.scopes.findFirst({
+      where: {
+        name: {
+          equals: body.name,
+          mode: 'insensitive'
+        },
+        id: {
+          not: body.id
+        },
+        isDeleted: false,
+      },
+    });
+
+    if (existingAlcance) {
+      return NextResponse.json(
+        { error: "Ya existe un alcance con este nombre" },
+        { status: 400 }
+      );
+    }
+
+    // Validar los datos con el schema
+    let validatedData;
+    try {
+      const existingAlcance = await prisma.scopes.findUnique({ where: { id: body.id } });
+      validatedData = catAlcancesSchema.parse({
+        name: body.name,
+        num: existingAlcance?.num || 0,
+        specialtyId: existingAlcance?.specialtyId || 0,
+        isActive: true,
+        isDeleted: false,
+      });
+    } catch (error) {
+      console.error("Error de validación:", error);
+      return NextResponse.json(
+        { error: "Datos inválidos" },
+        { status: 400 }
+      );
+    }
+
+    // Actualizar el alcance
     const alcance = await prisma.scopes.update({
-      where: { id },
+      where: {
+        id: body.id,
+      },
       data: {
-        ...validatedData,
+        name: validatedData.name,
         userId,
       },
     });
@@ -188,61 +241,14 @@ export async function PUT(req: Request) {
     return NextResponse.json(alcance);
   } catch (error) {
     console.error("Error al actualizar alcance:", error);
-    if (error instanceof Error && error.message === "No autorizado") {
-      return NextResponse.json(
-        { error: "No autorizado" },
-        { status: 401 }
-      );
-    }
     return NextResponse.json(
-      { error: "Error al actualizar alcance" },
+      { error: "Error interno del servidor" },
       { status: 500 }
     );
   }
 }
 
-// Eliminar (lógica) un alcance
-export async function DELETE(req: Request) {
-  try {
-    const userId = await getUserFromToken();
-    const { id } = await req.json();
-
-    if (!id) {
-      return NextResponse.json(
-        { error: "ID de alcance no proporcionado" },
-        { status: 400 }
-      );
-    }
-
-    await prisma.scopes.update({
-      where: { id: parseInt(id) },
-      data: {
-        isDeleted: true,
-        dateDeleted: new Date(),
-        userId,
-      },
-    });
-
-    return NextResponse.json(
-      { message: "Alcance eliminado correctamente" },
-      { status: 200 }
-    );
-  } catch (error) {
-    console.error("Error al eliminar alcance:", error);
-    if (error instanceof Error && error.message === "No autorizado") {
-      return NextResponse.json(
-        { error: "No autorizado" },
-        { status: 401 }
-      );
-    }
-    return NextResponse.json(
-      { error: "Error al eliminar alcance" },
-      { status: 500 }
-    );
-  }
-}
-
-// Cambiar estado activo/inactivo de un alcance
+// Actualizar un alcance
 export async function PATCH(req: Request) {
   try {
     const userId = await getUserFromToken();
@@ -274,6 +280,52 @@ export async function PATCH(req: Request) {
     }
     return NextResponse.json(
       { error: "Error al actualizar estado de alcance" },
+      { status: 500 }
+    );
+  }
+}
+
+// Eliminar un alcance
+export async function DELETE(req: Request) {
+  try {
+    let userId: number;
+    try {
+      userId = await getUserFromToken();
+    } catch (error) {
+      console.error("Error al obtener el userId:", error);
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : "Error de autorización" },
+        { status: 401 }
+      );
+    }
+
+    // Obtener el ID del URL
+    const url = new URL(req.url);
+    const id = url.pathname.split('/').pop();
+
+    if (!id || isNaN(Number(id))) {
+      return NextResponse.json(
+        { error: "ID de alcance no proporcionado o inválido" },
+        { status: 400 }
+      );
+    }
+
+    // Marcar como eliminado en lugar de eliminar físicamente
+    const alcance = await prisma.scopes.update({
+      where: {
+        id: parseInt(id),
+      },
+      data: {
+        isDeleted: true,
+        userId,
+      },
+    });
+
+    return NextResponse.json(alcance);
+  } catch (error) {
+    console.error("Error al eliminar alcance:", error);
+    return NextResponse.json(
+      { error: "Error interno del servidor" },
       { status: 500 }
     );
   }
