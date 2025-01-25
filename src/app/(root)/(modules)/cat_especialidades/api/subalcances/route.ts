@@ -299,29 +299,47 @@ export async function DELETE(req: Request) {
       );
     }
 
-    // Obtener el ID del URL
-    const url = new URL(req.url);
-    const id = url.pathname.split('/').pop();
-
-    if (!id || isNaN(Number(id))) {
+    let body;
+    try {
+      body = await req.json();
+    } catch (error) {
+      console.error("Error al parsear el body:", error);
       return NextResponse.json(
-        { error: "ID de subalcance no proporcionado o inválido" },
+        { error: "Error al procesar la solicitud" },
         { status: 400 }
       );
     }
 
-    // Marcar como eliminado en lugar de eliminar físicamente
-    const subalcance = await prisma.subscopes.update({
-      where: {
-        id: parseInt(id),
-      },
+    if (!body.id) {
+      return NextResponse.json(
+        { error: "ID de subalcance no proporcionado" },
+        { status: 400 }
+      );
+    }
+
+    // Verificar si el subalcance existe
+    const subalcance = await prisma.subscopes.findUnique({
+      where: { id: body.id },
+    });
+
+    if (!subalcance) {
+      return NextResponse.json(
+        { error: "Subalcance no encontrado" },
+        { status: 404 }
+      );
+    }
+
+    // Soft delete del subalcance
+    const deletedSubalcance = await prisma.subscopes.update({
+      where: { id: body.id },
       data: {
         isDeleted: true,
+        dateDeleted: new Date(),
         userId,
       },
     });
 
-    return NextResponse.json(subalcance);
+    return NextResponse.json(deletedSubalcance);
   } catch (error) {
     console.error("Error al eliminar subalcance:", error);
     return NextResponse.json(

@@ -280,29 +280,47 @@ export async function DELETE(req: Request) {
       );
     }
 
-    // Obtener el ID del URL
-    const url = new URL(req.url);
-    const id = url.pathname.split('/').pop();
-
-    if (!id || isNaN(Number(id))) {
+    let body;
+    try {
+      body = await req.json();
+    } catch (error) {
+      console.error("Error al parsear el body:", error);
       return NextResponse.json(
-        { error: "ID de especialidad no proporcionado o inválido" },
+        { error: "Error al procesar la solicitud" },
         { status: 400 }
       );
     }
 
-    // Marcar como eliminado en lugar de eliminar físicamente
-    const especialidad = await prisma.specialties.update({
-      where: {
-        id: parseInt(id),
-      },
+    if (!body.id) {
+      return NextResponse.json(
+        { error: "ID de especialidad no proporcionado" },
+        { status: 400 }
+      );
+    }
+
+    // Verificar si la especialidad existe
+    const especialidad = await prisma.specialties.findUnique({
+      where: { id: body.id },
+    });
+
+    if (!especialidad) {
+      return NextResponse.json(
+        { error: "Especialidad no encontrada" },
+        { status: 404 }
+      );
+    }
+
+    // Soft delete de la especialidad
+    const deletedEspecialidad = await prisma.specialties.update({
+      where: { id: body.id },
       data: {
         isDeleted: true,
+        dateDeleted: new Date(),
         userId,
       },
     });
 
-    return NextResponse.json(especialidad);
+    return NextResponse.json(deletedEspecialidad);
   } catch (error) {
     console.error("Error al eliminar especialidad:", error);
     return NextResponse.json(

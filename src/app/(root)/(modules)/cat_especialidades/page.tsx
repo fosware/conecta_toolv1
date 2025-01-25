@@ -170,10 +170,31 @@ export default function CatEspecialidadesPage() {
     setEditEspecialidadModal({ isOpen: true, item: especialidad });
   };
 
-  const handleDeleteEspecialidad = (especialidad: Especialidad) => {
-    setEspecialidades(prevEspecialidades =>
-      prevEspecialidades.filter(esp => esp.id !== especialidad.id)
-    );
+  const handleDeleteEspecialidad = async (especialidad: Especialidad) => {
+    try {
+      const response = await fetch(`/cat_especialidades/api`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({ id: especialidad.id }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Error al eliminar la especialidad");
+      }
+
+      setEspecialidades(prevEspecialidades =>
+        prevEspecialidades.filter(esp => esp.id !== especialidad.id)
+      );
+      loadEspecialidades();
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(error.message);
+      }
+    }
   };
 
   const handleSelectEspecialidad = (especialidad: Especialidad) => {
@@ -187,10 +208,32 @@ export default function CatEspecialidadesPage() {
     setEditAlcanceModal({ isOpen: true, item: alcance });
   };
 
-  const handleDeleteAlcance = (alcance: Alcance) => {
-    setAlcances(prevAlcances =>
-      prevAlcances.filter(alc => alc.id !== alcance.id)
-    );
+  const handleDeleteAlcance = async (alcance: Alcance) => {
+    try {
+      const response = await fetch(`/cat_especialidades/api/alcances`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({ id: alcance.id }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Error al eliminar el alcance");
+      }
+
+      setAlcances(prevAlcances =>
+        prevAlcances.filter(alc => alc.id !== alcance.id)
+      );
+      toast.success("Alcance eliminado correctamente");
+      loadAlcances();
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(error.message);
+      }
+    }
   };
 
   const handleSelectAlcance = (alcance: Alcance) => {
@@ -202,10 +245,32 @@ export default function CatEspecialidadesPage() {
     setEditSubalcanceModal({ isOpen: true, item: subalcance });
   };
 
-  const handleDeleteSubalcance = (subalcance: Subalcance) => {
-    setSubalcances(prevSubalcances =>
-      prevSubalcances.filter(sub => sub.id !== subalcance.id)
-    );
+  const handleDeleteSubalcance = async (subalcance: Subalcance) => {
+    try {
+      const response = await fetch(`/cat_especialidades/api/subalcances`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({ id: subalcance.id }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Error al eliminar el subalcance");
+      }
+
+      setSubalcances(prevSubalcances =>
+        prevSubalcances.filter(sub => sub.id !== subalcance.id)
+      );
+      toast.success("Subalcance eliminado correctamente");
+      loadSubalcances();
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(error.message);
+      }
+    }
   };
 
   const handleSelectSubalcance = (subalcance: Subalcance) => {

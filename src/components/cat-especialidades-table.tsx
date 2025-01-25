@@ -16,6 +16,7 @@ import clsx from "clsx";
 import { Switch } from "@/components/ui/switch";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { Edit, Trash2 } from "lucide-react";
+import { getToken } from "@/lib/auth";
 
 interface CatEspecialidadesTableProps {
   especialidades: Especialidad[];
@@ -48,35 +49,54 @@ export function CatEspecialidadesTable({
     try {
       const response = await fetch(`/cat_especialidades/api/${id}/toggle-status`, {
         method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        },
       });
 
       if (!response.ok) {
-        throw new Error("Error al actualizar el estado");
+        const data = await response.json();
+        throw new Error(data.error || "Error al actualizar el estado");
       }
 
       onToggleStatus(especialidades.find((especialidad) => especialidad.id === id)!);
       toast.success("Estado actualizado correctamente");
     } catch (error) {
       console.error("Error:", error);
-      toast.error("Error al actualizar el estado de la especialidad");
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Error al actualizar el estado de la especialidad");
+      }
     }
   };
 
   const handleDelete = async (id: number) => {
     try {
-      const response = await fetch(`/cat_especialidades/api/${id}`, {
+      const response = await fetch(`/cat_especialidades/api`, {
         method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({ id }),
       });
 
       if (!response.ok) {
-        throw new Error("Error al eliminar la especialidad");
+        const data = await response.json();
+        throw new Error(data.error || "Error al eliminar la especialidad");
       }
 
       onDelete(especialidades.find((especialidad) => especialidad.id === id)!);
       toast.success("Especialidad eliminada correctamente");
     } catch (error) {
       console.error("Error:", error);
-      toast.error("Error al eliminar la especialidad");
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Error al eliminar la especialidad");
+      }
     }
   };
 

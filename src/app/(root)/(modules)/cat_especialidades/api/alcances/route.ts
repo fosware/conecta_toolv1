@@ -299,29 +299,47 @@ export async function DELETE(req: Request) {
       );
     }
 
-    // Obtener el ID del URL
-    const url = new URL(req.url);
-    const id = url.pathname.split('/').pop();
-
-    if (!id || isNaN(Number(id))) {
+    let body;
+    try {
+      body = await req.json();
+    } catch (error) {
+      console.error("Error al parsear el body:", error);
       return NextResponse.json(
-        { error: "ID de alcance no proporcionado o inválido" },
+        { error: "Error al procesar la solicitud" },
         { status: 400 }
       );
     }
 
-    // Marcar como eliminado en lugar de eliminar físicamente
-    const alcance = await prisma.scopes.update({
-      where: {
-        id: parseInt(id),
-      },
+    if (!body.id) {
+      return NextResponse.json(
+        { error: "ID de alcance no proporcionado" },
+        { status: 400 }
+      );
+    }
+
+    // Verificar si el alcance existe
+    const alcance = await prisma.scopes.findUnique({
+      where: { id: body.id },
+    });
+
+    if (!alcance) {
+      return NextResponse.json(
+        { error: "Alcance no encontrado" },
+        { status: 404 }
+      );
+    }
+
+    // Soft delete del alcance
+    const deletedAlcance = await prisma.scopes.update({
+      where: { id: body.id },
       data: {
         isDeleted: true,
+        dateDeleted: new Date(),
         userId,
       },
     });
 
-    return NextResponse.json(alcance);
+    return NextResponse.json(deletedAlcance);
   } catch (error) {
     console.error("Error al eliminar alcance:", error);
     return NextResponse.json(
