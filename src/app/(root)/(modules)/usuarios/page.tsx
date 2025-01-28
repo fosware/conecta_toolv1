@@ -357,7 +357,6 @@ const UsuariosPage = () => {
         currentPage={currentPage}
         totalPages={totalPages}
         onPageChange={setCurrentPage}
-        range={3} // Mostrar 3 páginas a la vez
       />
 
       {/* Modal para registro/edición */}

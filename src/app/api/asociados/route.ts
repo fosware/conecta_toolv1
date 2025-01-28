@@ -2,53 +2,56 @@ import { prisma } from "../../../lib/prisma";
 import { getUserFromToken } from "../../../lib/get-user-from-token";
 import { NextRequest, NextResponse } from "next/server";
 import { associateCreateSchema } from "../../../lib/schemas/associate";
-import { Prisma } from "@prisma/client";
+import { Prisma, Associate } from "@prisma/client";
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const search = searchParams.get("search") || "";
     const showActive = searchParams.get("showActive") === "true";
 
-    const items = await prisma.associate.findMany({
+    const associates = await prisma.associate.findMany({
       where: {
-        OR: [
-          { companyName: { contains: search, mode: "insensitive" } },
-          { contactName: { contains: search, mode: "insensitive" } },
-          { email: { contains: search, mode: "insensitive" } },
-        ],
         isDeleted: false,
         ...(showActive && { isActive: true }),
-      },
-      orderBy: {
-        companyName: "asc",
       },
       select: {
         id: true,
         companyName: true,
         contactName: true,
-        email: true,
-        phone: true,
-        isActive: true,
         street: true,
         externalNumber: true,
         internalNumber: true,
         neighborhood: true,
-        city: true,
         postalCode: true,
+        city: true,
+        phone: true,
+        email: true,
         machineCount: true,
         employeeCount: true,
         shifts: true,
-        stateId: true,
+        locationState: {
+          select: {
+            id: true,
+            name: true
+          }
+        },
         companyLogo: true,
         nda: false,
         ndaFileName: true,
+        isActive: true,
+        achievementDescription: true,
+        profile: true,
+        userId: true,
+        stateId: true
+      },
+      orderBy: {
+        companyName: "asc",
       },
     });
 
-    return NextResponse.json({ items });
+    return NextResponse.json({ items: associates });
   } catch (error) {
-    console.error("Error in GET /asociados/api:", error);
+    console.error("Error in GET /api/asociados:", error);
     return NextResponse.json(
       { error: "Error al obtener los asociados" },
       { status: 500 }
@@ -60,94 +63,285 @@ export async function POST(request: NextRequest) {
   try {
     const userId = await getUserFromToken();
     const formData = await request.formData();
-    
+
+    // Handle logo file
+    const logoFile = formData.get("companyLogo");
+    let companyLogo = null;
+    if (logoFile && typeof logoFile === 'string') {
+      companyLogo = logoFile;
+    }
+
     // Handle NDA file
     const ndaFile = formData.get("nda") as File | null;
-    let ndaBuffer = null;
+    let ndaBuffer: Uint8Array | null = null;
     let ndaFileName = null;
     
-    if (ndaFile) {
-      if (!ndaFile.type.includes("pdf")) {
-        return NextResponse.json(
-          { error: "El NDA debe ser un archivo PDF" },
-          { status: 400 }
-        );
-      }
-      if (ndaFile.size > 5 * 1024 * 1024) {
-        return NextResponse.json(
-          { error: "El NDA no debe exceder 5MB" },
-          { status: 400 }
-        );
-      }
-      ndaBuffer = Buffer.from(await ndaFile.arrayBuffer());
+    if (ndaFile && ndaFile instanceof File) {
+      const bytes = await ndaFile.arrayBuffer();
+      ndaBuffer = new Uint8Array(bytes);
       ndaFileName = ndaFile.name;
     }
 
-    const data = {
-      companyName: formData.get("companyName"),
-      contactName: formData.get("contactName"),
-      street: formData.get("street"),
-      externalNumber: formData.get("externalNumber"),
-      internalNumber: formData.get("internalNumber"),
-      neighborhood: formData.get("neighborhood"),
-      postalCode: formData.get("postalCode"),
-      city: formData.get("city"),
-      stateId: Number(formData.get("stateId")),
-      phone: formData.get("phone"),
-      email: formData.get("email"),
-      machineCount: Number(formData.get("machineCount")),
-      employeeCount: Number(formData.get("employeeCount")),
-      shifts: formData.get("shifts"),
-      achievementDescription: formData.get("achievementDescription"),
-      profile: formData.get("profile"),
-      nda: ndaBuffer,
-      ndaFileName,
-      userId,
+    // Construir el objeto de datos para validación
+    const validationData = {
+      companyName: formData.get("companyName") as string,
+      contactName: formData.get("contactName") as string,
+      street: formData.get("street") as string,
+      externalNumber: formData.get("externalNumber") as string,
+      internalNumber: formData.get("internalNumber") as string || null,
+      neighborhood: formData.get("neighborhood") as string,
+      postalCode: formData.get("postalCode") as string,
+      city: formData.get("city") as string,
+      stateId: parseInt(formData.get("stateId") as string),
+      phone: formData.get("phone") as string,
+      email: formData.get("email") as string,
+      machineCount: parseInt(formData.get("machineCount") as string),
+      employeeCount: parseInt(formData.get("employeeCount") as string),
+      shifts: formData.get("shifts") as string || "",
+      achievementDescription: formData.get("achievementDescription") as string || null,
+      profile: formData.get("profile") as string || null,
     };
 
-    const validatedData = associateCreateSchema.parse(data);
-
-    const item = await prisma.associate.create({
-      data: validatedData,
+    // Validar que no exista otro asociado con el mismo correo o nombre de empresa
+    const existingByEmail = await prisma.associate.findFirst({
+      where: {
+        email: validationData.email,
+        isDeleted: false,
+      },
     });
 
-    return NextResponse.json({ item });
-  } catch (error) {
-    console.error("Error in POST /asociados/api:", error);
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      if (error.code === "P2002") {
-        return NextResponse.json(
-          { error: "Ya existe un asociado con ese nombre" },
-          { status: 400 }
-        );
-      }
+    if (existingByEmail) {
+      return NextResponse.json(
+        { error: "Ya existe un asociado con ese correo electrónico" },
+        { status: 400 }
+      );
     }
+
+    const existingByName = await prisma.associate.findFirst({
+      where: {
+        companyName: validationData.companyName,
+        isDeleted: false,
+      },
+    });
+
+    if (existingByName) {
+      return NextResponse.json(
+        { error: "Ya existe un asociado con ese nombre de empresa" },
+        { status: 400 }
+      );
+    }
+
+    // Validar los datos
+    const validationResult = associateCreateSchema.safeParse(validationData);
+    if (!validationResult.success) {
+      const errors = validationResult.error.errors.map(err => ({
+        field: err.path.join('.'),
+        message: err.message
+      }));
+      return NextResponse.json(
+        { error: "Error de validación", details: errors },
+        { status: 400 }
+      );
+    }
+
+    // Construir el objeto de datos para Prisma
+    const data: Prisma.AssociateCreateInput = {
+      companyName: validationData.companyName,
+      contactName: validationData.contactName,
+      street: validationData.street,
+      externalNumber: validationData.externalNumber,
+      internalNumber: validationData.internalNumber,
+      neighborhood: validationData.neighborhood,
+      postalCode: validationData.postalCode,
+      city: validationData.city,
+      phone: validationData.phone,
+      email: validationData.email,
+      machineCount: validationData.machineCount,
+      employeeCount: validationData.employeeCount,
+      shifts: validationData.shifts,
+      achievementDescription: validationData.achievementDescription,
+      profile: validationData.profile,
+      isActive: true,
+      locationState: {
+        connect: {
+          id: validationData.stateId
+        }
+      },
+      user: userId ? {
+        connect: {
+          id: userId
+        }
+      } : undefined
+    };
+
+    // Agregar logo y NDA solo si existen
+    if (companyLogo) {
+      data.companyLogo = companyLogo;
+    }
+    if (ndaBuffer) {
+      data.nda = ndaBuffer;
+      data.ndaFileName = ndaFileName;
+    }
+
+    // Crear el asociado
+    const associate = await prisma.associate.create({
+      data: data,
+    });
+
+    return NextResponse.json({ data: associate });
+  } catch (error) {
+    console.error("Error in POST /api/asociados:", error);
     return NextResponse.json(
-      { error: "Error al crear el asociado" },
+      { error: error instanceof Error ? error.message : "Error al crear el asociado" },
       { status: 500 }
     );
   }
 }
 
-export async function PUT(request: Request) {
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     const userId = await getUserFromToken();
-    const data = await request.json();
-    const { id, ...updateData } = data;
+    const formData = await request.formData();
+    const id = parseInt(params.id);
 
-    const associate = await prisma.associate.update({
-      where: { id },
-      data: {
-        ...updateData,
-        userId,
+    // Handle logo file
+    const logoFile = formData.get("companyLogo");
+    let companyLogo = null;
+    if (logoFile && typeof logoFile === 'string') {
+      companyLogo = logoFile;
+    }
+
+    // Handle NDA file
+    const ndaFile = formData.get("nda") as File | null;
+    let ndaBuffer: Uint8Array | null = null;
+    let ndaFileName = null;
+    
+    if (ndaFile && ndaFile instanceof File) {
+      const bytes = await ndaFile.arrayBuffer();
+      ndaBuffer = new Uint8Array(bytes);
+      ndaFileName = ndaFile.name;
+    }
+
+    // Construir el objeto de datos para validación
+    const validationData = {
+      companyName: formData.get("companyName") as string,
+      contactName: formData.get("contactName") as string,
+      street: formData.get("street") as string,
+      externalNumber: formData.get("externalNumber") as string,
+      internalNumber: formData.get("internalNumber") as string || null,
+      neighborhood: formData.get("neighborhood") as string,
+      postalCode: formData.get("postalCode") as string,
+      city: formData.get("city") as string,
+      stateId: parseInt(formData.get("stateId") as string),
+      phone: formData.get("phone") as string,
+      email: formData.get("email") as string,
+      machineCount: parseInt(formData.get("machineCount") as string),
+      employeeCount: parseInt(formData.get("employeeCount") as string),
+      shifts: formData.get("shifts") as string || "",
+      achievementDescription: formData.get("achievementDescription") as string || null,
+      profile: formData.get("profile") as string || null,
+    };
+
+    // Validar los datos
+    const validationResult = associateCreateSchema.safeParse(validationData);
+    if (!validationResult.success) {
+      const errors = validationResult.error.errors.map(err => ({
+        field: err.path.join('.'),
+        message: err.message
+      }));
+      return NextResponse.json(
+        { error: "Error de validación", details: errors },
+        { status: 400 }
+      );
+    }
+
+    // Construir el objeto de datos para Prisma
+    const data: Prisma.AssociateUpdateInput = {
+      ...validationResult.data,
+      locationState: {
+        connect: {
+          id: validationResult.data.stateId
+        }
+      },
+      user: userId ? {
+        connect: {
+          id: userId
+        }
+      } : undefined
+    };
+
+    // Agregar logo y NDA solo si existen
+    if (companyLogo) {
+      data.companyLogo = companyLogo;
+    }
+    if (ndaBuffer) {
+      data.nda = ndaBuffer;
+      data.ndaFileName = ndaFileName;
+    }
+
+    // Validar que no exista otro asociado con el mismo correo o nombre de empresa
+    const existingByEmail = await prisma.associate.findFirst({
+      where: {
+        email: data.email as string,
+        id: { not: id },
+        isDeleted: false,
       },
     });
 
-    return NextResponse.json(associate);
+    if (existingByEmail) {
+      return NextResponse.json(
+        { error: "Ya existe un asociado con ese correo electrónico" },
+        { status: 400 }
+      );
+    }
+
+    const existingByName = await prisma.associate.findFirst({
+      where: {
+        companyName: data.companyName as string,
+        id: { not: id },
+        isDeleted: false,
+      },
+    });
+
+    if (existingByName) {
+      return NextResponse.json(
+        { error: "Ya existe un asociado con ese nombre de empresa" },
+        { status: 400 }
+      );
+    }
+
+    // Actualizar el asociado
+    const associate = await prisma.associate.update({
+      where: { id },
+      data: data,
+    });
+
+    return NextResponse.json({ data: associate });
   } catch (error) {
-    console.error("Error in PUT /asociados/api:", error);
+    console.error("Error in PUT /api/asociados/[id]:", error);
+
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === "P2002") {
+        const target = error.meta?.target as string[];
+        if (target?.includes("email")) {
+          return NextResponse.json(
+            { error: "Ya existe un asociado con ese correo electrónico" },
+            { status: 400 }
+          );
+        } else if (target?.includes("companyName")) {
+          return NextResponse.json(
+            { error: "Ya existe un asociado con ese nombre de empresa" },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
     return NextResponse.json(
-      { error: "Error al actualizar el asociado" },
+      { error: error instanceof Error ? error.message : "Error al actualizar el asociado" },
       { status: 500 }
     );
   }

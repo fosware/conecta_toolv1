@@ -6,53 +6,68 @@ export const associateSchema = z.object({
   contactName: z.string().min(1, "El nombre del contacto es requerido"),
   street: z.string().min(1, "La calle es requerida"),
   externalNumber: z.string().min(1, "El número exterior es requerido"),
-  internalNumber: z.string().optional(),
+  internalNumber: z.string().nullable().optional(),
   neighborhood: z.string().min(1, "La colonia es requerida"),
-  postalCode: z.string().min(5, "El código postal debe tener 5 dígitos").max(5),
+  postalCode: z.string()
+    .min(5, "El código postal debe tener 5 dígitos")
+    .max(5, "El código postal debe tener 5 dígitos")
+    .regex(/^\d+$/, "El código postal solo debe contener números"),
   city: z.string().min(1, "La ciudad es requerida"),
   stateId: z.number({
     required_error: "El estado es requerido",
     invalid_type_error: "El estado debe ser un número",
-  }),
-  phone: z.string().min(10, "El teléfono debe tener al menos 10 dígitos"),
-  email: z.string().email("El correo electrónico no es válido"),
+  }).min(1, "El estado es requerido"),
+  phone: z.string()
+    .min(10, "El teléfono debe tener al menos 10 dígitos")
+    .regex(/^\d+$/, "El teléfono solo debe contener números"),
+  email: z.string()
+    .min(1, "El correo electrónico es requerido")
+    .email("El formato del correo electrónico no es válido"),
   machineCount: z
     .number({
       required_error: "El número de máquinas es requerido",
-      invalid_type_error: "Debe ser un número",
+      invalid_type_error: "El número de máquinas debe ser un número",
     })
     .min(0, "El número de máquinas no puede ser negativo"),
   employeeCount: z
     .number({
       required_error: "El número de empleados es requerido",
-      invalid_type_error: "Debe ser un número",
+      invalid_type_error: "El número de empleados debe ser un número",
     })
     .min(0, "El número de empleados no puede ser negativo"),
-  shifts: z.string().min(1, "Los turnos son requeridos"),
-  achievementDescription: z.string().optional(),
-  profile: z.string().optional(),
-  nda: z.custom<File | null>((val) => val instanceof File || val === null).optional(),
+  shifts: z.string().default(""),
+  achievementDescription: z.string().nullable().optional(),
+  profile: z.string().nullable().optional(),
+  nda: z
+    .any()
+    .nullable()
+    .optional(),
   ndaFileName: z.string().nullable().optional(),
-  companyLogo: z.union([z.string(), z.custom<File>((val) => val instanceof File), z.null()]).optional(),
-  isActive: z
-    .boolean({ required_error: "El estado activo es requerido" })
-    .default(true),
-  isDeleted: z
-    .boolean({ required_error: "El estado eliminado es requerido" })
-    .default(false),
-  dateDeleted: z.date().optional(),
+  companyLogo: z
+    .string()
+    .nullable()
+    .optional(),
+  isActive: z.boolean().default(true),
+  isDeleted: z.boolean().default(false),
+  dateDeleted: z.date().nullable().optional(),
   createdAt: z.date().optional(),
   updatedAt: z.date().optional(),
   userId: z.number().optional(),
 });
 
-export type Associate = z.infer<typeof associateSchema>;
-
 export const associateCreateSchema = associateSchema.omit({
-  id: true,
   isDeleted: true,
   dateDeleted: true,
   createdAt: true,
   updatedAt: true,
-  userId: true,
+}).extend({
+  id: z.number().optional(),
 });
+
+export type Associate = z.infer<typeof associateSchema>;
+export type AssociateFormData = z.infer<typeof associateCreateSchema> & {
+  locationState?: {
+    id: number;
+    name: string;
+  };
+};

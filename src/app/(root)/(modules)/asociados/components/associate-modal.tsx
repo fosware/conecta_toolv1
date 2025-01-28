@@ -1,6 +1,11 @@
 "use client";
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { type Associate } from "@/lib/schemas/associate";
 import { AssociateForm, type AssociateFormData } from "./associate-form";
 import { getToken } from "@/lib/auth";
@@ -8,99 +13,95 @@ import { toast } from "sonner";
 import { useState } from "react";
 
 interface AssociateModalProps {
-  title: string;
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
-  initialData?: Associate | null;
+  initialData?: AssociateFormData & {
+    id?: number;
+    locationState?: {
+      id: number;
+      name: string;
+    };
+  };
+  onSuccess?: (data: any) => void;
 }
 
-export function AssociateModal({
-  title,
+export const AssociateModal = ({
   isOpen,
   onClose,
-  onSuccess,
   initialData,
-}: AssociateModalProps) {
+  onSuccess,
+}: AssociateModalProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [ndaFile, setNdaFile] = useState<File | null>(null);
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setNdaFile(file);
+    }
+  };
 
   const handleSubmit = async (data: AssociateFormData) => {
-    if (isSubmitting) return;
-    
+    setIsSubmitting(true);
     try {
-      setIsSubmitting(true);
-      const url = `/api/asociados${initialData ? `/${initialData.id}` : ""}`;
-      const method = initialData ? "PUT" : "POST";
-
       const formData = new FormData();
+      
+      // Agregar todos los campos al FormData
+      Object.entries(data).forEach(([key, value]) => {
+        if (value !== null && value !== undefined) {
+          if (key === 'nda' && value instanceof File) {
+            formData.append(key, value);
+          } else if (key === 'companyLogo' && value) {
+            formData.append(key, value.toString());
+          } else if (typeof value === 'number') {
+            formData.append(key, value.toString());
+          } else {
+            formData.append(key, value);
+          }
+        }
+      });
 
-      // Agregar campos al FormData manteniendo los valores existentes
-      formData.append("companyName", data.companyName || initialData?.companyName || "");
-      formData.append("contactName", data.contactName || initialData?.contactName || "");
-      formData.append("street", data.street || initialData?.street || "");
-      formData.append("externalNumber", data.externalNumber || initialData?.externalNumber || "");
-      formData.append("neighborhood", data.neighborhood || initialData?.neighborhood || "");
-      formData.append("postalCode", data.postalCode || initialData?.postalCode || "");
-      formData.append("city", data.city || initialData?.city || "");
-      formData.append("stateId", (data.stateId || initialData?.stateId || 0).toString());
-      formData.append("phone", data.phone || initialData?.phone || "");
-      formData.append("email", data.email || initialData?.email || "");
-      formData.append("machineCount", (data.machineCount || initialData?.machineCount || 0).toString());
-      formData.append("employeeCount", (data.employeeCount || initialData?.employeeCount || 0).toString());
-      formData.append("shifts", data.shifts || initialData?.shifts || "");
+      const url = `/api/asociados${initialData?.id ? `/${initialData.id}` : ""}`;
+      const method = initialData?.id ? "PUT" : "POST";
 
-      // Campos opcionales
-      if (data.internalNumber || initialData?.internalNumber) {
-        formData.append("internalNumber", data.internalNumber || initialData?.internalNumber || "");
-      }
-      if (data.achievementDescription || initialData?.achievementDescription) {
-        formData.append("achievementDescription", data.achievementDescription || initialData?.achievementDescription || "");
-      }
-      if (data.profile || initialData?.profile) {
-        formData.append("profile", data.profile || initialData?.profile || "");
-      }
-
-      // Archivos
-      if (data.nda instanceof File) {
-        formData.append("nda", data.nda);
-      }
-      if (data.companyLogo instanceof File) {
-        formData.append("companyLogo", data.companyLogo);
-      } else if (typeof data.companyLogo === "string" && data.companyLogo) {
-        formData.append("companyLogo", data.companyLogo);
-      } else if (initialData?.companyLogo) {
-        formData.append("companyLogo", initialData.companyLogo);
-      }
-
+      const token = await getToken();
       const response = await fetch(url, {
         method,
         headers: {
-          Authorization: `Bearer ${getToken()}`,
+          Authorization: `Bearer ${token}`,
         },
         body: formData,
       });
 
+      const responseText = await response.text();
+      console.log('Response text:', responseText); // Para debug
+
+      let responseData;
+      try {
+        responseData = responseText ? JSON.parse(responseText) : {};
+      } catch (e) {
+        console.error("Error parsing response:", responseText);
+        throw new Error("Error al procesar la respuesta del servidor");
+      }
+
       if (!response.ok) {
-        const errorData = await response.json();
-        if (errorData.error) {
-          throw new Error(errorData.error);
-        } else if (Array.isArray(errorData)) {
-          throw new Error(errorData.map(err => err.message).join('\n'));
+        if (responseData.details) {
+          // Si hay errores de validación detallados, mostrar el primer error
+          toast.error(responseData.details[0].message);
         } else {
-          throw new Error("Error al guardar el asociado");
+          toast.error(responseData.error || "Error al guardar asociado");
         }
+        return;
       }
 
       toast.success(
-        `Asociado ${initialData ? "actualizado" : "creado"} correctamente`
+        `Asociado ${initialData?.id ? "actualizado" : "creado"} correctamente`
       );
-      onSuccess();
+      onSuccess?.(responseData.data);
       onClose();
     } catch (error) {
       console.error("Error al guardar asociado:", error);
-      toast.error(
-        error instanceof Error ? error.message : "Error al guardar el asociado"
-      );
+      toast.error(error instanceof Error ? error.message : "Error al guardar asociado");
     } finally {
       setIsSubmitting(false);
     }
@@ -110,16 +111,12 @@ export function AssociateModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+          <DialogTitle>Crear Asociado</DialogTitle>
         </DialogHeader>
-        {initialData && (() => {
-          console.log('Datos iniciales en el modal:', initialData);
-          return null;
-        })()}
         <AssociateForm
-          initialData={initialData}
           onSubmit={handleSubmit}
           onCancel={onClose}
+          initialData={initialData}
           isSubmitting={isSubmitting}
         />
       </DialogContent>

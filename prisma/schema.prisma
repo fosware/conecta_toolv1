@@ -194,6 +194,7 @@ model Associate {
   user                   User?          @relation(fields: [userId], references: [id])
   locationState          LocationState @relation(fields: [stateId], references: [id])
 
+  @@index([email])
   @@index([companyName])
   @@index([isDeleted, isActive])
   @@map("d_associates") // Table name in the database

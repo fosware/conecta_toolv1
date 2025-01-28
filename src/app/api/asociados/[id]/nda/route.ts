@@ -1,6 +1,6 @@
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "../../../../../lib/prisma";
 import { getUserFromToken } from "../../../../../lib/get-user-from-token";
-import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
   request: NextRequest,
@@ -8,46 +8,34 @@ export async function GET(
 ) {
   try {
     await getUserFromToken();
-
     const id = parseInt(params.id);
-    if (isNaN(id)) {
-      return NextResponse.json(
-        { error: "ID inválido" },
-        { status: 400 }
-      );
-    }
 
     const associate = await prisma.associate.findUnique({
       where: { id },
-      select: { nda: true },
+      select: { nda: true, ndaFileName: true },
     });
 
-    if (!associate) {
-      return NextResponse.json(
-        { error: "Asociado no encontrado" },
-        { status: 404 }
-      );
+    if (!associate || !associate.nda || !associate.ndaFileName) {
+      return new NextResponse("NDA not found", { status: 404 });
     }
 
-    if (!associate.nda) {
-      return NextResponse.json(
-        { error: "El asociado no tiene NDA" },
-        { status: 404 }
-      );
-    }
+    // Convertir Uint8Array a Buffer
+    const buffer = Buffer.from(associate.nda);
 
-    // Devolver el PDF con los headers correctos
-    return new NextResponse(associate.nda, {
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": `inline; filename="nda_${id}.pdf"`,
-      },
+    // Crear headers para la descarga
+    const headers = new Headers();
+    headers.set("Content-Type", "application/pdf");
+    headers.set(
+      "Content-Disposition",
+      `inline; filename="${associate.ndaFileName}"`
+    );
+
+    return new NextResponse(buffer, {
+      status: 200,
+      headers,
     });
   } catch (error) {
-    console.error("Error in GET /asociados/[id]/nda:", error);
-    return NextResponse.json(
-      { error: "Error al obtener el NDA" },
-      { status: 500 }
-    );
+    console.error("Error downloading NDA:", error);
+    return new NextResponse("Internal Server Error", { status: 500 });
   }
 }

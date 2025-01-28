@@ -28,7 +28,6 @@ export function LocationSelector({
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    console.log('LocationSelector - value prop:', value);
     const fetchStates = async () => {
       try {
         const response = await fetch("/api/cat_estados", {
@@ -40,7 +39,6 @@ export function LocationSelector({
           throw new Error("Error al cargar estados");
         }
         const data = await response.json();
-        console.log('LocationSelector - estados cargados:', data);
         setStates(data);
       } catch (error) {
         console.error("Error fetching states:", error);
@@ -50,10 +48,9 @@ export function LocationSelector({
     };
 
     fetchStates();
-  }, [value]);
+  }, []);
 
   const handleChange = (newValue: string) => {
-    console.log('LocationSelector - handleChange:', newValue);
     const numericValue = parseInt(newValue, 10);
     if (!isNaN(numericValue)) {
       onChange(numericValue);
@@ -61,7 +58,6 @@ export function LocationSelector({
   };
 
   const selectedState = states.find(s => s.id === value);
-  console.log('LocationSelector - selectedState:', selectedState);
 
   return (
     <div className="space-y-1">
@@ -70,7 +66,7 @@ export function LocationSelector({
         onValueChange={handleChange}
         disabled={isLoading || disabled}
       >
-        <SelectTrigger className={error ? "border-red-500" : ""}>
+        <SelectTrigger className={error ? "border-destructive ring-destructive" : ""}>
           <SelectValue placeholder={isLoading ? "Cargando estados..." : "Selecciona un estado"}>
             {selectedState?.name}
           </SelectValue>
@@ -87,7 +83,11 @@ export function LocationSelector({
           ))}
         </SelectContent>
       </Select>
-      {error && <p className="text-red-500 text-sm">{error}</p>}
+      {error && (
+        <p className="text-sm font-medium text-destructive">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

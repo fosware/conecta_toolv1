@@ -1,6 +1,13 @@
 "use client";
 
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { type Associate } from "@/lib/schemas/associate";
@@ -12,49 +19,67 @@ import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { LocationSelector } from "@/components/location-selector";
 import { showToast } from "@/components/ui/custom-toast";
-import Image from 'next/image';
+import Image from "next/image";
+import Link from "next/link";
 
-export type AssociateFormData = Associate;
+export type AssociateFormData = Omit<
+  Associate,
+  "isDeleted" | "dateDeleted" | "createdAt" | "updatedAt"
+>;
 
 interface AssociateFormProps {
-  onSubmit: (data: FormData) => Promise<void>;
+  onSubmit: (data: AssociateFormData) => Promise<void>;
   onCancel: () => void;
-  initialData?: Associate | null;
+  initialData?: AssociateFormData & {
+    id?: number;
+    locationState?: {
+      id: number;
+      name: string;
+    };
+  };
   isSubmitting?: boolean;
 }
 
-export function AssociateForm({ onSubmit, onCancel, initialData, isSubmitting = false }: AssociateFormProps) {
+export function AssociateForm({
+  onSubmit,
+  onCancel,
+  initialData,
+  isSubmitting = false,
+}: AssociateFormProps) {
   const form = useForm<AssociateFormData>({
     resolver: zodResolver(associateCreateSchema),
     defaultValues: {
-      companyName: "",
-      contactName: "",
-      street: "",
-      externalNumber: "",
-      internalNumber: "",
-      neighborhood: "",
-      postalCode: "",
-      city: "",
-      stateId: 0,
-      phone: "",
-      email: "",
-      machineCount: 0,
-      employeeCount: 0,
-      shifts: "",
-      achievementDescription: "",
-      profile: "",
+      id: initialData?.id,
+      companyName: initialData?.companyName || "",
+      contactName: initialData?.contactName || "",
+      street: initialData?.street || "",
+      externalNumber: initialData?.externalNumber || "",
+      internalNumber: initialData?.internalNumber || "",
+      neighborhood: initialData?.neighborhood || "",
+      postalCode: initialData?.postalCode || "",
+      city: initialData?.city || "",
+      stateId: initialData?.stateId || initialData?.locationState?.id || 0,
+      phone: initialData?.phone || "",
+      email: initialData?.email || "",
+      machineCount: initialData?.machineCount || 0,
+      employeeCount: initialData?.employeeCount || 0,
+      shifts: initialData?.shifts || "",
+      achievementDescription: initialData?.achievementDescription || "",
+      profile: initialData?.profile || "",
       companyLogo: null,
       nda: null,
-      isActive: true
+      isActive: initialData?.isActive ?? true,
+      userId: initialData?.userId,
     },
   });
 
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [ndaFile, setNdaFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (initialData) {
-      // Asegurarse de que todos los campos requeridos tengan valores válidos
       const formData = {
+        id: initialData.id,
         companyName: initialData.companyName || "",
         contactName: initialData.contactName || "",
         street: initialData.street || "",
@@ -73,13 +98,15 @@ export function AssociateForm({ onSubmit, onCancel, initialData, isSubmitting = 
         profile: initialData.profile || "",
         companyLogo: null,
         nda: null,
-        isActive: initialData.isActive ?? true
+        isActive: initialData.isActive ?? true,
+        userId: initialData.userId,
       };
 
       form.reset(formData);
       
+      // Si hay un logo existente, mostrarlo
       if (initialData.companyLogo) {
-        setLogoPreview(initialData.companyLogo);
+        setLogoPreview(`data:image/jpeg;base64,${initialData.companyLogo}`);
       }
     }
   }, [initialData, form]);
@@ -89,55 +116,31 @@ export function AssociateForm({ onSubmit, onCancel, initialData, isSubmitting = 
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        const result = reader.result as string;
-        setLogoPreview(result);
-        form.setValue("companyLogo", file);
+        if (typeof reader.result === 'string') {
+          const base64String = reader.result.split(',')[1];
+          setLogoPreview(reader.result); // Mantenemos el data URL completo para el preview
+          form.setValue("companyLogo", base64String); // Solo guardamos la parte base64
+        }
       };
       reader.readAsDataURL(file);
+    } else {
+      setLogoPreview(null);
+      form.setValue("companyLogo", null);
     }
   };
 
-  const handleSubmit = form.handleSubmit(async (data) => {
-    try {
-      const formData = new FormData();
-      
-      // Convertir números explícitamente
-      formData.append("stateId", String(data.stateId));
-      formData.append("machineCount", String(data.machineCount));
-      formData.append("employeeCount", String(data.employeeCount));
-      
-      // Agregar campos de texto
-      formData.append("companyName", data.companyName);
-      formData.append("contactName", data.contactName);
-      formData.append("street", data.street);
-      formData.append("externalNumber", data.externalNumber);
-      formData.append("internalNumber", data.internalNumber || "");
-      formData.append("neighborhood", data.neighborhood);
-      formData.append("postalCode", data.postalCode);
-      formData.append("city", data.city);
-      formData.append("phone", data.phone);
-      formData.append("email", data.email);
-      formData.append("shifts", data.shifts);
-      formData.append("achievementDescription", data.achievementDescription || "");
-      formData.append("profile", data.profile || "");
-      
-      // Manejar archivos
-      if (data.nda instanceof File) {
-        formData.append("nda", data.nda);
-      }
-      
-      if (data.companyLogo instanceof File) {
-        formData.append("companyLogo", data.companyLogo);
-      } else if (typeof data.companyLogo === "string" && data.companyLogo) {
-        formData.append("companyLogo", data.companyLogo);
-      }
-      
-      await onSubmit(formData);
-    } catch (error) {
-      console.error("Error en handleSubmit:", error);
-      showToast("error", error instanceof Error ? error.message : "Error al guardar");
+  const handleNdaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setNdaFile(file);
+      form.setValue("nda", file);
+    } else {
+      setNdaFile(null);
+      form.setValue("nda", null);
     }
-  });
+  };
+
+  const handleSubmit = form.handleSubmit((data) => onSubmit(data));
 
   return (
     <Form {...form}>
@@ -163,7 +166,9 @@ export function AssociateForm({ onSubmit, onCancel, initialData, isSubmitting = 
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                            <p className="text-gray-500 text-sm">Logo de la empresa</p>
+                            <p className="text-gray-500 text-sm">
+                              Logo de la empresa
+                            </p>
                           </div>
                         )}
                       </div>
@@ -249,35 +254,28 @@ export function AssociateForm({ onSubmit, onCancel, initialData, isSubmitting = 
             name="nda"
             render={({ field: { value, onChange, ...fieldProps } }) => (
               <FormItem>
-                <FormLabel>NDA (PDF, máx. 5MB)</FormLabel>
-                <div className="flex items-center gap-4">
-                  <FormControl>
-                    <Input
-                      type="file"
-                      accept=".pdf"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          if (file.size > 5 * 1024 * 1024) {
-                            showToast("error", "El archivo no debe exceder 5MB");
-                            return;
-                          }
-                          if (!file.type.includes("pdf")) {
-                            showToast("error", "El archivo debe ser un PDF");
-                            return;
-                          }
-                          onChange(file);
-                        }
-                      }}
-                      disabled={isSubmitting}
-                    />
-                  </FormControl>
-                  {initialData?.ndaFileName && (
-                    <div className="text-sm text-gray-500">
-                      Archivo actual: {initialData.ndaFileName}
-                    </div>
-                  )}
-                </div>
+                <FormLabel>NDA File</FormLabel>
+                <FormControl>
+                  <Input
+                    type="file"
+                    id="nda"
+                    onChange={handleNdaChange}
+                    accept=".pdf"
+                    disabled={isSubmitting}
+                  />
+                </FormControl>
+                {initialData?.ndaFileName && (
+                  <div className="text-sm text-muted-foreground mt-2">
+                    Archivo actual:{" "}
+                    <Link
+                      href={`/api/asociados/${initialData.id}/nda`}
+                      target="_blank"
+                      className="text-primary hover:underline"
+                    >
+                      {initialData.ndaFileName}
+                    </Link>
+                  </div>
+                )}
                 <FormMessage />
               </FormItem>
             )}
@@ -321,7 +319,11 @@ export function AssociateForm({ onSubmit, onCancel, initialData, isSubmitting = 
               <FormItem>
                 <FormLabel>Número interior</FormLabel>
                 <FormControl>
-                  <Input {...field} value={field.value || ''} disabled={isSubmitting} />
+                  <Input
+                    {...field}
+                    value={field.value || ""}
+                    disabled={isSubmitting}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -373,14 +375,14 @@ export function AssociateForm({ onSubmit, onCancel, initialData, isSubmitting = 
           <FormField
             control={form.control}
             name="stateId"
-            render={({ field }) => (
+            render={({ field, fieldState }) => (
               <FormItem>
                 <FormLabel>Estado</FormLabel>
                 <FormControl>
                   <LocationSelector
-                    value={Number(field.value)}
+                    value={field.value}
                     onChange={field.onChange}
-                    error={form.formState.errors.stateId?.message}
+                    error={fieldState.error?.message}
                     disabled={isSubmitting}
                   />
                 </FormControl>
@@ -396,13 +398,13 @@ export function AssociateForm({ onSubmit, onCancel, initialData, isSubmitting = 
               <FormItem>
                 <FormLabel>Número de máquinas</FormLabel>
                 <FormControl>
-                  <Input 
-                    {...field} 
-                    type="number" 
+                  <Input
+                    {...field}
+                    type="number"
                     min={0}
                     value={field.value || 0}
                     onChange={(e) => field.onChange(Number(e.target.value))}
-                    disabled={isSubmitting} 
+                    disabled={isSubmitting}
                   />
                 </FormControl>
                 <FormMessage />
@@ -417,13 +419,13 @@ export function AssociateForm({ onSubmit, onCancel, initialData, isSubmitting = 
               <FormItem>
                 <FormLabel>Número de empleados</FormLabel>
                 <FormControl>
-                  <Input 
-                    {...field} 
-                    type="number" 
+                  <Input
+                    {...field}
+                    type="number"
                     min={0}
                     value={field.value || 0}
                     onChange={(e) => field.onChange(Number(e.target.value))}
-                    disabled={isSubmitting} 
+                    disabled={isSubmitting}
                   />
                 </FormControl>
                 <FormMessage />
@@ -438,7 +440,11 @@ export function AssociateForm({ onSubmit, onCancel, initialData, isSubmitting = 
               <FormItem>
                 <FormLabel>Turnos</FormLabel>
                 <FormControl>
-                  <Input {...field} value={field.value || ''} disabled={isSubmitting} />
+                  <Input
+                    {...field}
+                    value={field.value || ""}
+                    disabled={isSubmitting}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -452,7 +458,11 @@ export function AssociateForm({ onSubmit, onCancel, initialData, isSubmitting = 
               <FormItem className="col-span-full">
                 <FormLabel>Descripción de logros</FormLabel>
                 <FormControl>
-                  <Textarea {...field} value={field.value || ''} disabled={isSubmitting} />
+                  <Textarea
+                    {...field}
+                    value={field.value || ""}
+                    disabled={isSubmitting}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -466,7 +476,11 @@ export function AssociateForm({ onSubmit, onCancel, initialData, isSubmitting = 
               <FormItem className="col-span-full">
                 <FormLabel>Perfil</FormLabel>
                 <FormControl>
-                  <Textarea {...field} value={field.value || ''} disabled={isSubmitting} />
+                  <Textarea
+                    {...field}
+                    value={field.value || ""}
+                    disabled={isSubmitting}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -475,7 +489,12 @@ export function AssociateForm({ onSubmit, onCancel, initialData, isSubmitting = 
         </div>
 
         <div className="flex justify-end gap-4">
-          <Button type="button" variant="outline" onClick={() => onCancel()} disabled={isSubmitting}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onCancel()}
+            disabled={isSubmitting}
+          >
             Cancelar
           </Button>
           <Button type="submit" disabled={isSubmitting}>
