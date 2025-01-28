@@ -155,11 +155,12 @@ model Privilege {
 
 model LocationState {
   id         Int         @id @default(autoincrement())
-  name       String      @unique // Nombre del estado
-  country    String // País al que pertenece el estado (opcional)
+  name       String      
+  country    String      @default("México")
   associates Associate[]
 
-  @@map("c_location_states") // Nombre de la tabla en la base de datos
+  @@unique([name, country], name: "name_country")
+  @@map("c_location_states")
 }
 
 // Asociados
@@ -182,14 +183,15 @@ model Associate {
   achievementDescription String?
   profile                String? //semblanza
   nda                    Bytes?
+  ndaFileName            String?
   companyLogo            String?
   isActive               Boolean       @default(true)
   isDeleted              Boolean       @default(false)
   dateDeleted            DateTime?
   createdAt              DateTime      @default(now())
   updatedAt              DateTime      @updatedAt
-  userId                 Int
-  user                   User          @relation(fields: [userId], references: [id])
+  userId                 Int?
+  user                   User?          @relation(fields: [userId], references: [id])
   locationState          LocationState @relation(fields: [stateId], references: [id])
 
   @@index([companyName])

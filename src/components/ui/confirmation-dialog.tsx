@@ -33,12 +33,12 @@ export const ConfirmationDialog = ({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className=" bg-card dark:bg-card-dark border border-border dark:border-border-dark">
-        <DialogHeader>
+      <DialogContent className="bg-card dark:bg-card-dark border border-border dark:border-border-dark">
+        <DialogHeader className="space-y-3">
           <DialogTitle>Confirmación</DialogTitle>
           <DialogDescription>{question}</DialogDescription>
         </DialogHeader>
-        <DialogFooter>
+        <DialogFooter className="mt-6">
           <Button className="bg-transparent" onClick={() => setIsOpen(false)}>
             Cancelar
           </Button>

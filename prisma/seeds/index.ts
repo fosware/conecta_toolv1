@@ -6,6 +6,7 @@ import { seedSpecialties } from "./specialties.js";
 import { seedScopes } from "./scopes.js";
 import { seedSubscopes } from "./subscopes.js";
 import { seedCertifications } from "./certifications.js";
+import { seedLocationStates } from "./locationStates.js";
 
 export async function seedAll() {
   try {
@@ -18,10 +19,10 @@ export async function seedAll() {
     console.log("Usuarios sembrados.");
     await seedRolePrivileges();
     console.log("Relaciones de privilegios sembradas.");
+    await seedLocationStates();
+    console.log("Estados sembrados.");
     await seedSpecialties();
     console.log("Especialdiades sembradas.");
-    await seedScopes();
-    console.log("Alcances sembradas.");
     await seedScopes();
     console.log("Alcances sembradas.");
     await seedSubscopes();
