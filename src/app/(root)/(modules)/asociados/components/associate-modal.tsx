@@ -13,19 +13,21 @@ import { toast } from "sonner";
 import { useState } from "react";
 
 interface AssociateModalProps {
+  title: string;
   isOpen: boolean;
   onClose: () => void;
-  initialData?: AssociateFormData & {
+  initialData?: (AssociateFormData & {
     id?: number;
     locationState?: {
       id: number;
       name: string;
     };
-  };
+  }) | null;
   onSuccess?: (data: any) => void;
 }
 
 export const AssociateModal = ({
+  title,
   isOpen,
   onClose,
   initialData,
@@ -111,7 +113,7 @@ export const AssociateModal = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Crear Asociado</DialogTitle>
+          <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
         <AssociateForm
           onSubmit={handleSubmit}

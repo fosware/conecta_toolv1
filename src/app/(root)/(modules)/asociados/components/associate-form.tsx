@@ -30,13 +30,15 @@ export type AssociateFormData = Omit<
 interface AssociateFormProps {
   onSubmit: (data: AssociateFormData) => Promise<void>;
   onCancel: () => void;
-  initialData?: AssociateFormData & {
-    id?: number;
-    locationState?: {
-      id: number;
-      name: string;
-    };
-  };
+  initialData?:
+    | (AssociateFormData & {
+        id?: number;
+        locationState?: {
+          id: number;
+          name: string;
+        };
+      })
+    | null;
   isSubmitting?: boolean;
 }
 
@@ -103,7 +105,7 @@ export function AssociateForm({
       };
 
       form.reset(formData);
-      
+
       // Si hay un logo existente, mostrarlo
       if (initialData.companyLogo) {
         setLogoPreview(`data:image/jpeg;base64,${initialData.companyLogo}`);
@@ -116,8 +118,8 @@ export function AssociateForm({
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        if (typeof reader.result === 'string') {
-          const base64String = reader.result.split(',')[1];
+        if (typeof reader.result === "string") {
+          const base64String = reader.result.split(",")[1];
           setLogoPreview(reader.result); // Mantenemos el data URL completo para el preview
           form.setValue("companyLogo", base64String); // Solo guardamos la parte base64
         }
@@ -494,10 +496,15 @@ export function AssociateForm({
             variant="outline"
             onClick={() => onCancel()}
             disabled={isSubmitting}
+            className="border-border bg-background hover:bg-hover dark:border-muted dark:bg-hover dark:text-primary dark:hover:bg-background"
           >
             Cancelar
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            className="bg-primary text-button-text hover:bg-primary/90 dark:bg-accent dark:text-background dark:hover:bg-accent/90"
+          >
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Guardar
           </Button>
