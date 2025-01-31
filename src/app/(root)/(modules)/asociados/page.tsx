@@ -199,6 +199,7 @@ export default function AssociatePage() {
                         onClick={() =>
                           setEditModal({ isOpen: true, item: null })
                         }
+                        className="button-primary"
                       >
                         <Plus className="h-4 w-4 md:hidden" />
                         <span className="hidden md:inline">Nuevo Asociado</span>

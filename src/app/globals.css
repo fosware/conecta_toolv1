@@ -45,6 +45,7 @@ body {
   @apply bg-background text-foreground border-border;
 }
 
+/* Estilos para botones */
 .button-primary {
   @apply bg-primary text-white hover:bg-primary/90;
 }
@@ -53,7 +54,18 @@ body {
   @apply bg-accent text-white hover:bg-accent/90;
 }
 
+/* Botón por defecto */
+[role="button"],
+button:not([class*="hover:"]) {
+  @apply text-white bg-primary hover:bg-primary/90 dark:bg-primary dark:text-white dark:hover:bg-primary/90;
+}
+
 /* Estilos para el menú */
 .menu-item {
-  @apply text-foreground hover:bg-accent/20 hover:text-accent;
+  @apply text-foreground hover:bg-hover hover:text-foreground;
+}
+
+/* Estilos para el hover en el sidebar */
+.sidebar-item {
+  @apply hover:bg-hover hover:text-foreground transition-colors duration-200;
 }

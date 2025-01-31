@@ -16,12 +16,14 @@ const config: Config = {
         card: "rgb(var(--card) / <alpha-value>)",
         "card-dark": "#1D2532",
         hover: "rgb(var(--hover) / <alpha-value>)",
+        muted: "rgb(var(--muted) / <alpha-value>)",
       },
       textColor: {
         foreground: "rgb(var(--foreground) / <alpha-value>)",
         "foreground-dark": "#ffffff",
         muted: "rgb(var(--muted) / <alpha-value>)",
         "muted-dark": "#b5c1d9",
+        "button-text": "rgb(var(--button-text) / <alpha-value>)",
       },
       borderColor: {
         border: "#EEF1F6",
