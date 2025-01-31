@@ -186,7 +186,7 @@ const UsuariosPage = () => {
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">Usuarios</h1>
         <Button
-          className="bg-transparent hover:text-white"
+          className="bg-primary hover:bg-primary/90 text-white"
           onClick={() => {
             setEditingUser(null);
             setModalOpen(true);

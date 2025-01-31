@@ -113,13 +113,17 @@ export const CatCertificacionesModal = ({
 
           <DialogFooter className="flex justify-between">
             <Button
-              className="bg-transparent hover:text-white"
+              variant="outline"
+              className="border-primary hover:bg-primary hover:text-white"
               type="button"
               onClick={onClose}
             >
               Cerrar
             </Button>
-            <Button type="submit" className="bg-transparent hover:text-white">
+            <Button 
+              type="submit" 
+              className="bg-primary hover:bg-primary/90 text-white"
+            >
               {mode === "edit" ? "Actualizar" : "Registrar"}
             </Button>
           </DialogFooter>

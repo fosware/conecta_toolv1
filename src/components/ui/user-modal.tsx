@@ -281,7 +281,7 @@ export const UserModal = ({
             <Label htmlFor="roleId">Rol *</Label>
             <Select
               defaultValue={initialData?.roleId?.toString() || ""}
-              onValueChange={(value) => setValue("roleId", Number(value))}
+              onValueChange={(value) => setValue("roleId", value)}
             >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Seleccione un rol" />
@@ -321,13 +321,17 @@ export const UserModal = ({
           {/* Footer */}
           <DialogFooter className="col-span-full flex justify-between">
             <Button
-              className="bg-transparent hover:text-white"
+              variant="outline"
+              className="border-primary hover:bg-primary hover:text-white"
               type="button"
               onClick={onClose}
             >
               Cerrar
             </Button>
-            <Button type="submit" className="bg-transparent hover:text-white">
+            <Button 
+              type="submit" 
+              className="bg-primary hover:bg-primary/90 text-white"
+            >
               {mode === "edit" ? "Actualizar" : "Registrar"}
             </Button>
           </DialogFooter>

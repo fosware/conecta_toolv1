@@ -299,7 +299,7 @@ const ProfilePage = () => {
             </div>
             <Button
               type="submit"
-              className="w-full hover:bg-accent text-background"
+              className="w-full bg-primary hover:bg-primary/90 text-white"
             >
               Guardar Cambios
             </Button>

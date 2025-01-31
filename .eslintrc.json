@@ -1,7 +1,6 @@
 {
   "extends": [
     "next/core-web-vitals",
-    "next/typescript",
     "standard",
     "plugin:tailwindcss/recommended",
     "prettier",
@@ -17,23 +16,8 @@
     "import/order": [
       "error",
       {
-        "groups": [
-          "builtin",
-          "external",
-          "internal",
-          ["parent", "sibling"],
-          "index",
-          "object"
-        ],
+        "groups": ["builtin", "external", "internal", "parent", "sibling", "index"],
         "newlines-between": "always",
-        "pathGroups": [
-          {
-            "pattern": "@app/**",
-            "group": "external",
-            "position": "after"
-          }
-        ],
-        "pathGroupsExcludedImportTypes": ["builtin"],
         "alphabetize": {
           "order": "asc",
           "caseInsensitive": true

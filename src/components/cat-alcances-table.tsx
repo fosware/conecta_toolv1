@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Alcance } from "@/types";
+import type { Alcance } from "@/types";
 import { Pagination } from "@/components/ui/pagination";
 import clsx from "clsx";
 import { Switch } from "@/components/ui/switch";

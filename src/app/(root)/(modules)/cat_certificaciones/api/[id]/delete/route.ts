@@ -5,10 +5,10 @@ const prisma = new PrismaClient();
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   try {
-    const id = await Promise.resolve(params.id);
+    const id = await Promise.resolve(context.params.id);
     const certificationId = parseInt(id, 10);
 
     if (isNaN(certificationId)) {

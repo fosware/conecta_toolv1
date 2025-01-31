@@ -14,6 +14,7 @@ export interface Alcance {
   name: string;
   num: number;
   specialtyId: number;
+  description?: string;
   isActive: boolean;
   isDeleted: boolean;
   userId: number;
