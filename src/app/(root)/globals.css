@@ -4,33 +4,35 @@
 
 @layer base {
   :root {
-    --background: 242 242 242;
-    --foreground: 30 41 59;
-    --card: 255 255 255;
-    --border: 229 231 235;
-    --primary: 113 121 134;
-    --accent: 107 114 128;
-    --destructive: 239 68 68;
-    --muted: 229 231 235;
-    --success: 34 197 94;     /* Verde para éxito */
-    --warning: 234 179 8;     /* Ámbar para advertencias */
-    --info: 59 130 246;       /* Azul para información */
-    --hover: 243 244 246;     /* Hover para modo claro */
+    --background: 255 255 255;    /* #FFFFFF */
+    --foreground: 66 87 115;      /* #425773 */
+    --card: 255 255 255;          /* #FFFFFF */
+    --border: 238 241 246;        /* #EEF1F6 - Gris muy suave para bordes */
+    --primary: 66 87 115;         /* #425773 */
+    --accent: 204 159 38;         /* #CC9F26 - Amarillo mostaza más suave */
+    --destructive: 239 68 68;     /* #EF4444 */
+    --muted: 181 193 217;         /* #B5C1D9 */
+    --success: 34 197 94;         /* Verde para éxito */
+    --warning: 204 159 38;        /* #CC9F26 - Amarillo mostaza más suave */
+    --info: 59 130 246;           /* Azul para información */
+    --hover: 242 244 247;         /* #F2F4F7 - Gris muy claro para hover */
+    --button-text: 255 255 255;   /* #FFFFFF - Texto para botones */
   }
 
   .dark {
-    --background: 26 28 30;      /* #1A1C1E - Fondo principal más gris */
-    --foreground: 230 237 243;   /* #E6EDF3 - Texto principal */
-    --card: 35 38 41;           /* #232629 - Tarjetas */
-    --border: 47 51 55;         /* #2F3337 - Bordes y separadores */
-    --primary: 156 163 175;     /* #9CA3AF - Gris más suave para elementos primarios */
-    --accent: 156 163 175;      /* #9CA3AF - Mismo gris para acentos */
-    --destructive: 248 81 73;   /* #F85149 - Rojo más vibrante para errores */
-    --muted: 47 51 55;          /* #2F3337 - Elementos atenuados */
-    --success: 46 160 67;       /* #2EA043 - Verde más oscuro para éxito */
-    --warning: 187 128 9;       /* #BB8009 - Ámbar más oscuro */
-    --info: 54 123 240;         /* #367BF0 - Azul información */
-    --hover: 56 55 61;          /* #38373D - Hover con tono grisáceo sutil */
+    --background: 29 37 50;       /* #1D2532 - Azul oscuro del nav */
+    --foreground: 255 255 255;    /* #FFFFFF */
+    --card: 29 37 50;            /* #1D2532 - Mismo que el fondo */
+    --border: 29 37 50;          /* #1D2532 - Mismo que el fondo */
+    --primary: 181 193 217;      /* #B5C1D9 */
+    --accent: 204 159 38;        /* #CC9F26 - Amarillo mostaza más suave */
+    --destructive: 248 81 73;    /* #F85149 */
+    --muted: 131 148 181;        /* #8394B5 */
+    --success: 46 160 67;        /* #2EA043 */
+    --warning: 204 159 38;       /* #CC9F26 - Amarillo mostaza más suave */
+    --info: 54 123 240;          /* #367BF0 */
+    --hover: 38 48 65;           /* #263041 - Un tono más claro que el fondo */
+    --button-text: 255 255 255;  /* #FFFFFF - Texto para botones */
   }
 }
 
@@ -51,6 +53,17 @@ body {
 
   .menu-item {
     @apply hover:bg-[rgb(var(--hover))] hover:text-foreground
+           transition rounded-md px-4 py-2;
+  }
+
+  /* Botones personalizados */
+  .button-primary {
+    @apply bg-[rgb(var(--primary))] text-[rgb(var(--button-text))] hover:bg-opacity-90
+           transition rounded-md px-4 py-2;
+  }
+
+  .button-accent {
+    @apply bg-[rgb(var(--accent))] text-[rgb(var(--button-text))] hover:bg-opacity-90
            transition rounded-md px-4 py-2;
   }
 }

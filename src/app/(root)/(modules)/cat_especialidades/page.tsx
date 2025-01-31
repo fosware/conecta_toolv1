@@ -674,11 +674,12 @@ export default function CatEspecialidadesPage() {
                   </div>
                   <div className="flex flex-col justify-end">
                     <div className="h-[40px] flex items-center">
-                      <Button onClick={handleCreateEspecialidad}>
-                        <Plus className="h-4 w-4 md:hidden" />
-                        <span className="hidden md:inline">
-                          Agregar Especialidad
-                        </span>
+                      <Button
+                        onClick={handleCreateEspecialidad}
+                        className="button-primary"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Agregar Especialidad
                       </Button>
                     </div>
                   </div>

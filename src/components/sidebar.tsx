@@ -62,14 +62,14 @@ export default function Sidebar({
   return (
     <>
       {/* Sidebar fijo para pantallas grandes */}
-      <aside className="hidden lg:block w-64 bg-background dark:bg-background-dark text-foreground dark:text-foreground-dark border-r border-border dark:border-border-dark h-screen">
+      <aside className="hidden lg:block w-64 bg-background dark:bg-background-dark text-foreground dark:text-foreground-dark border-r border-[#EEF1F6] dark:border-[#1D2532] h-screen">
         <nav className="p-4">
           <ul className="space-y-4">
             {menuItems.map((item) => (
               <li key={item.path}>
                 <Link
                   href={item.path}
-                  className="flex items-center space-x-3 px-4 py-2 rounded hover:bg-accent hover:text-background transition group"
+                  className="flex items-center space-x-3 px-4 py-2 rounded-lg sidebar-item hover:bg-accent hover:text-background transition group"
                 >
                   <Image
                     src={item.icon}
@@ -91,12 +91,12 @@ export default function Sidebar({
         <SheetTitle></SheetTitle>
         <SheetContent
           side="left"
-          className="w-68 bg-background dark:bg-background-dark text-foreground dark:text-foreground-dark border-r border-border dark:border-border-dark"
+          className="w-[300px] sm:w-[400px] bg-background border-r border-[#EEF1F6] dark:border-[#1D2532]"
           tabIndex={-1}
         >
           <div className="lg:hidden flex items-center space-x-3 px-4 py-4 border-b border-border dark:border-border-dark">
             <Image
-              src="/conecta_logo_transparente.png"
+              src="/logo100.png"
               alt="Logo"
               width={42}
               height={42}
@@ -112,7 +112,7 @@ export default function Sidebar({
                 <li key={item.path}>
                   <Link
                     href={item.path}
-                    className="flex items-center space-x-3 px-4 py-2 rounded hover:bg-accent hover:text-background transition group"
+                    className="flex items-center space-x-3 px-4 py-2 rounded-lg sidebar-item hover:bg-accent hover:text-background transition group"
                     onClick={() => setIsOpen(false)}
                   >
                     <Image

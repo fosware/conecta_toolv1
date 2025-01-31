@@ -97,7 +97,7 @@ export default function Navbar({
   };
 
   return (
-    <header className="w-full bg-background dark:bg-background-dark border-b border-border dark:border-border-dark">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-background border-b border-[#EEF1F6] dark:border-[#1D2532]">
       <div className="flex items-center justify-between pl-4 pr-4 md:pr-6 lg:pr-8 py-4">
         {/* Contenedor del Botón Hamburguesa y Título */}
         <div className="flex items-center space-x-2 md:space-x-4">
@@ -127,7 +127,7 @@ export default function Navbar({
           {/* Logo y Título */}
           <Link href="/" className="flex items-center space-x-2">
             <Image
-              src="/conecta_logo_transparente.png"
+              src="/logo100.png"
               alt="Logo"
               width={42}
               height={42}
@@ -200,6 +200,6 @@ export default function Navbar({
           </DropdownMenu>
         </div>
       </div>
-    </header>
+    </nav>
   );
 }

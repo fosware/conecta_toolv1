@@ -14,6 +14,13 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { showToast } from "@/components/ui/custom-toast";
 import Image from "next/image";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface UserModalProps {
   isOpen: boolean;
@@ -272,22 +279,22 @@ export const UserModal = ({
           </div>
           <div>
             <Label htmlFor="roleId">Rol *</Label>
-            <select
-              id="roleId"
-              {...register("roleId")}
-              className="border rounded-md p-2 w-full"
-              defaultValue=""
+            <Select
+              defaultValue={initialData?.roleId?.toString() || ""}
+              onValueChange={(value) => setValue("roleId", Number(value))}
             >
-              <option value="" disabled>
-                Seleccione un rol
-              </option>
-              {roles.length > 0 &&
-                roles.map((role) => (
-                  <option key={role.id} value={role.id}>
-                    {role.name}
-                  </option>
-                ))}
-            </select>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Seleccione un rol" />
+              </SelectTrigger>
+              <SelectContent>
+                {roles.length > 0 &&
+                  roles.map((role) => (
+                    <SelectItem key={role.id} value={role.id.toString()}>
+                      {role.name}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
             {errors.roleId && (
               <p className="text-red-600">{errors.roleId.message}</p>
             )}

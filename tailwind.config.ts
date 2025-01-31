@@ -12,29 +12,29 @@ const config: Config = {
     extend: {
       backgroundColor: {
         background: "rgb(var(--background) / <alpha-value>)",
-        "background-dark": "#1A1C1E",
+        "background-dark": "#1D2532",
         card: "rgb(var(--card) / <alpha-value>)",
-        "card-dark": "#232629",
+        "card-dark": "#1D2532",
         hover: "rgb(var(--hover) / <alpha-value>)",
       },
       textColor: {
         foreground: "rgb(var(--foreground) / <alpha-value>)",
-        "foreground-dark": "#E6EDF3",
+        "foreground-dark": "#ffffff",
         muted: "rgb(var(--muted) / <alpha-value>)",
-        "muted-dark": "#2F3337",
+        "muted-dark": "#b5c1d9",
       },
       borderColor: {
-        border: "rgb(var(--border) / <alpha-value>)",
-        "border-dark": "#2F3337",
+        border: "#EEF1F6",
+        "border-dark": "#1D2532",
       },
       colors: {
         accent: {
           DEFAULT: "rgb(var(--accent) / <alpha-value>)",
-          dark: "#9CA3AF",
+          dark: "#CC9F26",
         },
         primary: {
           DEFAULT: "rgb(var(--primary) / <alpha-value>)",
-          dark: "#9CA3AF",
+          dark: "#1D2532",
         },
         destructive: {
           DEFAULT: "rgb(var(--destructive) / <alpha-value>)",
@@ -46,7 +46,7 @@ const config: Config = {
         },
         warning: {
           DEFAULT: "rgb(var(--warning) / <alpha-value>)",
-          dark: "#BB8009",
+          dark: "#CC9F26",
         },
         info: {
           DEFAULT: "rgb(var(--info) / <alpha-value>)",

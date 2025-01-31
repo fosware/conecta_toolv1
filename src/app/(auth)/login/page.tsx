@@ -41,7 +41,7 @@ const LoginPage = () => {
       <Card className="px-6 max-w-screen-sm bg-card dark:bg-card-dark border border-border dark:border-border-dark shadow-md">
         <CardHeader className="flex justify-center">
           <Image
-            src="/conecta_logo_transparente.png"
+            src="/logo.png"
             alt="Logo"
             width={220}
             height={200}
