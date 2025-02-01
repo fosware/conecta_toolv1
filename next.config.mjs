@@ -8,8 +8,6 @@ const nextConfig = {
   },
   output: 'standalone',
   experimental: {
-    // Deshabilitamos la optimización automática para esta página
-    optimizeFonts: false,
   }
 };
 
