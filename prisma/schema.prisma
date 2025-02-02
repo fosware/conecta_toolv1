@@ -33,18 +33,19 @@ model User {
 }
 
 model Specialties {
-  id          Int       @id @default(autoincrement())
-  name        String    @unique
-  num         Int       @unique
-  description String?
-  isActive    Boolean   @default(true)
-  isDeleted   Boolean   @default(false)
-  dateDeleted DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  userId      Int
-  user        User      @relation(fields: [userId], references: [id])
-  Scopes      Scopes[]
+  id              Int               @id @default(autoincrement())
+  name            String            @unique
+  num             Int               @unique
+  description     String?
+  isActive        Boolean           @default(true)
+  isDeleted       Boolean           @default(false)
+  dateDeleted     DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  userId          Int
+  user            User              @relation(fields: [userId], references: [id])
+  Scopes          Scopes[]
+  AssociateScopes AssociateScopes[]
 
   @@index([isDeleted, isActive])
   @@map("c_specialties")
@@ -63,9 +64,10 @@ model Scopes {
   userId      Int
   specialtyId Int
 
-  user      User        @relation(fields: [userId], references: [id])
-  specialty Specialties @relation(fields: [specialtyId], references: [id])
-  Subscopes Subscopes[]
+  user            User              @relation(fields: [userId], references: [id])
+  specialty       Specialties       @relation(fields: [specialtyId], references: [id])
+  Subscopes       Subscopes[]
+  AssociateScopes AssociateScopes[]
 
   @@index([isDeleted, isActive])
   @@map("c_scopes")
@@ -83,8 +85,9 @@ model Subscopes {
   userId      Int
   scopeId     Int
 
-  user  User   @relation(fields: [userId], references: [id])
-  scope Scopes @relation(fields: [scopeId], references: [id])
+  user            User              @relation(fields: [userId], references: [id])
+  scope           Scopes            @relation(fields: [scopeId], references: [id])
+  AssociateScopes AssociateScopes[]
 
   @@index([isDeleted, isActive])
   @@map("c_subscopes")
@@ -101,7 +104,8 @@ model Certifications {
   updatedAt   DateTime  @updatedAt
   userId      Int
 
-  user User @relation(fields: [userId], references: [id])
+  user                    User                      @relation(fields: [userId], references: [id])
+  AssociateCertifications AssociateCertifications[]
 
   @@index([isDeleted, isActive])
   @@map("c_certifications")
@@ -155,7 +159,7 @@ model Privilege {
 
 model LocationState {
   id         Int         @id @default(autoincrement())
-  name       String      
+  name       String
   country    String      @default("México")
   associates Associate[]
 
@@ -165,34 +169,36 @@ model LocationState {
 
 // Asociados
 model Associate {
-  id                     Int           @id @default(autoincrement()) // Primary Key
-  companyName            String        @unique
-  contactName            String
-  street                 String
-  externalNumber         String
-  internalNumber         String? // Optional
-  neighborhood           String
-  postalCode             String
-  city                   String
-  stateId                Int
-  phone                  String
-  email                  String        @unique
-  machineCount           Int
-  employeeCount          Int
-  shifts                 String?
-  achievementDescription String?
-  profile                String? //semblanza
-  nda                    Bytes?
-  ndaFileName            String?
-  companyLogo            String?
-  isActive               Boolean       @default(true)
-  isDeleted              Boolean       @default(false)
-  dateDeleted            DateTime?
-  createdAt              DateTime      @default(now())
-  updatedAt              DateTime      @updatedAt
-  userId                 Int?
-  user                   User?          @relation(fields: [userId], references: [id])
-  locationState          LocationState @relation(fields: [stateId], references: [id])
+  id                      Int                       @id @default(autoincrement()) // Primary Key
+  companyName             String                    @unique
+  contactName             String
+  street                  String
+  externalNumber          String
+  internalNumber          String? // Optional
+  neighborhood            String
+  postalCode              String
+  city                    String
+  stateId                 Int
+  phone                   String
+  email                   String                    @unique
+  machineCount            Int
+  employeeCount           Int
+  shifts                  String?
+  achievementDescription  String?
+  profile                 String? //semblanza
+  nda                     Bytes?
+  ndaFileName             String?
+  companyLogo             String?
+  isActive                Boolean                   @default(true)
+  isDeleted               Boolean                   @default(false)
+  dateDeleted             DateTime?
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime                  @updatedAt
+  userId                  Int?
+  user                    User?                     @relation(fields: [userId], references: [id])
+  locationState           LocationState             @relation(fields: [stateId], references: [id])
+  AssociateCertifications AssociateCertifications[]
+  AssociateScopes         AssociateScopes[]
 
   @@index([email])
   @@index([companyName])
@@ -201,37 +207,45 @@ model Associate {
 }
 
 model AssociateCertifications {
-  id                Int       @id @default(autoincrement()) // Primary Key
-  associateId       Int
-  certificationId   Int
-  certificationFile Bytes
-  isActive          Boolean   @default(true)
-  isDeleted         Boolean   @default(false)
-  dateDeleted       DateTime?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  userId            Int
-  user              User      @relation(fields: [userId], references: [id])
+  id                    Int       @id @default(autoincrement()) // Primary Key
+  associateId           Int
+  certificationId       Int
+  certificationFile     Bytes
+  certificationFileName String
+  expiryDate            DateTime
+  isActive              Boolean   @default(true)
+  isDeleted             Boolean   @default(false)
+  dateDeleted           DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  userId                Int
+  user                  User      @relation(fields: [userId], references: [id])
 
-  @@unique([associateId, certificationId])
+  certification Certifications @relation(fields: [certificationId], references: [id])
+  associate     Associate      @relation(fields: [associateId], references: [id])
+
   @@index([isDeleted, isActive])
   @@map("rel_associate_certifications")
 }
 
 model AssociateScopes {
-  id          Int       @id @default(autoincrement()) // Primary Key
+  id          Int         @id @default(autoincrement()) // Primary Key
   associateId Int
   specialtyId Int
   scopeId     Int
   subscopeId  Int
   materials   String?
-  isActive    Boolean   @default(true)
-  isDeleted   Boolean   @default(false)
+  isActive    Boolean     @default(true)
+  isDeleted   Boolean     @default(false)
   dateDeleted DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
   userId      Int
-  user        User      @relation(fields: [userId], references: [id])
+  user        User        @relation(fields: [userId], references: [id])
+  associate   Associate   @relation(fields: [associateId], references: [id])
+  specialty   Specialties @relation(fields: [specialtyId], references: [id])
+  scope       Scopes      @relation(fields: [scopeId], references: [id])
+  subscope    Subscopes   @relation(fields: [subscopeId], references: [id])
 
   @@unique([associateId, specialtyId, scopeId, subscopeId])
   @@index([isDeleted, isActive])

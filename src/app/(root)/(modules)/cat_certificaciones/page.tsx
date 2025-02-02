@@ -14,7 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import Image from "next/image";
+import { Pencil, Trash2, PlusCircle } from "lucide-react";
 import React from "react";
 import { showToast } from "@/components/ui/custom-toast";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
@@ -199,19 +199,13 @@ const CatalogCertifications = () => {
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">Catálogo de Certificaciones</h1>
         <Button
-          className="bg-transparent hover:text-white"
+          className="bg-primary hover:bg-primary/90 text-white"
           onClick={() => {
             setEditingCertification(null);
             setModalOpen(true);
           }}
         >
-          <Image
-            src="/icons/new_user.svg"
-            alt="new certification icon"
-            width={24}
-            height={24}
-            className="dark:invert dark:backdrop-brightness-1 tooltip-light "
-          />
+          <PlusCircle className="h-6 w-6 mr-2" />
           Agregar Certificación
         </Button>
       </div>
@@ -304,7 +298,9 @@ const CatalogCertifications = () => {
                 </TableCell>
                 <TableCell className="flex gap-3">
                   <Button
-                    className="w-10 h-10 flex items-center justify-center bg-transparent p-0"
+                    variant="ghost"
+                    size="icon"
+                    title="Editar certificación"
                     onClick={() => {
                       console.log(
                         "Edit button clicked, certification:",
@@ -313,14 +309,9 @@ const CatalogCertifications = () => {
                       setEditingCertification(certificacion);
                       setModalOpen(true);
                     }}
+                    className="h-9 w-9 p-0"
                   >
-                    <Image
-                      alt="edit icon"
-                      src="/icons/edit.svg"
-                      width={20}
-                      height={20}
-                      className="dark:invert dark:backdrop-brightness-1"
-                    />
+                    <Pencil className="h-6 w-6" />
                   </Button>
                   <ConfirmationDialog
                     question="¿Deseas eliminar la certificación?"
@@ -362,14 +353,8 @@ const CatalogCertifications = () => {
                       }
                     }}
                     trigger={
-                      <Button className="w-10 h-10 flex items-center justify-center bg-transparent p-0">
-                        <Image
-                          alt="delete icon"
-                          src="/icons/delete.svg"
-                          width={20}
-                          height={20}
-                          className="dark:invert dark:backdrop-brightness-1"
-                        />
+                      <Button variant="ghost" size="icon" title="Eliminar certificación" className="h-9 w-9 p-0">
+                        <Trash2 className="h-6 w-6" />
                       </Button>
                     }
                   />

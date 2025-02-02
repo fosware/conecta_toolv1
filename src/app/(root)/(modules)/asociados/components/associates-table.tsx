@@ -15,6 +15,8 @@ import { Loader2 } from "lucide-react";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { getToken } from "@/lib/auth";
 import { toast } from "sonner";
+import { ClipboardDocumentCheck } from "@/components/icons";
+import Image from "next/image";
 
 interface AssociatesTableProps {
   data: Associate[];
@@ -22,6 +24,7 @@ interface AssociatesTableProps {
   onEdit: (id: number) => void;
   onDelete: (id: number) => void;
   onToggleStatus: (id: number, currentStatus: boolean) => Promise<void>;
+  onManageCertificates: (id: number) => void;
   showOnlyActive: boolean;
 }
 
@@ -31,6 +34,7 @@ export function AssociatesTable({
   onEdit,
   onDelete,
   onToggleStatus,
+  onManageCertificates,
   showOnlyActive,
 }: AssociatesTableProps) {
   const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
@@ -85,7 +89,7 @@ export function AssociatesTable({
             <TableHead>Email</TableHead>
             <TableHead>Teléfono</TableHead>
             <TableHead>Estado</TableHead>
-            <TableHead className="text-right">Acciones</TableHead>
+            <TableHead className="text-center">Acciones</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -127,7 +131,16 @@ export function AssociatesTable({
                       />
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Certificados"
+                          onClick={() => onManageCertificates(associate.id)}
+                          className="h-9 w-9 p-0"
+                        >
+                          <ClipboardDocumentCheck className="h-6 w-6" />
+                        </Button>
                         {associate.nda && (
                           <Button
                             variant="ghost"
@@ -135,22 +148,23 @@ export function AssociatesTable({
                             onClick={() => viewNda(associate.id)}
                             title="Ver NDA"
                           >
-                            <FileText className="h-4 w-4" />
+                            <FileText className="h-6 w-6" />
                           </Button>
                         )}
                         <Button
                           variant="ghost"
                           size="icon"
+                          title="Editar asociado"
                           onClick={() => onEdit(associate.id)}
                         >
-                          <Pencil className="h-4 w-4" />
+                          <Pencil className="h-6 w-6" />
                         </Button>
                         <ConfirmationDialog
                           question={`¿Está seguro que desea eliminar el asociado "${associate.companyName}"?`}
                           onConfirm={() => onDelete(associate.id)}
                           trigger={
-                            <Button variant="ghost" size="icon">
-                              <Trash2 className="h-4 w-4" />
+                            <Button variant="ghost" size="icon" title="Eliminar asociado">
+                              <Trash2 className="h-6 w-6" />
                             </Button>
                           }
                         />

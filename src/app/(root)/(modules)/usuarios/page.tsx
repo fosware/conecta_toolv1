@@ -17,7 +17,7 @@ import { showToast } from "@/components/ui/custom-toast";
 import { Usuario } from "@/lib/api/interfaces/usuario";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { UserModal } from "@/components/ui/user-modal";
-import Image from "next/image";
+import { Pencil, Trash2, UserPlus } from "lucide-react";
 import { useCallback } from "react";
 import { UserFormData } from "@/lib/schemas/user";
 /*
@@ -192,13 +192,7 @@ const UsuariosPage = () => {
             setModalOpen(true);
           }}
         >
-          <Image
-            src="/icons/new_user.svg"
-            alt="new user icon"
-            width={24}
-            height={24}
-            className="dark:invert dark:backdrop-brightness-1 tooltip-light"
-          />
+          <UserPlus className="h-6 w-6 mr-2" />
           Agregar Usuario
         </Button>
       </div>
@@ -287,19 +281,16 @@ const UsuariosPage = () => {
               </TableCell>
               <TableCell className="flex gap-3">
                 <Button
-                  className="w-10 h-10 flex items-center justify-center bg-transparent p-0"
+                  variant="ghost"
+                  size="icon"
+                  title="Editar usuario"
                   onClick={() => {
                     setEditingUser(usuario);
                     setModalOpen(true);
                   }}
+                  className="h-9 w-9 p-0"
                 >
-                  <Image
-                    alt="edit icon"
-                    src="/icons/edit.svg"
-                    width={20}
-                    height={20}
-                    className="dark:invert dark:backdrop-brightness-1"
-                  />
+                  <Pencil className="h-6 w-6" />
                 </Button>
                 <ConfirmationDialog
                   question={`¿Estás seguro de que quieres eliminar al usuario ${usuario.username}?`}
@@ -336,14 +327,8 @@ const UsuariosPage = () => {
                     }
                   }}
                   trigger={
-                    <Button className="w-10 h-10 flex items-center justify-center bg-transparent p-0">
-                      <Image
-                        alt="delete icon"
-                        src="/icons/delete.svg"
-                        width={20}
-                        height={20}
-                        className="dark:invert dark:backdrop-brightness-1"
-                      />
+                    <Button variant="ghost" size="icon" title="Eliminar usuario" className="h-9 w-9 p-0">
+                      <Trash2 className="h-6 w-6" />
                     </Button>
                   }
                 />

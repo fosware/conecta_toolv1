@@ -64,7 +64,33 @@ export const associateCreateSchema = associateSchema.omit({
   id: z.number().optional(),
 });
 
+export const certificationSchema = z.object({
+  id: z.number(),
+  certificationId: z.number().min(1, "El certificado es requerido"),
+  certificationFile: z.instanceof(Buffer).nullable(),
+  expiryDate: z.date(),
+  associateId: z.number(),
+  isActive: z.boolean().default(true),
+  isDeleted: z.boolean().default(false),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional(),
+  certification: z.object({
+    id: z.number(),
+    name: z.string(),
+    description: z.string().nullable(),
+  }).optional(),
+});
+
+export const certificationCatalogSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  description: z.string().nullable(),
+  isActive: z.boolean(),
+});
+
 export type Associate = z.infer<typeof associateSchema>;
+export type Certification = z.infer<typeof certificationSchema>;
+export type CertificationCatalog = z.infer<typeof certificationCatalogSchema>;
 export type AssociateFormData = z.infer<typeof associateCreateSchema> & {
   locationState?: {
     id: number;

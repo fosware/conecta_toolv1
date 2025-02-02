@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AssociatesTable } from "./components/associates-table";
 import { AssociateModal } from "./components/associate-modal";
+import { CertificatesModal } from "./components/certificates-modal";
 import { getToken } from "@/lib/auth";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
@@ -25,6 +26,13 @@ export default function AssociatePage() {
   }>({
     isOpen: false,
     item: null,
+  });
+  const [certificatesModal, setCertificatesModal] = useState<{
+    isOpen: boolean;
+    associateId: number | null;
+  }>({
+    isOpen: false,
+    associateId: null,
   });
 
   const loadAssociates = useCallback(async () => {
@@ -99,42 +107,6 @@ export default function AssociatePage() {
     }
   };
 
-  /*
-  const handleSubmit = async (data: any) => {
-    try {
-      const formData = new FormData();
-
-      // Añadir todos los campos al FormData
-      Object.entries(data).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          formData.append(key, value.toString());
-        }
-      });
-
-      const res = await fetch("/api/asociados", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Error al guardar el asociado");
-      }
-
-      loadAssociates();
-      toast.success("Asociado creado correctamente");
-    } catch (error) {
-      console.error("Error:", error);
-      toast.error("Error al guardar el asociado");
-    }
-  };
-
-  const handleModalSuccess = () => {
-    console.log("Modal cerrado exitosamente");
-    setEditModal({ isOpen: false, item: null });
-    loadAssociates();
-  };
-*/
   const handleToggleStatus = async (id: number, currentStatus: boolean) => {
     try {
       // Actualización optimista
@@ -224,9 +196,17 @@ export default function AssociatePage() {
               <AssociatesTable
                 data={associates}
                 loading={loading}
-                onEdit={handleEdit}
+                onEdit={(id) => {
+                  const associate = associates.find((a) => a.id === id);
+                  if (associate) {
+                    setEditModal({ isOpen: true, item: associate });
+                  }
+                }}
                 onDelete={handleDelete}
                 onToggleStatus={handleToggleStatus}
+                onManageCertificates={(id) => {
+                  setCertificatesModal({ isOpen: true, associateId: id });
+                }}
                 showOnlyActive={showOnlyActive}
               />
             </div>
@@ -234,11 +214,17 @@ export default function AssociatePage() {
         </Card>
 
         <AssociateModal
-          title={editModal.item ? "Editar Asociado" : "Nuevo Asociado"}
           isOpen={editModal.isOpen}
           onClose={() => setEditModal({ isOpen: false, item: null })}
           onSuccess={loadAssociates}
           initialData={editModal.item}
+          title={editModal.item ? "Editar Asociado" : "Nuevo Asociado"}
+        />
+
+        <CertificatesModal
+          isOpen={certificatesModal.isOpen}
+          onClose={() => setCertificatesModal({ isOpen: false, associateId: null })}
+          associateId={certificatesModal.associateId || 0}
         />
       </div>
     </div>

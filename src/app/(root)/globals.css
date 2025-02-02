@@ -75,7 +75,7 @@ body {
 
 /* Texto secundario */
 .muted-text {
-  @apply text-muted dark:text-muted-dark;
+  @apply text-muted;
 }
 
 /* Toasts */
