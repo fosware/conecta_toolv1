@@ -476,7 +476,7 @@ export function AssociateForm({
             name="profile"
             render={({ field }) => (
               <FormItem className="col-span-full">
-                <FormLabel>Perfil</FormLabel>
+                <FormLabel>Semblanza</FormLabel>
                 <FormControl>
                   <Textarea
                     {...field}

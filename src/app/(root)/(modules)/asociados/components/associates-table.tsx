@@ -9,7 +9,14 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Pencil, Trash2, ChevronDown, ChevronUp, FileText, Settings } from "lucide-react";
+import {
+  Pencil,
+  Trash2,
+  ChevronDown,
+  ChevronUp,
+  FileText,
+  Settings,
+} from "lucide-react";
 import { Loader2 } from "lucide-react";
 import {
   AlertDialog,
@@ -47,8 +54,12 @@ export function AssociatesTable({
   onSuccess,
 }: AssociatesTableProps) {
   const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
-  const [loadingStatus, setLoadingStatus] = useState<Record<number, boolean>>({});
-  const [loadingDelete, setLoadingDelete] = useState<Record<number, boolean>>({});
+  const [loadingStatus, setLoadingStatus] = useState<Record<number, boolean>>(
+    {}
+  );
+  const [loadingDelete, setLoadingDelete] = useState<Record<number, boolean>>(
+    {}
+  );
 
   const toggleRow = (id: number) => {
     setExpandedRows((prev) => ({
@@ -139,8 +150,7 @@ export function AssociatesTable({
           {associates.length === 0 ? (
             <TableRow>
               <TableCell colSpan={7} className="h-24 text-center">
-                No se encontraron asociados{" "}
-                {showOnlyActive ? "activos" : ""}
+                No se encontraron asociados {showOnlyActive ? "activos" : ""}
               </TableCell>
             </TableRow>
           ) : (
@@ -175,7 +185,10 @@ export function AssociatesTable({
                       <Switch
                         checked={associate.isActive}
                         onCheckedChange={() => handleToggleStatus(associate.id)}
-                        disabled={loadingStatus[associate.id] || (!associate.isActive && associate.isDeleted)}
+                        disabled={
+                          loadingStatus[associate.id] ||
+                          (!associate.isActive && associate.isDeleted)
+                        }
                       />
                     </TableCell>
                     <TableCell className="text-right">
@@ -222,8 +235,8 @@ export function AssociatesTable({
                             <AlertDialogHeader>
                               <AlertDialogTitle>¿Está seguro?</AlertDialogTitle>
                               <AlertDialogDescription>
-                                Esta acción eliminará al asociado {associate.companyName} y no
-                                se puede deshacer.
+                                Esta acción eliminará al asociado{" "}
+                                {associate.companyName} y no se puede deshacer.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -250,7 +263,7 @@ export function AssociatesTable({
                     <TableRow>
                       <TableCell colSpan={7}>
                         <div className="p-4">
-                          <h4 className="font-semibold mb-2">Información adicional</h4>
+                          <h4 className="font-semibold mb-2">Información</h4>
                           <div className="grid grid-cols-2 gap-4">
                             <div>
                               <p className="text-sm text-gray-500">Dirección</p>
@@ -261,7 +274,8 @@ export function AssociatesTable({
                                   : ""}
                               </p>
                               <p>
-                                {associate.neighborhood}, {associate.municipality}
+                                {associate.neighborhood},{" "}
+                                {associate.municipality}
                               </p>
                               <p>
                                 {associate.locationState.name}, CP{" "}
@@ -271,7 +285,9 @@ export function AssociatesTable({
                             <div>
                               <p className="text-sm text-gray-500">Contacto</p>
                               <p>Tel: {associate.phone}</p>
-                              {associate.mobile && <p>Cel: {associate.mobile}</p>}
+                              {associate.mobile && (
+                                <p>Cel: {associate.mobile}</p>
+                              )}
                               <p>Email: {associate.email}</p>
                             </div>
                           </div>

@@ -135,7 +135,7 @@ export default function Navbar({
               className="bg-transparent dark:bg-slate-200 p-1 rounded "
             />
             <span className="text-xl font-bold text-foreground dark:text-foreground-dark">
-              ConectaTool
+              Tooling Cluster
             </span>
           </Link>
         </div>
