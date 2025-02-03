@@ -13,9 +13,9 @@ import { Button } from "@/components/ui/button";
 import { ReactNode, useState } from "react";
 
 interface ConfirmationDialogProps {
-  question: string; // Pregunta que se mostrará
-  onConfirm: () => void; // Acción a ejecutar si se confirma
-  trigger: ReactNode; // Componente que abrirá el diálogo
+  question: string; 
+  onConfirm: () => void; 
+  trigger: ReactNode; 
 }
 
 export const ConfirmationDialog = ({
@@ -32,18 +32,30 @@ export const ConfirmationDialog = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="bg-card dark:bg-card-dark border border-border dark:border-border-dark">
-        <DialogHeader className="space-y-3">
-          <DialogTitle>Confirmación</DialogTitle>
-          <DialogDescription>{question}</DialogDescription>
+      <DialogTrigger asChild onClick={(e) => e.stopPropagation()}>
+        {trigger}
+      </DialogTrigger>
+      <DialogContent className="bg-background text-foreground">
+        <DialogHeader>
+          <DialogTitle className="text-lg font-semibold">Confirmación</DialogTitle>
+          <DialogDescription className="text-muted-foreground">
+            {question}
+          </DialogDescription>
         </DialogHeader>
-        <DialogFooter className="mt-6">
-          <Button className="bg-transparent" onClick={() => setIsOpen(false)}>
+        <DialogFooter className="mt-6 gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setIsOpen(false)}
+            className="text-foreground hover:bg-secondary"
+          >
             Cancelar
           </Button>
-          <Button className="bg-transparent" onClick={handleConfirm}>
-            Confirmar
+          <Button
+            variant="destructive"
+            onClick={handleConfirm}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            Eliminar
           </Button>
         </DialogFooter>
       </DialogContent>

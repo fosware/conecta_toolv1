@@ -1,44 +1,46 @@
-import { prisma } from "../../../../lib/prisma";
-import { getUserFromToken } from "../../../../lib/get-user-from-token";
-import { NextResponse } from "next/server";
-import { associateCreateSchema } from "../../../../lib/schemas/associate";
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getUserFromToken } from "@/lib/get-user-from-token";
+import { z } from "zod";
 
+const updateAssociateSchema = z.object({
+  companyName: z.string(),
+  contactName: z.string(),
+  street: z.string(),
+  externalNumber: z.string(),
+  internalNumber: z.string().optional().nullable(),
+  neighborhood: z.string(),
+  postalCode: z.string(),
+  city: z.string(),
+  stateId: z.number(),
+  phone: z.string(),
+  email: z.string().email(),
+  machineCount: z.number(),
+  employeeCount: z.number(),
+  shifts: z.string(),
+  isActive: z.boolean(),
+});
+
+// GET: Obtener un asociado por ID
 export async function GET(
-  request: Request,
-  context: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: { id: string } }
 ) {
   try {
     const userId = await getUserFromToken();
-    const id = parseInt(context.params.id);
+    const associateId = parseInt(params.id);
 
-    if (isNaN(id)) {
-      return NextResponse.json({ error: "ID inválido" }, { status: 400 });
+    if (isNaN(associateId)) {
+      return NextResponse.json(
+        { error: "ID de asociado inválido" },
+        { status: 400 }
+      );
     }
 
     const associate = await prisma.associate.findFirst({
       where: {
-        id,
-        userId,
+        id: associateId,
         isDeleted: false,
-      },
-      select: {
-        id: true,
-        companyName: true,
-        contactName: true,
-        email: true,
-        phone: true,
-        isActive: true,
-        street: true,
-        externalNumber: true,
-        internalNumber: true,
-        neighborhood: true,
-        city: true,
-        stateId: true,
-        postalCode: true,
-        machineCount: true,
-        employeeCount: true,
-        shifts: true,
-        companyLogo: true,
       },
     });
 
@@ -51,7 +53,7 @@ export async function GET(
 
     return NextResponse.json(associate);
   } catch (error) {
-    console.error("Error getting associate:", error);
+    console.error("Error al obtener asociado:", error);
     return NextResponse.json(
       { error: "Error al obtener el asociado" },
       { status: 500 }
@@ -59,88 +61,100 @@ export async function GET(
   }
 }
 
-import { NextRequest } from "next/server";
-import { Prisma } from "@prisma/client";
-
+// PUT: Actualizar un asociado
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
     const userId = await getUserFromToken();
-    const id = parseInt(params.id);
+    const formData = await request.formData();
+    const associateId = parseInt(params.id);
 
-    if (isNaN(id)) {
+    if (isNaN(associateId)) {
       return NextResponse.json(
-        { error: "ID inválido" },
+        { error: "ID de asociado inválido" },
         { status: 400 }
       );
     }
 
-    const formData = await request.formData();
-    
-    // Convertir y validar tipos de datos numéricos
-    const updateData = {
-      companyName: formData.get("companyName")?.toString() || "",
-      contactName: formData.get("contactName")?.toString() || "",
-      street: formData.get("street")?.toString() || "",
-      externalNumber: formData.get("externalNumber")?.toString() || "",
-      internalNumber: formData.get("internalNumber")?.toString() || "",
-      neighborhood: formData.get("neighborhood")?.toString() || "",
-      postalCode: formData.get("postalCode")?.toString() || "",
-      city: formData.get("city")?.toString() || "",
-      stateId: Number(formData.get("stateId")) || 0,
-      phone: formData.get("phone")?.toString() || "",
-      email: formData.get("email")?.toString() || "",
-      machineCount: Number(formData.get("machineCount")) || 0,
-      employeeCount: Number(formData.get("employeeCount")) || 0,
-      shifts: formData.get("shifts")?.toString() || "",
-      achievementDescription: formData.get("achievementDescription")?.toString() || "",
-      profile: formData.get("profile")?.toString() || "",
-      user: { connect: { id: userId } }
-    };
+    // Verificar que el asociado existe
+    const existingAssociate = await prisma.associate.findFirst({
+      where: {
+        id: associateId,
+        isDeleted: false,
+      },
+    });
 
-    // Manejar el archivo NDA
-    const ndaFile = formData.get("nda") as File | null;
-    if (ndaFile instanceof File) {
-      const ndaBuffer = await ndaFile.arrayBuffer();
-      updateData.nda = Buffer.from(ndaBuffer);
-      updateData.ndaFileName = ndaFile.name;
+    if (!existingAssociate) {
+      return NextResponse.json(
+        { error: "Asociado no encontrado" },
+        { status: 404 }
+      );
     }
 
-    // Manejar el logo de la empresa
-    const logoFile = formData.get("companyLogo") as File | null;
-    if (logoFile instanceof File) {
-      // Aquí deberías implementar la lógica para subir la imagen y obtener la URL
-      updateData.companyLogo = 'url_to_uploaded_image';
-    } else {
-      const logoUrl = formData.get("companyLogo")?.toString();
-      if (logoUrl) {
-        updateData.companyLogo = logoUrl;
+    // Construir el objeto de datos
+    const data = {
+      companyName: formData.get("companyName")?.toString() || existingAssociate.companyName,
+      contactName: formData.get("contactName")?.toString() || existingAssociate.contactName,
+      street: formData.get("street")?.toString() || existingAssociate.street,
+      externalNumber: formData.get("externalNumber")?.toString() || existingAssociate.externalNumber,
+      internalNumber: formData.get("internalNumber")?.toString() || existingAssociate.internalNumber,
+      neighborhood: formData.get("neighborhood")?.toString() || existingAssociate.neighborhood,
+      postalCode: formData.get("postalCode")?.toString() || existingAssociate.postalCode,
+      city: formData.get("city")?.toString() || existingAssociate.city,
+      stateId: parseInt(formData.get("stateId")?.toString() || "") || existingAssociate.stateId,
+      phone: formData.get("phone")?.toString() || existingAssociate.phone,
+      email: formData.get("email")?.toString() || existingAssociate.email,
+      machineCount: parseInt(formData.get("machineCount")?.toString() || "") || existingAssociate.machineCount,
+      employeeCount: parseInt(formData.get("employeeCount")?.toString() || "") || existingAssociate.employeeCount,
+      shifts: formData.get("shifts")?.toString() || existingAssociate.shifts,
+      isActive: existingAssociate.isActive,
+    };
+
+    // Verificar si el email ya existe
+    if (data.email && data.email !== existingAssociate.email) {
+      const emailExists = await prisma.associate.findFirst({
+        where: {
+          email: data.email,
+          id: {
+            not: associateId,
+          },
+          isDeleted: false,
+        },
+      });
+
+      if (emailExists) {
+        return NextResponse.json(
+          { error: "El email ya está registrado" },
+          { status: 400 }
+        );
       }
     }
 
-    const validatedData = associateCreateSchema.omit({ 
-      id: true,
-      isActive: true,
-      isDeleted: true,
-      dateDeleted: true,
-      createdAt: true,
-      updatedAt: true,
-      userId: true
-    }).parse(updateData);
+    // Validar los datos
+    const validatedData = updateAssociateSchema.parse(data);
 
-    const item = await prisma.associate.update({
-      where: { id },
-      data: validatedData,
+    // Actualizar el asociado
+    const updatedAssociate = await prisma.associate.update({
+      where: {
+        id: associateId,
+      },
+      data: {
+        ...validatedData,
+        userId,
+      },
     });
 
-    return NextResponse.json({ item });
+    return NextResponse.json({
+      message: "Asociado actualizado correctamente",
+      associate: updatedAssociate,
+    });
   } catch (error) {
-    console.error("Error in PUT /asociados/[id]:", error);
-    if (error instanceof Error) {
+    console.error("Error al actualizar asociado:", error);
+    if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: error.message },
+        { error: "Datos inválidos", details: error.errors },
         { status: 400 }
       );
     }
@@ -151,23 +165,26 @@ export async function PUT(
   }
 }
 
+// DELETE: Eliminar un asociado
 export async function DELETE(
-  request: Request,
-  context: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: { id: string } }
 ) {
   try {
     const userId = await getUserFromToken();
-    const id = parseInt(context.params.id);
+    const associateId = parseInt(params.id);
 
-    if (isNaN(id)) {
-      return NextResponse.json({ error: "ID inválido" }, { status: 400 });
+    if (isNaN(associateId)) {
+      return NextResponse.json(
+        { error: "ID de asociado inválido" },
+        { status: 400 }
+      );
     }
 
-    // Verificar que el asociado existe y pertenece al usuario
+    // Verificar que el asociado exista
     const associate = await prisma.associate.findFirst({
       where: {
-        id,
-        userId,
+        id: associateId,
         isDeleted: false,
       },
     });
@@ -179,18 +196,23 @@ export async function DELETE(
       );
     }
 
-    // Soft delete
+    // Eliminar lógicamente el asociado
     await prisma.associate.update({
-      where: { id },
+      where: {
+        id: associateId,
+      },
       data: {
         isDeleted: true,
+        isActive: false,
         dateDeleted: new Date(),
       },
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      message: "Asociado eliminado correctamente",
+    });
   } catch (error) {
-    console.error("Error deleting associate:", error);
+    console.error("Error al eliminar asociado:", error);
     return NextResponse.json(
       { error: "Error al eliminar el asociado" },
       { status: 500 }

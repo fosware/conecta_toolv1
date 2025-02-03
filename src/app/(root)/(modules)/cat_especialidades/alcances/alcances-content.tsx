@@ -84,6 +84,10 @@ export default function AlcancesContent() {
 
   const handleDelete = async (alcance: Alcance) => {
     try {
+      // Actualización optimista
+      const updatedAlcances = alcances.filter(a => a.id !== alcance.id);
+      setAlcances(updatedAlcances);
+
       const response = await fetch(`/cat_especialidades/api/alcances/${alcance.id}/delete`, {
         method: 'PATCH',
         headers: {
@@ -95,11 +99,16 @@ export default function AlcancesContent() {
           dateUpdated: new Date(),
         }),
       });
-      if (!response.ok) throw new Error('Error al eliminar el alcance');
+
+      if (!response.ok) {
+        throw new Error('Error al eliminar el alcance');
+      }
+
       toast.success('Alcance eliminado correctamente');
-      loadAlcances();
     } catch (error) {
       console.error('Error:', error);
+      // Revertir la actualización optimista
+      loadAlcances();
       toast.error('Error al eliminar el alcance');
     }
   };

@@ -2,30 +2,27 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserFromToken } from "@/lib/get-user-from-token";
 
-export async function PUT(
+export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
     const userId = await getUserFromToken();
-    const { id } = await params;
+    const { id } = params;
     const associateId = parseInt(id);
 
     if (isNaN(associateId)) {
       return NextResponse.json(
-        { error: "ID inválido" },
+        { error: "ID de asociado inválido" },
         { status: 400 }
       );
     }
 
-    // Obtener el estado actual del asociado
-    const associate = await prisma.associate.findUnique({
-      where: { id: associateId, userId },
-      select: {
-        id: true,
-        companyName: true,
-        isActive: true,
-        isDeleted: true,
+    // Verificar que el asociado exista
+    const associate = await prisma.associate.findFirst({
+      where: {
+        id: associateId,
+        isDeleted: false,
       },
     });
 
@@ -36,27 +33,20 @@ export async function PUT(
       );
     }
 
-    if (associate.isDeleted) {
-      return NextResponse.json(
-        { error: "Asociado eliminado" },
-        { status: 404 }
-      );
-    }
-
-    // Actualizar el estado
+    // Cambiar el estado del asociado
     const updatedAssociate = await prisma.associate.update({
-      where: { id: associateId, userId },
+      where: {
+        id: associateId,
+      },
       data: {
         isActive: !associate.isActive,
       },
-      select: {
-        id: true,
-        companyName: true,
-        isActive: true,
-      },
     });
 
-    return NextResponse.json(updatedAssociate);
+    return NextResponse.json({
+      message: "Estado actualizado correctamente",
+      isActive: updatedAssociate.isActive,
+    });
   } catch (error) {
     console.error("Error al cambiar estado del asociado:", error);
     return NextResponse.json(

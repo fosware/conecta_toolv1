@@ -55,7 +55,6 @@ export function CatSubalcancesTable({
       }
 
       onDelete(subalcances.find((subalcance) => subalcance.id === id)!);
-      toast.success("Subalcance eliminado correctamente");
     } catch (error) {
       console.error("Error:", error);
       toast.error("Error al eliminar el subalcance");

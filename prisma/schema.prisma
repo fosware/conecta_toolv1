@@ -26,7 +26,7 @@ model User {
   Cerifications           Certifications[]
   Associate               Associate[]
   AssociateCertifications AssociateCertifications[]
-  AssociateScopes         AssociateScopes[]
+  AssociateSpecialties    AssociateSpecialties[]
 
   @@index([isDeleted, isActive])
   @@map("d_users")
@@ -45,7 +45,7 @@ model Specialties {
   userId          Int
   user            User              @relation(fields: [userId], references: [id])
   Scopes          Scopes[]
-  AssociateScopes AssociateScopes[]
+  AssociateSpecialties AssociateSpecialties[]
 
   @@index([isDeleted, isActive])
   @@map("c_specialties")
@@ -67,7 +67,7 @@ model Scopes {
   user            User              @relation(fields: [userId], references: [id])
   specialty       Specialties       @relation(fields: [specialtyId], references: [id])
   Subscopes       Subscopes[]
-  AssociateScopes AssociateScopes[]
+  AssociateSpecialties AssociateSpecialties[]
 
   @@index([isDeleted, isActive])
   @@map("c_scopes")
@@ -87,7 +87,7 @@ model Subscopes {
 
   user            User              @relation(fields: [userId], references: [id])
   scope           Scopes            @relation(fields: [scopeId], references: [id])
-  AssociateScopes AssociateScopes[]
+  AssociateSpecialties AssociateSpecialties[]
 
   @@index([isDeleted, isActive])
   @@map("c_subscopes")
@@ -198,7 +198,7 @@ model Associate {
   user                    User?                     @relation(fields: [userId], references: [id])
   locationState           LocationState             @relation(fields: [stateId], references: [id])
   AssociateCertifications AssociateCertifications[]
-  AssociateScopes         AssociateScopes[]
+  AssociateSpecialties    AssociateSpecialties[]
 
   @@index([email])
   @@index([companyName])
@@ -228,28 +228,32 @@ model AssociateCertifications {
   @@map("rel_associate_certifications")
 }
 
-model AssociateScopes {
-  id          Int         @id @default(autoincrement()) // Primary Key
+model AssociateSpecialties {
+  id          Int       @id @default(autoincrement())
   associateId Int
   specialtyId Int
-  scopeId     Int
-  subscopeId  Int
-  materials   String?
-  isActive    Boolean     @default(true)
-  isDeleted   Boolean     @default(false)
+  scopeId     Int?
+  subscopeId  Int?
+  materials   String?   @db.Text
+  isActive    Boolean   @default(true)
+  isDeleted   Boolean   @default(false)
   dateDeleted DateTime?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   userId      Int
-  user        User        @relation(fields: [userId], references: [id])
-  associate   Associate   @relation(fields: [associateId], references: [id])
-  specialty   Specialties @relation(fields: [specialtyId], references: [id])
-  scope       Scopes      @relation(fields: [scopeId], references: [id])
-  subscope    Subscopes   @relation(fields: [subscopeId], references: [id])
 
-  @@unique([associateId, specialtyId, scopeId, subscopeId])
-  @@index([isDeleted, isActive])
-  @@map("rel_associate_scopes")
+  associate Associate   @relation(fields: [associateId], references: [id])
+  specialty Specialties @relation(fields: [specialtyId], references: [id])
+  scope     Scopes?     @relation(fields: [scopeId], references: [id])
+  subscope  Subscopes?  @relation(fields: [subscopeId], references: [id])
+  user      User        @relation(fields: [userId], references: [id])
+
+  @@index([associateId])
+  @@index([specialtyId])
+  @@index([scopeId])
+  @@index([subscopeId])
+  @@index([userId])
+  @@map("rel_associate_specialties")
 }
 
 // npx prisma migrate dev --name init

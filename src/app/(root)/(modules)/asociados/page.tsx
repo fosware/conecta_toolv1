@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { AssociatesTable } from "./components/associates-table";
 import { AssociateModal } from "./components/associate-modal";
 import { CertificatesModal } from "./components/certificates-modal";
+import { SpecialtiesModal } from "./components/specialties-modal";
 import { getToken } from "@/lib/auth";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
@@ -28,6 +29,13 @@ export default function AssociatePage() {
     item: null,
   });
   const [certificatesModal, setCertificatesModal] = useState<{
+    isOpen: boolean;
+    associateId: number | null;
+  }>({
+    isOpen: false,
+    associateId: null,
+  });
+  const [specialtiesModal, setSpecialtiesModal] = useState<{
     isOpen: boolean;
     associateId: number | null;
   }>({
@@ -194,38 +202,55 @@ export default function AssociatePage() {
               </div>
 
               <AssociatesTable
-                data={associates}
+                associates={associates}
                 loading={loading}
-                onEdit={(id) => {
-                  const associate = associates.find((a) => a.id === id);
-                  if (associate) {
-                    setEditModal({ isOpen: true, item: associate });
-                  }
-                }}
-                onDelete={handleDelete}
-                onToggleStatus={handleToggleStatus}
-                onManageCertificates={(id) => {
-                  setCertificatesModal({ isOpen: true, associateId: id });
-                }}
+                onEdit={(associate) => setEditModal({ isOpen: true, item: associate })}
+                onManageCertificates={(id) =>
+                  setCertificatesModal({ isOpen: true, associateId: id })
+                }
+                onManageSpecialties={(id) =>
+                  setSpecialtiesModal({ isOpen: true, associateId: id })
+                }
                 showOnlyActive={showOnlyActive}
+                onSuccess={loadAssociates}
               />
             </div>
           </CardContent>
         </Card>
 
-        <AssociateModal
-          isOpen={editModal.isOpen}
-          onClose={() => setEditModal({ isOpen: false, item: null })}
-          onSuccess={loadAssociates}
-          initialData={editModal.item}
-          title={editModal.item ? "Editar Asociado" : "Nuevo Asociado"}
-        />
+        {editModal.isOpen && (
+          <AssociateModal
+            isOpen={editModal.isOpen}
+            onClose={() => setEditModal({ isOpen: false, item: null })}
+            onSuccess={() => {
+              loadAssociates();
+              setEditModal({ isOpen: false, item: null });
+            }}
+            initialData={editModal.item}
+            title={editModal.item ? "Editar Asociado" : "Nuevo Asociado"}
+          />
+        )}
 
-        <CertificatesModal
-          isOpen={certificatesModal.isOpen}
-          onClose={() => setCertificatesModal({ isOpen: false, associateId: null })}
-          associateId={certificatesModal.associateId || 0}
-        />
+        {certificatesModal.isOpen && certificatesModal.associateId && (
+          <CertificatesModal
+            isOpen={certificatesModal.isOpen}
+            onClose={() =>
+              setCertificatesModal({ isOpen: false, associateId: null })
+            }
+            associateId={certificatesModal.associateId}
+          />
+        )}
+
+        {specialtiesModal.isOpen && specialtiesModal.associateId && (
+          <SpecialtiesModal
+            isOpen={specialtiesModal.isOpen}
+            onClose={() => {
+              setSpecialtiesModal({ isOpen: false, associateId: null });
+              loadAssociates(); // Recargar la tabla después de cerrar el modal
+            }}
+            associateId={specialtiesModal.associateId}
+          />
+        )}
       </div>
     </div>
   );

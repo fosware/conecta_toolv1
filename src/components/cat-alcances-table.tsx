@@ -55,7 +55,6 @@ export function CatAlcancesTable({
       }
 
       onDelete(alcances.find((alcance) => alcance.id === id)!);
-      toast.success("Alcance eliminado correctamente");
     } catch (error) {
       console.error("Error:", error);
       toast.error("Error al eliminar el alcance");
