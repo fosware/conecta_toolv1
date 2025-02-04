@@ -3,12 +3,12 @@ import { prisma } from "@/lib/prisma";
 
 export async function PATCH(
   request: Request,
-  context: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const params = await context.params;
-    const id = parseInt(params.id);
-    if (isNaN(id)) {
+    const { id } = await params;
+    const subscopeId = parseInt(id);
+    if (isNaN(subscopeId)) {
       return NextResponse.json(
         { error: "ID inválido" },
         { status: 400 }
@@ -16,7 +16,7 @@ export async function PATCH(
     }
 
     const subalcance = await prisma.subscopes.findUnique({
-      where: { id },
+      where: { id: subscopeId },
     });
 
     if (!subalcance) {
@@ -27,7 +27,7 @@ export async function PATCH(
     }
 
     const updatedSubalcance = await prisma.subscopes.update({
-      where: { id },
+      where: { id: subscopeId },
       data: {
         isActive: !subalcance.isActive,
       },

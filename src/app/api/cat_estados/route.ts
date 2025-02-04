@@ -25,7 +25,7 @@ export async function GET() {
       }
     });
     
-    return NextResponse.json(states);
+    return NextResponse.json({ items: states });
   } catch (error) {
     console.error("Error al obtener estados:", error);
     return NextResponse.json(

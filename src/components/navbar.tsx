@@ -14,7 +14,7 @@ import Image from "next/image";
 import { useUserStore } from "@/lib/store/useUserState";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-//import { useRef } from "react"; // Import useRef
+import { LogOut, User } from "lucide-react";
 
 export default function Navbar({
   isSidebarOpen,
@@ -171,29 +171,17 @@ export default function Navbar({
             <DropdownMenuContent className="dropdown-menu bg-card dark:bg-card-dark border border-border dark:border-border-dark rounded-md shadow-md">
               <Link href="/profile">
                 {/* Perfil */}
-                <DropdownMenuItem className="hover:bg-accent hover:text-background transition">
-                  <Image
-                    src="/icons/profile.svg"
-                    alt="Perfil"
-                    width={20}
-                    height={20}
-                    className="mr-2"
-                  />
+                <DropdownMenuItem className="hover:bg-accent hover:text-accent-foreground transition cursor-pointer">
+                  <User className="mr-2 h-4 w-4" />
                   Perfil
                 </DropdownMenuItem>
               </Link>
               {/* Cerrar Sesión */}
               <DropdownMenuItem
                 onClick={handleLogout}
-                className="hover:bg-accent hover:text-background transition"
+                className="hover:bg-accent hover:text-accent-foreground transition cursor-pointer"
               >
-                <Image
-                  src="/icons/logout.svg"
-                  alt="Cerrar sesión"
-                  width={20}
-                  height={20}
-                  className="mr-2 text-current"
-                />
+                <LogOut className="mr-2 h-4 w-4" />
                 Cerrar Sesión
               </DropdownMenuItem>
             </DropdownMenuContent>

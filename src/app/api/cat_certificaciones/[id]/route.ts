@@ -5,14 +5,18 @@ import { cookies } from "next/headers";
 const prisma = new PrismaClient();
 
 export async function PATCH(
-  req: Request,
+  request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    const formData = await req.formData();
-    const name = formData.get("name") as string;
-    const description = formData.get("description") as string;
-    const userId = formData.get("userId") as string;
+    const { id } = await params;
+    const certificationId = parseInt(id);
+
+    const body = await request.json();
+
+    const name = body.name as string;
+    const description = body.description as string;
+    const userId = body.userId as string;
 
     // Verificar autenticación
     const cookieStore = await cookies();
@@ -27,7 +31,7 @@ export async function PATCH(
 
     const certification = await prisma.certifications.update({
       where: {
-        id: parseInt(params.id),
+        id: certificationId,
       },
       data: {
         name,

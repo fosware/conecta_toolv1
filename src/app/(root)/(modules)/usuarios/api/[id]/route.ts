@@ -10,7 +10,7 @@ export async function PATCH(
 ) {
   try {
     const formData = await request.formData();
-    const userId = params.id;
+    const { id } = await params;
     let base64Image = null;
 
     // Extraer campos del formData
@@ -43,7 +43,7 @@ export async function PATCH(
       where: {
         email,
         NOT: {
-          id: parseInt(userId, 10)
+          id: parseInt(id, 10)
         }
       }
     });
@@ -60,7 +60,7 @@ export async function PATCH(
       where: {
         username,
         NOT: {
-          id: parseInt(userId, 10)
+          id: parseInt(id, 10)
         }
       }
     });
@@ -74,7 +74,7 @@ export async function PATCH(
 
     // Actualizar usuario
     await prisma.user.update({
-      where: { id: parseInt(userId, 10) },
+      where: { id: parseInt(id, 10) },
       data: {
         email,
         username,
@@ -85,14 +85,14 @@ export async function PATCH(
 
     // Actualizar o crear perfil
     const profile = await prisma.profile.upsert({
-      where: { userId: parseInt(userId, 10) },
+      where: { userId: parseInt(id, 10) },
       create: {
         name,
         first_lastname,
         second_lastname,
         phone,
         image_profile: base64Image,
-        userId: parseInt(userId, 10),
+        userId: parseInt(id, 10),
       },
       update: {
         name,
@@ -104,7 +104,7 @@ export async function PATCH(
     });
 
     return NextResponse.json({
-      id: userId,
+      id,
       email,
       username,
       roleId,
@@ -115,22 +115,9 @@ export async function PATCH(
       image_profile: profile.image_profile,
     });
   } catch (error) {
-    console.error("Error al actualizar el usuario:", error);
-    
-    // Mejorar el manejo de errores de Prisma
-    if (error.code === 'P2002') {
-      const field = error.meta?.target[0];
-      const message = field === 'email' 
-        ? "El correo electrónico ya está siendo utilizado"
-        : field === 'username'
-        ? "El nombre de usuario ya está siendo utilizado"
-        : "Error de validación en los datos";
-      
-      return NextResponse.json({ message }, { status: 400 });
-    }
-    
+    console.error("Error al actualizar usuario:", error);
     return NextResponse.json(
-      { message: "Error al actualizar el usuario" },
+      { error: error instanceof Error ? error.message : "Error al actualizar usuario" },
       { status: 500 }
     );
   }

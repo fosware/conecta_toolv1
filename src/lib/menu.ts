@@ -12,7 +12,7 @@ export interface MenuItem {
 
 export const menuItems: MenuItem[] = [
   { name: "Proyectos", path: "/proyectos", icon: "/icons/folder.svg" },
-  { name: "Asociados", path: "/asociados", icon: "/icons/global-partner.svg" },
+  { name: "Asociados", path: "/companies", icon: "/icons/global-partner.svg" },
   { name: "Clientes", path: "/clientes", icon: "/icons/user-circle.svg" },
   {
     name: "Certificaciones",

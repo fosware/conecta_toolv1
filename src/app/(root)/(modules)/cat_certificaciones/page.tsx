@@ -322,7 +322,7 @@ const CatalogCertifications = () => {
                         const res = await fetch(
                           `/cat_certificaciones/api/${certificacion.id}/delete`,
                           {
-                            method: "PATCH",
+                            method: "DELETE",
                             headers: {
                               "Content-Type": "application/json",
                             },
@@ -369,7 +369,6 @@ const CatalogCertifications = () => {
         currentPage={currentPage}
         totalPages={totalPages}
         onPageChange={setCurrentPage}
-        range={3} // Mostrar 3 páginas a la vez
       />
       <CatCertificacionesModal
         isOpen={modalOpen}

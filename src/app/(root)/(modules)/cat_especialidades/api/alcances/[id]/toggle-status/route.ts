@@ -3,12 +3,12 @@ import { prisma } from "@/lib/prisma";
 
 export async function PATCH(
   request: Request,
-  context: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const params = await context.params;
-    const id = parseInt(params.id);
-    if (isNaN(id)) {
+    const { id } = await params;
+    const scopeId = parseInt(id);
+    if (isNaN(scopeId)) {
       return NextResponse.json(
         { error: "ID inválido" },
         { status: 400 }
@@ -16,7 +16,7 @@ export async function PATCH(
     }
 
     const alcance = await prisma.scopes.findUnique({
-      where: { id },
+      where: { id: scopeId },
     });
 
     if (!alcance) {
@@ -27,7 +27,7 @@ export async function PATCH(
     }
 
     const updatedAlcance = await prisma.scopes.update({
-      where: { id },
+      where: { id: scopeId },
       data: {
         isActive: !alcance.isActive,
       },

@@ -34,29 +34,73 @@ export interface Subalcance {
   dateUpdated: Date | null;
 }
 
-export interface Associate {
+export interface Company {
   id: number;
   companyName: string;
   contactName: string;
   street: string;
   externalNumber: string;
-  internalNumber?: string;
+  internalNumber: string | null;
   neighborhood: string;
   postalCode: string;
   city: string;
   stateId: number;
+  locationState?: LocationState;
   phone: string;
   email: string;
-  logo?: string;
-  companyLogo?: string;
+  companyLogo?: string | null;
+  ndaFileName?: string | null;
+  nda?: string | Uint8Array | null;
   machineCount: number;
   employeeCount: number;
   shifts: string;
-  achievementDescription?: string;
-  profile?: string;
+  achievementDescription?: string | null;
+  profile?: string | null;
   isActive: boolean;
   isDeleted: boolean;
-  userId?: number;
-  dateCreated?: Date;
-  dateUpdated?: Date | null;
+  userId: number;
+  dateCreated: Date;
+  dateUpdated: Date | null;
+}
+
+export interface CompanyCertification {
+  id: number;
+  companyId: number;
+  name: string;
+  description?: string;
+  certificationDate: Date;
+  expirationDate?: Date;
+  certificationFile?: string;
+  isActive: boolean;
+  isDeleted: boolean;
+  userId: number;
+  dateCreated: Date;
+  dateUpdated: Date | null;
+}
+
+export interface CompanySpecialty {
+  id: number;
+  companyId: number;
+  specialtyId: number;
+  specialty?: Especialidad;
+  scopeId?: number;
+  scope?: Alcance;
+  subscopeId?: number;
+  subscope?: Subalcance;
+  materials?: string;
+  isActive: boolean;
+  isDeleted: boolean;
+  userId: number;
+  dateCreated: Date;
+  dateUpdated: Date | null;
+}
+
+export interface LocationState {
+  id: number;
+  name: string;
+  isActive: boolean;
+  isDeleted: boolean;
+  userId: number;
+  dateCreated: Date;
+  dateUpdated: Date | null;
 }

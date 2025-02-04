@@ -7,7 +7,7 @@ export async function PATCH(
   req: Request,
   { params }: { params: { id: string } }
 ) {
-  const { id } = params;
+  const { id } = await params;
   const userId = parseInt(id);
 
   try {

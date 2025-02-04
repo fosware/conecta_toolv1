@@ -3,12 +3,12 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-export async function PATCH(
+export async function DELETE(
   request: Request,
-  context: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const id = await Promise.resolve(context.params.id);
+    const { id } = await params;
     const certificationId = parseInt(id, 10);
 
     if (isNaN(certificationId)) {
