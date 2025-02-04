@@ -123,6 +123,31 @@ npx prisma migrate reset --force
 npm run prisma:seed
 ```
 
+### Actualización y Reset del Proyecto
+
+- Obtener cambios y descartar cambios locales:
+```bash
+git reset --hard HEAD
+git pull origin main
+```
+
+- Reiniciar completamente la base de datos:
+```bash
+# Detener contenedores y eliminar volúmenes
+docker-compose down -v
+docker-compose up -d
+
+# Reiniciar la base de datos con Prisma
+npx prisma migrate reset
+npx prisma db push
+npm run prisma:seed
+```
+
+- Actualizar dependencias:
+```bash
+npm i --legacy-peer-deps
+```
+
 ## 🗄️ Estructura del Proyecto
 
 ```
