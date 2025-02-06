@@ -15,6 +15,8 @@ model User {
   roleId                Int
   role                  Role                    @relation(fields: [roleId], references: [id])
   profile               Profile?
+  companyUser           CompanyUser?
+  mustChangePassword    Boolean                 @default(false)
   isActive              Boolean                 @default(true)
   isDeleted             Boolean                 @default(false)
   dateDeleted           DateTime?
@@ -24,9 +26,9 @@ model User {
   Scopes                Scopes[]
   Subscopes             Subscopes[]
   Cerifications         Certifications[]
-  companies             Company[]
   CompanyCertifications CompanyCertifications[]
   CompanySpecialties    CompanySpecialties[]
+  Company               Company[]
 
   @@index([isDeleted, isActive])
   @@map("d_users")
@@ -164,7 +166,6 @@ model LocationState {
   @@map("c_location_states")
 }
 
-// Empresa
 model Company {
   id                     Int                     @id @default(autoincrement())
   companyName            String                  @unique
@@ -196,12 +197,31 @@ model Company {
   locationState          LocationState           @relation(fields: [stateId], references: [id])
   CompanyCertifications  CompanyCertifications[]
   CompanySpecialties     CompanySpecialties[]
+  companyUsers           CompanyUser[]
 
   @@index([isDeleted, isActive])
   @@map("d_companies")
 }
 
-// Relación entre empresas y certificaciones
+model CompanyUser {
+  id          Int       @id @default(autoincrement())
+  userId      Int       @unique
+  companyId   Int
+  role        String    @default("STAFF")
+  isAdmin     Boolean   @default(false)
+  position    String?
+  isActive    Boolean   @default(true)
+  isDeleted   Boolean   @default(false)
+  dateDeleted DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  user        User      @relation(fields: [userId], references: [id])
+  company     Company   @relation(fields: [companyId], references: [id])
+
+  @@index([isDeleted, isActive])
+  @@map("r_company_users")
+}
+
 model CompanyCertifications {
   id                  Int            @id @default(autoincrement())
   companyId           Int
@@ -224,7 +244,6 @@ model CompanyCertifications {
   @@map("r_company_certifications")
 }
 
-// Relación entre empresas y especialidades
 model CompanySpecialties {
   id          Int         @id @default(autoincrement())
   companyId   Int

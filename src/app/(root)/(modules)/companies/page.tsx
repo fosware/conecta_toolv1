@@ -9,6 +9,7 @@ import { CompanyTable } from "./components/company-table";
 import { CompanyModal } from "./components/company-modal";
 import { CertificatesModal } from "./components/certificates-modal";
 import { SpecialtiesModal } from "./components/specialties-modal";
+import { StaffModal } from "./components/staff-modal";
 import { Plus, Search } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
@@ -62,6 +63,16 @@ export default function CompanyPage() {
     companyId: null,
     companyName: null,
   });
+  const [staffModal, setStaffModal] = useState<{
+    isOpen: boolean;
+    companyId: number | null;
+    companyName: string | null;
+  }>({
+    isOpen: false,
+    companyId: null,
+    companyName: null,
+  });
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
 
   const debouncedSearch = useDebounce(searchQuery, 300);
 
@@ -173,6 +184,7 @@ export default function CompanyPage() {
   };
 
   const handleOpenCertificates = (company: Company) => {
+    setSelectedCompany(company);
     setCertificatesModal({
       isOpen: true,
       companyId: company.id,
@@ -189,6 +201,7 @@ export default function CompanyPage() {
   };
 
   const handleOpenSpecialties = (company: Company) => {
+    setSelectedCompany(company);
     setSpecialtiesModal({
       isOpen: true,
       companyId: company.id,
@@ -198,6 +211,23 @@ export default function CompanyPage() {
 
   const handleCloseSpecialties = () => {
     setSpecialtiesModal({
+      isOpen: false,
+      companyId: null,
+      companyName: null,
+    });
+  };
+
+  const handleOpenStaff = (company: Company) => {
+    setSelectedCompany(company);
+    setStaffModal({
+      isOpen: true,
+      companyId: company.id,
+      companyName: company.companyName,
+    });
+  };
+
+  const handleCloseStaff = () => {
+    setStaffModal({
       isOpen: false,
       companyId: null,
       companyName: null,
@@ -249,6 +279,7 @@ export default function CompanyPage() {
                 onToggleStatus={handleToggleStatus}
                 onManageCertificates={handleOpenCertificates}
                 onManageSpecialties={handleOpenSpecialties}
+                onManageStaff={handleOpenStaff}
               />
             </div>
           </CardContent>
@@ -303,6 +334,15 @@ export default function CompanyPage() {
           onClose={handleCloseSpecialties}
           companyId={specialtiesModal.companyId}
           companyName={specialtiesModal.companyName || ""}
+        />
+      )}
+
+      {staffModal.companyId && (
+        <StaffModal
+          open={staffModal.isOpen}
+          onClose={handleCloseStaff}
+          companyId={staffModal.companyId}
+          companyName={staffModal.companyName || ""}
         />
       )}
     </div>

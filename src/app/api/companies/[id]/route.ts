@@ -27,7 +27,7 @@ const updateCompanySchema = z.object({
 // GET: Obtener una empresa por ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const userId = await getUserFromToken();
@@ -76,7 +76,7 @@ export async function GET(
 // PUT: Actualizar una empresa
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const userId = await getUserFromToken();
@@ -149,7 +149,7 @@ export async function PUT(
 // DELETE: Eliminar una empresa
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const userId = await getUserFromToken();

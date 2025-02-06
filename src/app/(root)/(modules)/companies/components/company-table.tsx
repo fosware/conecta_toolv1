@@ -10,8 +10,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Pencil, FileText, Award, Trash2 } from "lucide-react";
+import { Pencil, FileText, Award, Trash2, Users } from "lucide-react";
 import type { Company } from "@/types";
+import { useRouter } from "next/navigation";
 
 interface CompanyTableProps {
   data: Company[];
@@ -21,6 +22,7 @@ interface CompanyTableProps {
   onToggleStatus: (id: number, currentStatus: boolean) => void;
   onManageCertificates: (item: Company) => void;
   onManageSpecialties: (item: Company) => void;
+  onManageStaff: (item: Company) => void;
 }
 
 export function CompanyTable({
@@ -31,7 +33,10 @@ export function CompanyTable({
   onToggleStatus,
   onManageCertificates,
   onManageSpecialties,
+  onManageStaff,
 }: CompanyTableProps) {
+  const router = useRouter();
+
   if (loading) {
     return (
       <div className="w-full h-24 flex items-center justify-center">
@@ -100,6 +105,14 @@ export function CompanyTable({
                       title="Especialidades"
                     >
                       <Award className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onManageStaff(item)}
+                      title="Personal"
+                    >
+                      <Users className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="ghost"

@@ -173,6 +173,7 @@ Asegúrate de configurar las siguientes variables en tu archivo `.env`:
 ```env
 DATABASE_URL="postgresql://admin:password@localhost:5432/conecta_toolv1?schema=public"
 JWT_SECRET="tu_secreto_jwt"
+RESEND_API_KEY="re_123456789" # API Key de Resend para envío de correos
 ```
 
 ### Docker

@@ -104,3 +104,36 @@ export interface LocationState {
   dateCreated: Date;
   dateUpdated: Date | null;
 }
+
+export interface UserProfile {
+  id: number;
+  name: string;
+  first_lastname: string;
+  second_lastname?: string | null;
+  phone?: string | null;
+  image_profile?: string | null;
+  userId: number;
+}
+
+export interface User {
+  id: number;
+  email: string;
+  username: string;
+  roleId: number;
+  isActive: boolean;
+  isDeleted: boolean;
+  profile?: UserProfile;
+  companyUser?: CompanyUser;
+}
+
+export interface CompanyUser {
+  id: number;
+  userId: number;
+  companyId: number;
+  isAdmin: boolean;
+  position?: string;
+  isActive: boolean;
+  isDeleted: boolean;
+  user: User;
+  company: Company;
+}
