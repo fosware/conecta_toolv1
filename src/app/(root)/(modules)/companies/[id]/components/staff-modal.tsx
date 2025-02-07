@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { toast } from "sonner";
+import { StaffMember } from "@/types/staff";
 
 const staffSchema = z.object({
   email: z.string().email("Email inválido"),
@@ -30,19 +31,6 @@ const staffSchema = z.object({
 });
 
 type StaffFormValues = z.infer<typeof staffSchema>;
-
-interface StaffMember {
-  id: number;
-  user: {
-    id: number;
-    email: string;
-    username: string;
-    profile: {
-      name: string;
-    } | null;
-  };
-  position: string;
-}
 
 interface StaffModalProps {
   open: boolean;

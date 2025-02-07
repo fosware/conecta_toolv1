@@ -57,7 +57,7 @@ export function AddStaffModal({
   useEffect(() => {
     if (staff) {
       form.reset({
-        name: staff.user.name,
+        name: staff.user.profile?.name || "",
         first_lastname: staff.user.profile?.first_lastname || "",
         second_lastname: staff.user.profile?.second_lastname || "",
         email: staff.user.email,

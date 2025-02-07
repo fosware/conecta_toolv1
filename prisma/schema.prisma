@@ -9,9 +9,9 @@ datasource db {
 
 model User {
   id                    Int                     @id @default(autoincrement())
-  email                 String                  @unique
+  email                 String                  
   password              String
-  username              String                  @unique
+  username              String                  
   roleId                Int
   role                  Role                    @relation(fields: [roleId], references: [id])
   profile               Profile?
@@ -30,6 +30,8 @@ model User {
   CompanySpecialties    CompanySpecialties[]
   Company               Company[]
 
+  @@unique([email, isDeleted])
+  @@unique([username, isDeleted])
   @@index([isDeleted, isActive])
   @@map("d_users")
 }

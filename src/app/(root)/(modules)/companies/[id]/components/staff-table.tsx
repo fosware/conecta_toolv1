@@ -62,10 +62,10 @@ export function StaffTable({
           ) : (
             data.map((staff) => (
               <TableRow key={staff.id}>
-                <TableCell>{staff.user.name}</TableCell>
+                <TableCell>{staff.user.profile?.name || "-"}</TableCell>
                 <TableCell>{staff.user.username}</TableCell>
                 <TableCell>{staff.user.email}</TableCell>
-                <TableCell>{staff.user.phone || "-"}</TableCell>
+                <TableCell>{staff.user.profile?.phone || "-"}</TableCell>
                 <TableCell>{staff.role}</TableCell>
                 <TableCell>{staff.position || "-"}</TableCell>
                 <TableCell>

@@ -78,9 +78,13 @@ export async function PATCH(
         id: true,
         email: true,
         username: true,
-        name: true,
-        phone: true,
         isActive: true,
+        profile: {
+          select: {
+            name: true,
+            phone: true
+          }
+        }
       },
     });
 

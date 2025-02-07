@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { PrismaClient, Prisma } from "@prisma/client";
 
 import bcrypt from "bcryptjs";
+import { sendWelcomeEmail } from "@/lib/email";
 
 const prisma = new PrismaClient();
 
@@ -124,7 +125,10 @@ export async function POST(req: Request) {
       );
     }
     const existingUserWithEmail = await prisma.user.findFirst({
-      where: { email },
+      where: { 
+        email,
+        isDeleted: false // Solo buscar en usuarios no eliminados
+      },
     });
 
     if (existingUserWithEmail) {
@@ -135,7 +139,10 @@ export async function POST(req: Request) {
     }
 
     const existingUserWithUsername = await prisma.user.findFirst({
-      where: { username },
+      where: { 
+        username,
+        isDeleted: false // Solo buscar en usuarios no eliminados
+      },
     });
 
     if (existingUserWithUsername) {
@@ -162,6 +169,7 @@ export async function POST(req: Request) {
         password: hashedPassword,
         username,
         roleId: parseInt(roleId, 10),
+        mustChangePassword: true,
         profile: {
           create: {
             name,
@@ -178,6 +186,19 @@ export async function POST(req: Request) {
       },
     });
 
+    // Enviar correo de bienvenida con las credenciales
+    try {
+      await sendWelcomeEmail({
+        to: email,
+        username,
+        password, // Enviamos la contraseña sin hashear
+        name,
+      });
+    } catch (emailError) {
+      console.error("Error al enviar correo de bienvenida:", emailError);
+      // No devolvemos error al cliente si falla el correo, solo lo registramos
+    }
+
     return NextResponse.json(newUser);
   } catch (error) {
     console.error("Error al crear usuario:", error);
@@ -192,6 +213,35 @@ export async function POST(req: Request) {
 export async function DELETE(req: Request) {
   try {
     const { id } = await req.json();
+
+    if (!id) {
+      return NextResponse.json(
+        { message: "ID del usuario es requerido." },
+        { status: 400 }
+      );
+    }
+
+    const deletedUser = await prisma.user.update({
+      where: { id: parseInt(id, 10) },
+      data: { isDeleted: true, dateDeleted: new Date() },
+    });
+
+    return NextResponse.json(deletedUser);
+  } catch (error) {
+    console.error("Error al eliminar usuario:", error);
+    return NextResponse.json(
+      { message: "Error al eliminar usuario." },
+      { status: 500 }
+    );
+  }
+}
+
+// Soporte adicional para PATCH para eliminar usuarios
+export async function PATCH(req: Request) {
+  try {
+    const url = new URL(req.url);
+    const pathParts = url.pathname.split('/');
+    const id = pathParts[pathParts.length - 2]; // Obtener el ID de la URL
 
     if (!id) {
       return NextResponse.json(

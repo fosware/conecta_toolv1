@@ -166,14 +166,21 @@ conecta_toolv1/
 
 ## 🔧 Configuración
 
-### Variables de Entorno
+### Variables de entorno requeridas
 
-Asegúrate de configurar las siguientes variables en tu archivo `.env`:
+```bash
+# Base de datos
+DATABASE_URL=
 
-```env
-DATABASE_URL="postgresql://admin:password@localhost:5432/conecta_toolv1?schema=public"
-JWT_SECRET="tu_secreto_jwt"
-RESEND_API_KEY="re_123456789" # API Key de Resend para envío de correos
+# JWT
+JWT_SECRET=
+
+# Email (Resend API)
+RESEND_API_KEY=
+
+# App Configuration
+NEXT_PUBLIC_APP_URL=http://157.245.242.214:8091  # URL base de la aplicación
+NEXT_PUBLIC_APP_NAME="Tooling Cluster"           # Nombre de la aplicación
 ```
 
 ### Docker

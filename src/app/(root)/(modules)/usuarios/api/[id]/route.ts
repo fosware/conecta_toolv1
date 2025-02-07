@@ -42,6 +42,7 @@ export async function PATCH(
     const existingUserWithEmail = await prisma.user.findFirst({
       where: {
         email,
+        isDeleted: false,
         NOT: {
           id: parseInt(id, 10)
         }
@@ -59,6 +60,7 @@ export async function PATCH(
     const existingUserWithUsername = await prisma.user.findFirst({
       where: {
         username,
+        isDeleted: false,
         NOT: {
           id: parseInt(id, 10)
         }
