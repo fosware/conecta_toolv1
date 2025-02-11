@@ -63,11 +63,16 @@ export default function Navbar({
         const data = JSON.parse(text);
         if (data?.user?.username) {
           setUsername(data.user.username);
+        } else {
+          setUsername(null);
         }
+        
         if (data?.profile?.image_profile) {
           setProfileImage(
             `data:image/png;base64,${data.profile.image_profile}`
           );
+        } else {
+          setProfileImage(null); // Asegurarnos de limpiar la imagen si el usuario no tiene una
         }
       } catch {
         // Limpiar estado en caso de error
@@ -86,6 +91,8 @@ export default function Navbar({
       });
 
       if (res.ok) {
+        setProfileImage(null); // Limpiar la imagen antes de redirigir
+        setUsername(null);
         router.push("/login"); // Redirige al login después del logout
       } else {
         alert("Error al cerrar sesión");

@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Pencil, FileText, Award, Trash2 } from "lucide-react";
+import { Pencil, FileText, Award, Trash2, Users } from "lucide-react";
 import type { Company } from "@/types";
 
 interface CompanyTableProps {
@@ -21,6 +21,7 @@ interface CompanyTableProps {
   onToggleStatus: (id: number, currentStatus: boolean) => void;
   onManageCertificates: (item: Company) => void;
   onManageSpecialties: (item: Company) => void;
+  onManageUsers: (item: Company) => void;
 }
 
 export function CompanyTable({
@@ -31,6 +32,7 @@ export function CompanyTable({
   onToggleStatus,
   onManageCertificates,
   onManageSpecialties,
+  onManageUsers,
 }: CompanyTableProps) {
   if (loading) {
     return (
@@ -100,6 +102,14 @@ export function CompanyTable({
                       title="Especialidades"
                     >
                       <Award className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onManageUsers(item)}
+                      title="Usuarios"
+                    >
+                      <Users className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="ghost"

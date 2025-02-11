@@ -5,19 +5,6 @@ import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
-/*
-type FormDataEntries = {
-  email: string;
-  password: string;
-  username: string;
-  roleId: string;
-  name: string;
-  first_lastname: string;
-  second_lastname?: string;
-  phone?: string;
-  image_profile?: string;
-};
-*/
 // Obtener lista de usuarios con paginación, filtros y búsqueda
 export async function GET(req: Request) {
   try {

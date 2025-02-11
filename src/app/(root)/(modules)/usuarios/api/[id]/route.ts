@@ -38,82 +38,56 @@ export async function PATCH(
       }
     }
 
-    // Verificar si el email ya existe
-    const existingUserWithEmail = await prisma.user.findFirst({
-      where: {
-        email,
-        NOT: {
-          id: parseInt(id, 10)
-        }
-      }
-    });
+    try {
+      // Actualizar usuario
+      await prisma.user.update({
+        where: { id: parseInt(id, 10) },
+        data: {
+          email,
+          username,
+          roleId: parseInt(roleId, 10),
+          ...(password && { password: await bcrypt.hash(password, 10) }),
+        },
+      });
 
-    if (existingUserWithEmail) {
+      // Actualizar o crear perfil
+      const profile = await prisma.profile.upsert({
+        where: { userId: parseInt(id, 10) },
+        create: {
+          name,
+          first_lastname,
+          second_lastname,
+          phone,
+          image_profile: base64Image,
+          userId: parseInt(id, 10),
+        },
+        update: {
+          name,
+          first_lastname,
+          second_lastname,
+          phone,
+          ...(base64Image && { image_profile: base64Image }),
+        },
+      });
+
       return NextResponse.json(
-        { message: "El correo electrónico ya está siendo utilizado por otro usuario" },
-        { status: 400 }
+        { message: "Usuario actualizado exitosamente" },
+        { status: 200 }
+      );
+    } catch (error) {
+      if (error.code === 'P2002') {
+        return NextResponse.json(
+          { message: "El correo electrónico o nombre de usuario ya está siendo utilizado por otro usuario activo" },
+          { status: 400 }
+        );
+      }
+      
+      console.error("Error al actualizar usuario:", error);
+      return NextResponse.json(
+        { message: "Error al actualizar el usuario" },
+        { status: 500 }
       );
     }
-
-    // Verificar si el username ya existe
-    const existingUserWithUsername = await prisma.user.findFirst({
-      where: {
-        username,
-        NOT: {
-          id: parseInt(id, 10)
-        }
-      }
-    });
-
-    if (existingUserWithUsername) {
-      return NextResponse.json(
-        { message: "El nombre de usuario ya está siendo utilizado" },
-        { status: 400 }
-      );
-    }
-
-    // Actualizar usuario
-    await prisma.user.update({
-      where: { id: parseInt(id, 10) },
-      data: {
-        email,
-        username,
-        roleId: parseInt(roleId, 10),
-        ...(password && { password: await bcrypt.hash(password, 10) }),
-      },
-    });
-
-    // Actualizar o crear perfil
-    const profile = await prisma.profile.upsert({
-      where: { userId: parseInt(id, 10) },
-      create: {
-        name,
-        first_lastname,
-        second_lastname,
-        phone,
-        image_profile: base64Image,
-        userId: parseInt(id, 10),
-      },
-      update: {
-        name,
-        first_lastname,
-        second_lastname,
-        phone,
-        ...(base64Image && { image_profile: base64Image }),
-      },
-    });
-
-    return NextResponse.json({
-      id,
-      email,
-      username,
-      roleId,
-      name: profile.name,
-      first_lastname: profile.first_lastname,
-      second_lastname: profile.second_lastname,
-      phone: profile.phone,
-      image_profile: profile.image_profile,
-    });
   } catch (error) {
     console.error("Error al actualizar usuario:", error);
     return NextResponse.json(

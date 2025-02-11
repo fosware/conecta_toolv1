@@ -9,6 +9,7 @@ import { CompanyTable } from "./components/company-table";
 import { CompanyModal } from "./components/company-modal";
 import { CertificatesModal } from "./components/certificates-modal";
 import { SpecialtiesModal } from "./components/specialties-modal";
+import { UsersModal } from "./components/users-modal";
 import { Plus, Search } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
@@ -54,6 +55,16 @@ export default function CompanyPage() {
     companyName: null,
   });
   const [specialtiesModal, setSpecialtiesModal] = useState<{
+    isOpen: boolean;
+    companyId: number | null;
+    companyName: string | null;
+  }>({
+    isOpen: false,
+    companyId: null,
+    companyName: null,
+  });
+
+  const [usersModal, setUsersModal] = useState<{
     isOpen: boolean;
     companyId: number | null;
     companyName: string | null;
@@ -204,6 +215,22 @@ export default function CompanyPage() {
     });
   };
 
+  const handleOpenUsers = (company: Company) => {
+    setUsersModal({
+      isOpen: true,
+      companyId: company.id,
+      companyName: company.companyName,
+    });
+  };
+
+  const handleCloseUsers = () => {
+    setUsersModal({
+      isOpen: false,
+      companyId: null,
+      companyName: null,
+    });
+  };
+
   return (
     <div className="container mx-auto py-10">
       <div className="flex flex-col gap-4">
@@ -249,6 +276,7 @@ export default function CompanyPage() {
                 onToggleStatus={handleToggleStatus}
                 onManageCertificates={handleOpenCertificates}
                 onManageSpecialties={handleOpenSpecialties}
+                onManageUsers={handleOpenUsers}
               />
             </div>
           </CardContent>
@@ -303,6 +331,15 @@ export default function CompanyPage() {
           onClose={handleCloseSpecialties}
           companyId={specialtiesModal.companyId}
           companyName={specialtiesModal.companyName || ""}
+        />
+      )}
+
+      {usersModal.companyId && (
+        <UsersModal
+          open={usersModal.isOpen}
+          onClose={handleCloseUsers}
+          companyId={usersModal.companyId}
+          companyName={usersModal.companyName || ""}
         />
       )}
     </div>
