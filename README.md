@@ -103,6 +103,11 @@ docker-compose restart db
 
 ### Prisma
 
+- Crear migración:
+```bash
+npx prisma migrate dev --name nombre_de_la_migracion
+```
+
 - Generar cliente Prisma:
 ```bash
 npx prisma generate
