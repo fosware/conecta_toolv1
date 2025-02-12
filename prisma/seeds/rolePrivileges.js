@@ -6,9 +6,10 @@ export async function seedRolePrivileges() {
   // Obtén los roles desde la base de datos
   const adminRole = await prisma.role.findUnique({ where: { name: "Admin" } });
   const staffRole = await prisma.role.findUnique({ where: { name: "Staff" } });
+  const asociadoRole = await prisma.role.findUnique({ where: { name: "Asociado" } });
 
   // Validar que los roles existan
-  if (!adminRole || !staffRole) {
+  if (!adminRole || !staffRole || !asociadoRole) {
     console.error(
       "Roles no encontrados. Asegúrate de que los roles estén creados."
     );
@@ -36,14 +37,22 @@ export async function seedRolePrivileges() {
 
   // Mapear privilegios específicos para Staff
   const staffPrivileges = [
-    "Dashboard",
-    "Proyectos",
-    "View Reports",
-    "Edit Projects",
+    "Asociados"
+  ];
+
+  // Mapear privilegios específicos para Asociado
+  const asociadoPrivileges = [
+    "Asociados"
   ];
 
   // Función para asociar privilegios a un rol
   const assignPrivileges = async (roleId, privilegeNames) => {
+    // Primero, eliminar todos los privilegios existentes para este rol
+    await prisma.rolePrivilege.deleteMany({
+      where: { roleId },
+    });
+
+    // Luego, asignar los nuevos privilegios
     for (const privilegeName of privilegeNames) {
       const privilege = await prisma.privilege.findUnique({
         where: { name: privilegeName },
@@ -54,12 +63,8 @@ export async function seedRolePrivileges() {
         continue;
       }
 
-      await prisma.rolePrivilege.upsert({
-        where: {
-          roleId_privilegeId: { roleId, privilegeId: privilege.id },
-        },
-        update: {},
-        create: {
+      await prisma.rolePrivilege.create({
+        data: {
           roleId,
           privilegeId: privilege.id,
         },
@@ -73,5 +78,8 @@ export async function seedRolePrivileges() {
   // Asignar privilegios a Staff
   await assignPrivileges(staffRole.id, staffPrivileges);
 
-  console.log("Relaciones entre Roles y Privilegios creadas correctamente.");
+  // Asignar privilegios a Asociado
+  await assignPrivileges(asociadoRole.id, asociadoPrivileges);
+
+  console.log("Relaciones entre Roles y Privilegios actualizadas correctamente.");
 }

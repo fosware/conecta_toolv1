@@ -1,16 +1,19 @@
-"use client";
-
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import type { Company, LocationState } from "@/types";
-import { FileInput } from "@/components/ui/file-input";
+import { Company } from "@prisma/client";
 import { getToken } from "@/lib/auth";
 import Image from "next/image";
 import { Loader2 } from "lucide-react";
+import { useUserRole } from '@/hooks/use-user-role';
+
+interface LocationState {
+  id: number;
+  name: string;
+}
 
 interface CompanyFormProps {
   onSubmit: (formData: FormData) => Promise<void>;
@@ -19,64 +22,47 @@ interface CompanyFormProps {
   isSubmitting?: boolean;
 }
 
-interface CompanyFormData {
-  companyName: string;
-  contactName: string;
-  email: string;
-  phone: string;
-  street: string;
-  externalNumber: string;
-  internalNumber: string;
-  neighborhood: string;
-  postalCode: string;
-  city: string;
-  stateId: number | undefined;
-  machineCount: number;
-  employeeCount: number;
-  shifts: string;
-  achievementDescription: string;
-  profile: string;
-  companyLogo: File | null;
-  nda: File | null;
-  ndaFileName: string;
+interface CompanyFormData extends Omit<Company, 'id' | 'createdAt' | 'updatedAt' | 'dateDeleted'> {
 }
 
 export function CompanyForm({
-  initialData,
   onSubmit,
-  isSubmitting,
+  onCancel,
+  initialData,
+  isSubmitting = false,
 }: CompanyFormProps) {
-  const [formState, setFormState] = useState<Partial<CompanyFormData>>({
+  const { refresh: refreshUserRole } = useUserRole();
+  const [formState, setFormState] = useState<Partial<CompanyFormData> & {
+    companyLogo?: File;
+    nda?: File;
+  }>({
     companyName: initialData?.companyName || "",
     contactName: initialData?.contactName || "",
-    email: initialData?.email || "",
-    phone: initialData?.phone || "",
     street: initialData?.street || "",
     externalNumber: initialData?.externalNumber || "",
     internalNumber: initialData?.internalNumber || "",
     neighborhood: initialData?.neighborhood || "",
     postalCode: initialData?.postalCode || "",
     city: initialData?.city || "",
-    stateId: initialData?.stateId || undefined,
+    stateId: initialData?.stateId || 0,
+    phone: initialData?.phone || "",
+    email: initialData?.email || "",
     machineCount: initialData?.machineCount || 0,
     employeeCount: initialData?.employeeCount || 0,
     shifts: initialData?.shifts || "",
     achievementDescription: initialData?.achievementDescription || "",
     profile: initialData?.profile || "",
-    ndaFileName: initialData?.ndaFileName || "",
   });
 
   const [statesList, setStatesList] = useState<LocationState[]>([]);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [selectedStateId, setSelectedStateId] = useState<number | undefined>(
-    initialData?.stateId
+  const [previewImage, setPreviewImage] = useState<string | null>(
+    initialData?.companyLogo ? `data:image/png;base64,${initialData.companyLogo}` : null
   );
-  const [isSubmittingState, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    setSelectedStateId(initialData?.stateId);
-  }, [initialData?.stateId]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const ndaInputRef = useRef<HTMLInputElement>(null);
 
+  // Cargar estados
   useEffect(() => {
     const loadStates = async () => {
       try {
@@ -99,94 +85,65 @@ export function CompanyForm({
     loadStates();
   }, []);
 
-  useEffect(() => {
-    // Si hay un logo inicial, establecer la vista previa
-    if (initialData?.companyLogo) {
-      setPreviewUrl(`data:image/png;base64,${initialData.companyLogo}`);
-    }
-  }, [initialData?.companyLogo]);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
-      setFormState((prev) => ({
-        ...prev,
-        companyLogo: file,
-      }));
-    }
-  };
-
-  const handleNdaFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFormState((prev) => ({
-        ...prev,
-        nda: file,
-        ndaFileName: file.name,
-      }));
-    }
-  };
-
   const handleInputChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
-    const { name, value } = e.target;
-    setFormState((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    const { name, value, type } = e.target;
+    if (type === "number") {
+      setFormState((prev) => ({
+        ...prev,
+        [name]: parseInt(value) || 0,
+      }));
+    } else {
+      setFormState((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-
-    try {
-      const formData = new FormData();
-
-      // Agregar los campos que no son archivos
-      Object.entries(formState).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && key !== 'nda' && key !== 'companyLogo' && key !== 'ndaFileName') {
-          formData.set(key, value.toString());
-        }
-      });
-
-      // Manejar el archivo NDA y su nombre
-      if (formState.nda) {
-        const ndaFile = formState.nda;
-        formData.set('nda', ndaFile);
-        formData.set('ndaFileName', ndaFile.name);
-      } else if (initialData?.ndaFileName) {
-        formData.set('ndaFileName', initialData.ndaFileName);
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: 'companyLogo' | 'nda') => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setFormState((prev) => ({ ...prev, [field]: file }));
+      
+      // Si es el logo, crear preview
+      if (field === 'companyLogo') {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setPreviewImage(reader.result as string);
+        };
+        reader.readAsDataURL(file);
       }
-
-      // Manejar el archivo de logo
-      if (formState.companyLogo) {
-        formData.set('companyLogo', formState.companyLogo);
-      } else if (initialData?.companyLogo) {
-        formData.set('companyLogo', initialData.companyLogo);
-      }
-
-      await onSubmit(formData);
-    } catch (error) {
-      console.error("Error al enviar el formulario:", error);
-      toast.error("Error al guardar los datos");
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
   useEffect(() => {
     return () => {
-      if (previewUrl && !previewUrl.startsWith("data:")) {
-        URL.revokeObjectURL(previewUrl);
+      if (previewImage) {
+        URL.revokeObjectURL(previewImage);
       }
     };
-  }, [previewUrl]);
+  }, [previewImage]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const formData = new FormData();
+    
+    Object.entries(formState).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        if (key === "companyLogo" || key === "nda") {
+          if (value instanceof File) {
+            formData.append(key, value);
+          }
+        } else {
+          formData.append(key, String(value));
+        }
+      }
+    });
+
+    await onSubmit(formData);
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -194,44 +151,47 @@ export function CompanyForm({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Columna izquierda: Logo y correo */}
         <div className="space-y-4">
-          <div className="flex justify-center">
-            <div className="w-48 h-48 border rounded-lg overflow-hidden bg-gray-50 relative flex flex-col items-center justify-center cursor-pointer group">
-              {previewUrl || initialData?.companyLogo ? (
-                <>
-                  <div className="relative w-full h-full">
-                    <Image
-                      src={
-                        previewUrl ||
-                        `data:image/png;base64,${initialData?.companyLogo}`
-                      }
-                      alt="Logo Preview"
-                      fill
-                      className="object-contain p-2"
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          <div className="space-y-2">
+            <Label>Logo de la empresa</Label>
+            <div className="flex flex-col items-center gap-4">
+              <div className="relative h-32 w-32">
+                {previewImage ? (
+                  <div className="relative group">
+                    <img
+                      src={previewImage}
+                      alt="Logo preview"
+                      className="rounded-full object-cover w-32 h-32"
                     />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="text-white hover:text-white"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        Examinar
+                      </Button>
+                    </div>
                   </div>
-                  <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-2 translate-y-full transition-transform group-hover:translate-y-0">
-                    <FileInput
-                      id="companyLogo"
-                      name="companyLogo"
-                      accept="image/*"
-                      onChange={handleFileChange}
-                      className="text-white text-sm w-full"
-                    />
-                  </div>
-                </>
-              ) : (
-                <div className="flex flex-col items-center justify-center space-y-2 p-4 w-full">
-                  <div className="text-gray-400 text-sm">Sin logo</div>
-                  <FileInput
-                    id="companyLogo"
-                    name="companyLogo"
-                    accept="image/*"
-                    onChange={handleFileChange}
-                    className="text-sm w-full text-center"
-                  />
-                </div>
-              )}
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-32 h-32 rounded-full"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    Subir Logo
+                  </Button>
+                )}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleFileChange(e, 'companyLogo')}
+                className="hidden"
+              />
             </div>
           </div>
 
@@ -241,7 +201,7 @@ export function CompanyForm({
               id="email"
               name="email"
               type="email"
-              value={formState.email}
+              value={formState.email || ""}
               onChange={handleInputChange}
               required
             />
@@ -255,7 +215,7 @@ export function CompanyForm({
             <Input
               id="companyName"
               name="companyName"
-              value={formState.companyName}
+              value={formState.companyName || ""}
               onChange={handleInputChange}
               required
             />
@@ -266,7 +226,7 @@ export function CompanyForm({
             <Input
               id="contactName"
               name="contactName"
-              value={formState.contactName}
+              value={formState.contactName || ""}
               onChange={handleInputChange}
               required
             />
@@ -277,7 +237,7 @@ export function CompanyForm({
             <Input
               id="phone"
               name="phone"
-              value={formState.phone}
+              value={formState.phone || ""}
               onChange={handleInputChange}
               required
             />
@@ -292,7 +252,7 @@ export function CompanyForm({
           <Input
             id="street"
             name="street"
-            value={formState.street}
+            value={formState.street || ""}
             onChange={handleInputChange}
             required
           />
@@ -303,7 +263,7 @@ export function CompanyForm({
           <Input
             id="externalNumber"
             name="externalNumber"
-            value={formState.externalNumber}
+            value={formState.externalNumber || ""}
             onChange={handleInputChange}
             required
           />
@@ -314,7 +274,7 @@ export function CompanyForm({
           <Input
             id="internalNumber"
             name="internalNumber"
-            value={formState.internalNumber}
+            value={formState.internalNumber || ""}
             onChange={handleInputChange}
           />
         </div>
@@ -324,7 +284,7 @@ export function CompanyForm({
           <Input
             id="neighborhood"
             name="neighborhood"
-            value={formState.neighborhood}
+            value={formState.neighborhood || ""}
             onChange={handleInputChange}
             required
           />
@@ -335,7 +295,7 @@ export function CompanyForm({
           <Input
             id="postalCode"
             name="postalCode"
-            value={formState.postalCode}
+            value={formState.postalCode || ""}
             onChange={handleInputChange}
             required
           />
@@ -346,7 +306,7 @@ export function CompanyForm({
           <Input
             id="city"
             name="city"
-            value={formState.city}
+            value={formState.city || ""}
             onChange={handleInputChange}
             required
           />
@@ -378,7 +338,7 @@ export function CompanyForm({
             name="machineCount"
             type="number"
             min="0"
-            value={formState.machineCount}
+            value={formState.machineCount || 0}
             onChange={handleInputChange}
             required
           />
@@ -391,7 +351,7 @@ export function CompanyForm({
             name="employeeCount"
             type="number"
             min="0"
-            value={formState.employeeCount}
+            value={formState.employeeCount || 0}
             onChange={handleInputChange}
             required
           />
@@ -402,7 +362,7 @@ export function CompanyForm({
           <Input
             id="shifts"
             name="shifts"
-            value={formState.shifts}
+            value={formState.shifts || ""}
             onChange={handleInputChange}
           />
         </div>
@@ -427,15 +387,17 @@ export function CompanyForm({
                 </Button>
               </div>
             )}
-            <FileInput
+            <input
               id="nda"
               name="nda"
               accept=".pdf"
-              onChange={handleNdaFileChange}
+              onChange={(e) => handleFileChange(e, "nda")}
+              className="text-sm w-full"
+              type="file"
             />
-            {formState.ndaFileName && !initialData?.ndaFileName && (
+            {formState.nda && (
               <p className="text-sm text-gray-500">
-                Archivo seleccionado: {formState.ndaFileName}
+                Archivo seleccionado: {formState.nda.name}
               </p>
             )}
           </div>
@@ -443,38 +405,42 @@ export function CompanyForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="achievementDescription">Descripción de Logros</Label>
-        <Textarea
+        <Label htmlFor="achievementDescription" className="block">Logros</Label>
+        <textarea
           id="achievementDescription"
           name="achievementDescription"
-          value={formState.achievementDescription}
+          value={formState.achievementDescription || ""}
           onChange={handleInputChange}
-          className="min-h-[100px]"
+          rows={4}
+          className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="profile">Perfil</Label>
-        <Textarea
+        <Label htmlFor="profile" className="block">Semblanza</Label>
+        <textarea
           id="profile"
           name="profile"
-          value={formState.profile}
+          value={formState.profile || ""}
           onChange={handleInputChange}
-          className="min-h-[100px]"
+          rows={4}
+          className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         />
       </div>
 
       <div className="flex justify-end gap-4">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => console.log("Cancelar")}
-          disabled={isSubmittingState}
-        >
-          Cancelar
-        </Button>
-        <Button type="submit" disabled={isSubmittingState}>
-          {isSubmittingState ? (
+        {onCancel && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            disabled={isSubmitting}
+          >
+            Cancelar
+          </Button>
+        )}
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Guardando

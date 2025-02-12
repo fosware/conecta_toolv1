@@ -26,13 +26,19 @@ export async function seedUsers() {
 
   // Admin
   await prisma.user.upsert({
-    where: { email: "admin@example.com" },
+    where: {
+      email_isDeleted: {
+        email: "admin@example.com",
+        isDeleted: false
+      }
+    },
     update: {},
     create: {
       email: "admin@example.com",
       password: hashedAdminPassword,
       username: "admin",
       roleId: adminRole.id,
+      isDeleted: false,
       profile: {
         create: {
           name: "Admin",
@@ -46,13 +52,19 @@ export async function seedUsers() {
 
   // Staff
   await prisma.user.upsert({
-    where: { email: "staff@example.com" },
+    where: {
+      email_isDeleted: {
+        email: "staff@example.com",
+        isDeleted: false
+      }
+    },
     update: {},
     create: {
       email: "staff@example.com",
       password: hashedStaffPassword,
       username: "staff",
       roleId: staffRole.id,
+      isDeleted: false,
       profile: {
         create: {
           name: "Staff",
@@ -66,13 +78,19 @@ export async function seedUsers() {
 
   // Cliente
   await prisma.user.upsert({
-    where: { email: "user@example.com" },
+    where: {
+      email_isDeleted: {
+        email: "user@example.com",
+        isDeleted: false
+      }
+    },
     update: {},
     create: {
       email: "user@example.com",
       password: hashedUserPassword,
       username: "client",
       roleId: clientRole.id,
+      isDeleted: false,
       profile: {
         create: {
           name: "Cliente",

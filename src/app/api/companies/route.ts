@@ -6,52 +6,104 @@ import { Prisma } from "@prisma/client";
 
 export async function GET(request: Request) {
   try {
+    const userId = await getUserFromToken();
+    if (!userId) {
+      return NextResponse.json(
+        { error: "No autorizado" },
+        { status: 401 }
+      );
+    }
+
+    // Obtener el usuario con su rol y companyUser
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        role: true,
+        CompanyUser: true
+      }
+    });
+
+    if (!user || !user.role) {
+      return NextResponse.json(
+        { error: "Usuario no encontrado o sin rol asignado" },
+        { status: 404 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const showActive = searchParams.get("showActive") === "true";
     const search = searchParams.get("search") || "";
 
-    const companies = await prisma.company.findMany({
-      where: {
-        isDeleted: false,
-        ...(showActive && { isActive: true }),
-        ...(search && {
-          OR: [
-            { companyName: { contains: search, mode: 'insensitive' } },
-            { contactName: { contains: search, mode: 'insensitive' } },
-            { email: { contains: search, mode: 'insensitive' } },
-          ],
-        }),
+    const baseWhere: Prisma.CompanyWhereInput = {
+      isDeleted: false,
+      ...(showActive && { isActive: true }),
+      ...(search && {
+        OR: [
+          { companyName: { contains: search, mode: Prisma.QueryMode.insensitive } },
+          { contactName: { contains: search, mode: Prisma.QueryMode.insensitive } },
+          { email: { contains: search, mode: Prisma.QueryMode.insensitive } },
+        ],
+      }),
+    };
+
+    const baseSelect = {
+      id: true,
+      companyName: true,
+      contactName: true,
+      street: true,
+      externalNumber: true,
+      internalNumber: true,
+      neighborhood: true,
+      postalCode: true,
+      city: true,
+      phone: true,
+      email: true,
+      machineCount: true,
+      employeeCount: true,
+      shifts: true,
+      locationState: {
+        select: {
+          id: true,
+          name: true
+        }
       },
-      select: {
-        id: true,
-        companyName: true,
-        contactName: true,
-        street: true,
-        externalNumber: true,
-        internalNumber: true,
-        neighborhood: true,
-        postalCode: true,
-        city: true,
-        phone: true,
-        email: true,
-        machineCount: true,
-        employeeCount: true,
-        shifts: true,
-        locationState: {
-          select: {
-            id: true,
-            name: true
-          }
+      companyLogo: true,
+      nda: false,
+      ndaFileName: true,
+      isActive: true,
+      achievementDescription: true,
+      profile: true,
+      userId: true,
+      stateId: true
+    } satisfies Prisma.CompanySelect;
+
+    const userRole = user.role.name.toLowerCase();
+
+    // Si es Staff o Asociado, verificar si tiene empresa asignada
+    if (userRole === 'staff' || userRole === 'asociado') {
+      // Si no tiene empresa asignada, retornar lista vacía
+      if (!user.CompanyUser || user.CompanyUser.length === 0) {
+        return NextResponse.json({ items: [] });
+      }
+
+      // Obtener solo la empresa asignada
+      const assignedCompany = await prisma.company.findFirst({
+        where: {
+          ...baseWhere,
+          id: user.CompanyUser[0].companyId,
         },
-        companyLogo: true,
-        nda: false,
-        ndaFileName: true,
-        isActive: true,
-        achievementDescription: true,
-        profile: true,
-        userId: true,
-        stateId: true
-      },
+        select: baseSelect,
+      });
+
+      return NextResponse.json({ 
+        items: assignedCompany ? [assignedCompany] : [] 
+      });
+    }
+
+    // Si es Admin, obtener todas las empresas
+    const companies = await prisma.company.findMany({
+      where: baseWhere,
+      select: baseSelect,
       orderBy: {
         companyName: "asc",
       },
@@ -70,6 +122,40 @@ export async function GET(request: Request) {
 export async function POST(request: NextRequest) {
   try {
     const userId = await getUserFromToken();
+    if (!userId) {
+      return NextResponse.json(
+        { error: "No autorizado" },
+        { status: 401 }
+      );
+    }
+
+    // Obtener el usuario con su rol
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        role: true,
+        CompanyUser: true
+      }
+    });
+
+    if (!user || !user.role) {
+      return NextResponse.json(
+        { error: "Usuario no encontrado o sin rol asignado" },
+        { status: 404 }
+      );
+    }
+
+    const userRole = user.role.name.toLowerCase();
+    console.log('User Role:', userRole);
+
+    // Si es Asociado, verificar que no tenga ya una empresa
+    if (userRole === 'asociado' && user.CompanyUser && user.CompanyUser.length > 0) {
+      return NextResponse.json(
+        { error: "El usuario ya tiene una empresa asignada" },
+        { status: 400 }
+      );
+    }
+
     const formData = await request.formData();
 
     const logoFile = formData.get("companyLogo") as File | null;
@@ -161,17 +247,45 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const company = await prisma.company.create({
-        data: {
-          ...validatedData,
-          nda: ndaBuffer ? Buffer.from(ndaBuffer) : null,
-          ndaFileName: ndaFileName,
-          companyLogo: companyLogo,
-        },
+      // Crear la empresa usando una transacción para asegurar consistencia
+      const result = await prisma.$transaction(async (tx) => {
+        // 1. Crear la empresa
+        const company = await tx.company.create({
+          data: {
+            ...validatedData,
+            nda: ndaBuffer ? Buffer.from(ndaBuffer) : null,
+            ndaFileName: ndaFileName,
+            companyLogo: companyLogo,
+          },
+        });
+
+        console.log('Company created:', company.id);
+
+        // 2. Si el usuario es Asociado, crear la relación CompanyUser
+        if (userRole === 'asociado') {
+          console.log('Creating CompanyUser relation for Asociado');
+          await tx.companyUser.create({
+            data: {
+              userId: userId,
+              companyId: company.id,
+              roleCompany: 'ADMIN', // Rol dentro de la empresa
+              isActive: true,
+              isDeleted: false
+            },
+          });
+          console.log('CompanyUser relation created');
+        }
+
+        return company;
       });
 
-      return NextResponse.json(company);
+      return NextResponse.json({
+        ...result,
+        message: "Empresa creada exitosamente"
+      });
     } catch (error) {
+      console.error('Detailed error:', error);
+      
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         switch (error.code) {
           case 'P2002': {
@@ -228,14 +342,20 @@ export async function POST(request: NextRequest) {
 
       console.error("Error in POST /api/companies:", error);
       return NextResponse.json(
-        { error: "Error al crear la empresa. Por favor, intenta de nuevo." },
+        { 
+          error: "Hubo un problema al crear la empresa. Por favor, verifica los datos e intenta nuevamente.",
+          details: error instanceof Error ? error.message : undefined
+        },
         { status: 500 }
       );
     }
   } catch (error) {
     console.error("Error in POST /api/companies:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Error al crear la empresa" },
+      { 
+        error: "Hubo un problema al procesar tu solicitud. Por favor, intenta nuevamente.",
+        details: error instanceof Error ? error.message : undefined
+      },
       { status: 500 }
     );
   }

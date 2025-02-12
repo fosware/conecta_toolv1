@@ -1,66 +1,74 @@
 "use client";
 
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Pencil, FileText, Award, Trash2, Users } from "lucide-react";
-import type { Company } from "@/types";
+import { Pencil, Trash2, Users, Award, Medal, Loader2 } from "lucide-react";
+import { Company } from "@prisma/client";
 
 interface CompanyTableProps {
-  data: Company[];
-  loading?: boolean;
+  data: (Company & {
+    locationState?: {
+      id: number;
+      name: string;
+    } | null;
+  })[];
+  loading: boolean;
   onEdit: (item: Company) => void;
-  onDelete: (item: Company) => void;
-  onToggleStatus: (id: number, currentStatus: boolean) => void;
-  onManageCertificates: (item: Company) => void;
-  onManageSpecialties: (item: Company) => void;
-  onManageUsers: (item: Company) => void;
+  onDelete?: (item: Company) => void;
+  onToggleStatus?: (id: number, currentStatus: boolean) => void;
+  onManageCertificates?: (item: Company) => void;
+  onManageSpecialties?: (item: Company) => void;
+  onManageUsers?: (item: Company) => void;
+  isStaff: boolean;
+  isAsociado: boolean;
 }
 
 export function CompanyTable({
   data,
-  loading = false,
+  loading,
   onEdit,
   onDelete,
   onToggleStatus,
   onManageCertificates,
   onManageSpecialties,
   onManageUsers,
+  isStaff,
+  isAsociado,
 }: CompanyTableProps) {
-  if (loading) {
-    return (
-      <div className="w-full h-24 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900" />
-      </div>
-    );
-  }
+  // Determinar si el usuario puede editar y eliminar
+  const canEdit = !isStaff;
+  const canDelete = !isStaff && !isAsociado;
+  const showActiveColumn = !isStaff && !isAsociado;
+  const showAdminActions = !isStaff && !isAsociado;
 
   return (
-    <div className="border rounded-md">
+    <div className="rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Nombre</TableHead>
+            <TableHead>Empresa</TableHead>
             <TableHead>Contacto</TableHead>
             <TableHead>Email</TableHead>
             <TableHead>Teléfono</TableHead>
-            <TableHead>Ciudad</TableHead>
-            <TableHead>Activo</TableHead>
-            <TableHead className="text-center">Acciones</TableHead>
+            <TableHead>Estado</TableHead>
+            {showActiveColumn && <TableHead>Activo</TableHead>}
+            <TableHead className="text-right">Acciones</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data.length === 0 ? (
+          {loading ? (
             <TableRow>
-              <TableCell colSpan={7} className="h-24 text-center">
-                No hay empresas registradas
+              <TableCell colSpan={7} className="text-center">
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                </div>
+              </TableCell>
+            </TableRow>
+          ) : data.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={7} className="text-center">
+                No hay empresas para mostrar
               </TableCell>
             </TableRow>
           ) : (
@@ -70,55 +78,76 @@ export function CompanyTable({
                 <TableCell>{item.contactName}</TableCell>
                 <TableCell>{item.email}</TableCell>
                 <TableCell>{item.phone}</TableCell>
-                <TableCell>{item.city}</TableCell>
                 <TableCell>
-                  <Switch
-                    checked={item.isActive}
-                    onCheckedChange={() => onToggleStatus(item.id, item.isActive)}
-                  />
+                  {item.locationState?.name || "No especificado"}
                 </TableCell>
-                <TableCell>
-                  <div className="flex items-center justify-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => onEdit(item)}
-                      title="Editar"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => onManageCertificates(item)}
-                      title="Certificados"
-                    >
-                      <FileText className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => onManageSpecialties(item)}
-                      title="Especialidades"
-                    >
-                      <Award className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => onManageUsers(item)}
-                      title="Usuarios"
-                    >
-                      <Users className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => onDelete(item)}
-                      title="Eliminar"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                {showActiveColumn && (
+                  <TableCell>
+                    {onToggleStatus && (
+                      <Switch
+                        checked={item.isActive}
+                        onCheckedChange={() => onToggleStatus(item.id, item.isActive)}
+                      />
+                    )}
+                  </TableCell>
+                )}
+                <TableCell className="text-right">
+                  <div className="flex items-center justify-end gap-2">
+                    {canEdit && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onEdit(item)}
+                        title="Editar perfil"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {!isStaff && (
+                      <>
+                        {onManageCertificates && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => onManageCertificates(item)}
+                            title="Certificados"
+                          >
+                            <Award className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {onManageSpecialties && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => onManageSpecialties(item)}
+                            title="Especialidades"
+                          >
+                            <Medal className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {onManageUsers && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => onManageUsers(item)}
+                            title="Usuarios"
+                          >
+                            <Users className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {canDelete && onDelete && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-red-500 hover:text-red-600"
+                            onClick={() => onDelete(item)}
+                            title="Eliminar"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>

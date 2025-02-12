@@ -40,7 +40,14 @@ export async function GET(req: NextRequest) {
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      include: { profile: true, role: { select: { name: true } } },
+      include: { 
+        profile: true, 
+        role: { select: { name: true } },
+        CompanyUser: {
+          where: { isDeleted: false },
+          select: { companyId: true }
+        }
+      },
     });
 
     if (!user) {
@@ -51,17 +58,14 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json({
-      /*
-      profile: user.profile || null,
-      */
       user: {
         email: user.email,
         username: user.username,
         role: user.role?.name || "",
+        CompanyUser: user.CompanyUser || []
       },
       profile: {
         name: user.profile?.name || "",
-
         first_lastname: user.profile?.first_lastname || "",
         second_lastname: user.profile?.second_lastname || "",
         phone: user.profile?.phone || "",
