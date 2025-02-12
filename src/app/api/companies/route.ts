@@ -222,27 +222,14 @@ export async function POST(request: NextRequest) {
           ],
           isDeleted: false,
         },
-        select: {
-          companyName: true,
-          email: true,
-        }
       });
 
       if (existingCompany) {
-        const isDuplicateEmail = existingCompany.email.toLowerCase() === validatedData.email.toLowerCase();
-        const isDuplicateName = existingCompany.companyName.toLowerCase() === validatedData.companyName.toLowerCase();
-        
-        let errorMessage = "Ya existe una empresa con ";
-        if (isDuplicateEmail && isDuplicateName) {
-          errorMessage += "este nombre y correo electrónico";
-        } else if (isDuplicateEmail) {
-          errorMessage += "este correo electrónico";
-        } else {
-          errorMessage += "este nombre";
-        }
-        
         return NextResponse.json(
-          { error: errorMessage },
+          { 
+            error: "Ya existe una empresa con ese nombre o correo electrónico",
+            type: "DUPLICATE_ENTRY"
+          },
           { status: 400 }
         );
       }
@@ -284,68 +271,30 @@ export async function POST(request: NextRequest) {
         message: "Empresa creada exitosamente"
       });
     } catch (error) {
-      console.error('Detailed error:', error);
-      
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        switch (error.code) {
-          case 'P2002': {
-            const field = error.meta?.target as string[];
-            const fieldName = {
-              'email': 'correo electrónico',
-              'companyName': 'nombre de empresa'
-            }[field[0]] || field[0];
-            
-            return NextResponse.json(
-              { error: `Ya existe una empresa con este ${fieldName}` },
-              { status: 400 }
-            );
-          }
-          case 'P2003':
-            return NextResponse.json(
-              { error: "El estado seleccionado no es válido" },
-              { status: 400 }
-            );
-          case 'P2025':
-            return NextResponse.json(
-              { error: "No se encontró el registro relacionado" },
-              { status: 400 }
-            );
-          default:
-            console.error("Prisma error:", error);
-            return NextResponse.json(
-              { error: "Error al procesar la solicitud. Por favor, intenta de nuevo." },
-              { status: 500 }
-            );
-        }
-      }
-      
-      if (error instanceof Error) {
-        try {
-          const zodError = JSON.parse(error.message);
-          return NextResponse.json(
-            { 
-              error: "Error de validación", 
-              details: zodError.map((err: any) => ({
-                field: err.path.join('.'),
-                message: err.message
-              }))
-            }, 
-            { status: 400 }
-          );
-        } catch {
-          return NextResponse.json(
-            { error: error.message },
-            { status: 400 }
-          );
-        }
+        return NextResponse.json(
+          { error: "Error al crear la empresa en la base de datos" },
+          { status: 500 }
+        );
       }
 
-      console.error("Error in POST /api/companies:", error);
+      // Error de validación de Zod
+      if (error.name === "ZodError") {
+        return NextResponse.json(
+          {
+            error: "Error de validación",
+            type: "VALIDATION_ERROR",
+            fields: error.issues.map((issue) => ({
+              field: issue.path[0],
+              message: issue.message
+            }))
+          },
+          { status: 400 }
+        );
+      }
+
       return NextResponse.json(
-        { 
-          error: "Hubo un problema al crear la empresa. Por favor, verifica los datos e intenta nuevamente.",
-          details: error instanceof Error ? error.message : undefined
-        },
+        { error: "Error interno del servidor" },
         { status: 500 }
       );
     }

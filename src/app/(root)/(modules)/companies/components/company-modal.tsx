@@ -2,6 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { CompanyForm } from "./company-form";
 import { Company } from "@prisma/client";
 import { toast } from "sonner";
+import { useState, useEffect } from "react";
 
 interface CompanyModalProps {
   open: boolean;
@@ -16,6 +17,8 @@ export function CompanyModal({
   item,
   onSuccess,
 }: CompanyModalProps) {
+  const [validationErrors, setValidationErrors] = useState<{ field: string; message: string }[]>([]);
+
   const handleSubmit = async (formData: FormData) => {
     try {
       const method = item ? "PUT" : "POST";
@@ -29,10 +32,15 @@ export function CompanyModal({
       const data = await response.json();
 
       if (!response.ok) {
+        if (data.type === "VALIDATION_ERROR") {
+          setValidationErrors(data.fields);
+          return;
+        }
         throw new Error(data.error || "Error al guardar la empresa");
       }
 
       toast.success(item ? "Empresa actualizada exitosamente" : "Empresa creada exitosamente");
+      setValidationErrors([]);
       onSuccess();
       onOpenChange(false);
     } catch (error) {
@@ -40,6 +48,12 @@ export function CompanyModal({
       toast.error(error instanceof Error ? error.message : "Error al guardar la empresa");
     }
   };
+
+  useEffect(() => {
+    if (!open) {
+      setValidationErrors([]);
+    }
+  }, [open]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -52,6 +66,7 @@ export function CompanyModal({
         <CompanyForm
           initialData={item || undefined}
           onSubmit={handleSubmit}
+          validationErrors={validationErrors}
           onCancel={() => onOpenChange(false)}
         />
       </DialogContent>

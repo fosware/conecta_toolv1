@@ -103,50 +103,46 @@ export function CompanyTable({
                         <Pencil className="h-4 w-4" />
                       </Button>
                     )}
-                    {!isStaff && (
-                      <>
-                        {onManageCertificates && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => onManageCertificates(item)}
-                            title="Certificados"
-                          >
-                            <Award className="h-4 w-4" />
-                          </Button>
-                        )}
-                        {onManageSpecialties && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => onManageSpecialties(item)}
-                            title="Especialidades"
-                          >
-                            <Medal className="h-4 w-4" />
-                          </Button>
-                        )}
-                        {onManageUsers && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => onManageUsers(item)}
-                            title="Usuarios"
-                          >
-                            <Users className="h-4 w-4" />
-                          </Button>
-                        )}
-                        {canDelete && onDelete && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-red-500 hover:text-red-600"
-                            onClick={() => onDelete(item)}
-                            title="Eliminar"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </>
+                    {onManageCertificates && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onManageCertificates(item)}
+                        title="Certificados"
+                      >
+                        <Award className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {onManageSpecialties && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onManageSpecialties(item)}
+                        title="Especialidades"
+                      >
+                        <Medal className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {onManageUsers && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onManageUsers(item)}
+                        title="Usuarios"
+                      >
+                        <Users className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {canDelete && onDelete && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-red-500 hover:text-red-600"
+                        onClick={() => onDelete(item)}
+                        title="Eliminar"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     )}
                   </div>
                 </TableCell>

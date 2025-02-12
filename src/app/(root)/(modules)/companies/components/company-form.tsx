@@ -20,6 +20,7 @@ interface CompanyFormProps {
   onCancel?: () => void;
   initialData?: Partial<Company>;
   isSubmitting?: boolean;
+  validationErrors?: { field: string; message: string }[];
 }
 
 interface CompanyFormData extends Omit<Company, 'id' | 'createdAt' | 'updatedAt' | 'dateDeleted'> {
@@ -30,6 +31,7 @@ export function CompanyForm({
   onCancel,
   initialData,
   isSubmitting = false,
+  validationErrors = [],
 }: CompanyFormProps) {
   const { refresh: refreshUserRole } = useUserRole();
   const [formState, setFormState] = useState<Partial<CompanyFormData> & {
@@ -205,6 +207,11 @@ export function CompanyForm({
               onChange={handleInputChange}
               required
             />
+            {validationErrors.find(err => err.field === 'email') && (
+              <p className="text-sm text-red-500">
+                {validationErrors.find(err => err.field === 'email')?.message}
+              </p>
+            )}
           </div>
         </div>
 
@@ -219,6 +226,11 @@ export function CompanyForm({
               onChange={handleInputChange}
               required
             />
+            {validationErrors.find(err => err.field === 'companyName') && (
+              <p className="text-sm text-red-500">
+                {validationErrors.find(err => err.field === 'companyName')?.message}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -230,6 +242,11 @@ export function CompanyForm({
               onChange={handleInputChange}
               required
             />
+            {validationErrors.find(err => err.field === 'contactName') && (
+              <p className="text-sm text-red-500">
+                {validationErrors.find(err => err.field === 'contactName')?.message}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -241,6 +258,11 @@ export function CompanyForm({
               onChange={handleInputChange}
               required
             />
+            {validationErrors.find(err => err.field === 'phone') && (
+              <p className="text-sm text-red-500">
+                {validationErrors.find(err => err.field === 'phone')?.message}
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -256,6 +278,11 @@ export function CompanyForm({
             onChange={handleInputChange}
             required
           />
+          {validationErrors.find(err => err.field === 'street') && (
+            <p className="text-sm text-red-500">
+              {validationErrors.find(err => err.field === 'street')?.message}
+            </p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -267,6 +294,11 @@ export function CompanyForm({
             onChange={handleInputChange}
             required
           />
+          {validationErrors.find(err => err.field === 'externalNumber') && (
+            <p className="text-sm text-red-500">
+              {validationErrors.find(err => err.field === 'externalNumber')?.message}
+            </p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -277,6 +309,11 @@ export function CompanyForm({
             value={formState.internalNumber || ""}
             onChange={handleInputChange}
           />
+          {validationErrors.find(err => err.field === 'internalNumber') && (
+            <p className="text-sm text-red-500">
+              {validationErrors.find(err => err.field === 'internalNumber')?.message}
+            </p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -288,6 +325,11 @@ export function CompanyForm({
             onChange={handleInputChange}
             required
           />
+          {validationErrors.find(err => err.field === 'neighborhood') && (
+            <p className="text-sm text-red-500">
+              {validationErrors.find(err => err.field === 'neighborhood')?.message}
+            </p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -299,6 +341,11 @@ export function CompanyForm({
             onChange={handleInputChange}
             required
           />
+          {validationErrors.find(err => err.field === 'postalCode') && (
+            <p className="text-sm text-red-500">
+              {validationErrors.find(err => err.field === 'postalCode')?.message}
+            </p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -310,6 +357,11 @@ export function CompanyForm({
             onChange={handleInputChange}
             required
           />
+          {validationErrors.find(err => err.field === 'city') && (
+            <p className="text-sm text-red-500">
+              {validationErrors.find(err => err.field === 'city')?.message}
+            </p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -319,7 +371,7 @@ export function CompanyForm({
             name="stateId"
             value={formState.stateId?.toString() || ""}
             onChange={handleInputChange}
-            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             required
           >
             <option value="">Seleccionar estado</option>
@@ -329,6 +381,11 @@ export function CompanyForm({
               </option>
             ))}
           </select>
+          {validationErrors.find(err => err.field === 'stateId') && (
+            <p className="text-sm text-red-500">
+              {validationErrors.find(err => err.field === 'stateId')?.message}
+            </p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -342,6 +399,11 @@ export function CompanyForm({
             onChange={handleInputChange}
             required
           />
+          {validationErrors.find(err => err.field === 'machineCount') && (
+            <p className="text-sm text-red-500">
+              {validationErrors.find(err => err.field === 'machineCount')?.message}
+            </p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -355,6 +417,11 @@ export function CompanyForm({
             onChange={handleInputChange}
             required
           />
+          {validationErrors.find(err => err.field === 'employeeCount') && (
+            <p className="text-sm text-red-500">
+              {validationErrors.find(err => err.field === 'employeeCount')?.message}
+            </p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -365,6 +432,11 @@ export function CompanyForm({
             value={formState.shifts || ""}
             onChange={handleInputChange}
           />
+          {validationErrors.find(err => err.field === 'shifts') && (
+            <p className="text-sm text-red-500">
+              {validationErrors.find(err => err.field === 'shifts')?.message}
+            </p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -401,6 +473,11 @@ export function CompanyForm({
               </p>
             )}
           </div>
+          {validationErrors.find(err => err.field === 'nda') && (
+            <p className="text-sm text-red-500">
+              {validationErrors.find(err => err.field === 'nda')?.message}
+            </p>
+          )}
         </div>
       </div>
 
@@ -414,6 +491,11 @@ export function CompanyForm({
           rows={4}
           className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         />
+        {validationErrors.find(err => err.field === 'achievementDescription') && (
+          <p className="text-sm text-red-500">
+            {validationErrors.find(err => err.field === 'achievementDescription')?.message}
+          </p>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -426,6 +508,11 @@ export function CompanyForm({
           rows={4}
           className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         />
+        {validationErrors.find(err => err.field === 'profile') && (
+          <p className="text-sm text-red-500">
+            {validationErrors.find(err => err.field === 'profile')?.message}
+          </p>
+        )}
       </div>
 
       <div className="flex justify-end gap-4">
