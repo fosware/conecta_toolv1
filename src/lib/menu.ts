@@ -13,12 +13,6 @@ export interface MenuItem {
 export const menuItems: MenuItem[] = [
   { name: "Proyectos", path: "/proyectos", icon: "/icons/folder.svg" },
   { name: "Asociados", path: "/companies", icon: "/icons/global-partner.svg" },
-  { name: "Clientes", path: "/clientes", icon: "/icons/user-circle.svg" },
-  {
-    name: "Certificaciones",
-    path: "/certificaciones",
-    icon: "/icons/clipboard-document-check.svg",
-  },
   {
     name: "Cat Especialidades",
     path: "/cat_especialidades",
