@@ -299,10 +299,7 @@ const UsuariosPage = () => {
                       const res = await fetch(
                         `/usuarios/api/${usuario.id}/delete`,
                         {
-                          method: "PATCH",
-                          headers: {
-                            "Content-Type": "application/json",
-                          },
+                          method: "DELETE",
                         }
                       );
 

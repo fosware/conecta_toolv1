@@ -7,9 +7,13 @@ export async function DELETE(
   req: Request,
   { params }: { params: { id: string } }
 ) {
-  const { id } = await params;
   try {
-    const user = await prisma.user.findUnique({ where: { id: parseInt(id) } });
+    const user = await prisma.user.findUnique({ 
+      where: { 
+        id: parseInt(params.id),
+        isDeleted: false
+      } 
+    });
 
     if (!user) {
       return NextResponse.json(
@@ -19,11 +23,18 @@ export async function DELETE(
     }
 
     await prisma.user.update({
-      where: { id: parseInt(id) },
-      data: { isDeleted: true, dateDeleted: new Date() },
+      where: { id: parseInt(params.id) },
+      data: { 
+        isDeleted: true, 
+        dateDeleted: new Date(),
+        isActive: false
+      }
     });
 
-    return NextResponse.json({ message: "Usuario eliminado" });
+    return NextResponse.json(
+      { message: "Usuario eliminado exitosamente" },
+      { status: 200 }
+    );
   } catch (error) {
     console.error("Error al eliminar usuario:", error);
     return NextResponse.json(
