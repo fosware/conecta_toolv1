@@ -214,7 +214,9 @@ model CompanyCertifications {
   certificationId     Int
   certificateFile     Bytes?
   certificateFileName String?
-  expirationDate      DateTime       @db.Date
+  expirationDate      DateTime?      @db.Date
+  isCommitment        Boolean        @default(false)
+  commitmentDate      DateTime?      @db.Date
   isActive            Boolean        @default(true)
   isDeleted           Boolean        @default(false)
   dateDeleted         DateTime?

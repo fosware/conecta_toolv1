@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -51,7 +52,9 @@ type CompanyCertificate = {
   id: number;
   certification: Certification;
   certificateFileName: string | null;
-  expirationDate: Date;
+  expirationDate: Date | null;
+  isCommitment: boolean;
+  commitmentDate: Date | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -71,6 +74,8 @@ export function CertificatesModal({
     certificationId: "",
     certificateFile: null as File | null,
     expirationDate: "",
+    isCommitment: false,
+    commitmentDate: "",
   });
 
   // Cargar el catálogo de certificaciones
@@ -125,22 +130,37 @@ export function CertificatesModal({
         return;
       }
 
-      if (!newCertificate.expirationDate) {
-        toast.error("La fecha de vencimiento es requerida");
-        return;
-      }
+      if (newCertificate.isCommitment) {
+        if (!newCertificate.commitmentDate) {
+          toast.error("La fecha de compromiso es requerida");
+          return;
+        }
+      } else {
+        if (!newCertificate.expirationDate) {
+          toast.error("La fecha de vencimiento es requerida");
+          return;
+        }
 
-      if (!newCertificate.certificateFile) {
-        toast.error("El archivo del certificado es requerido");
-        return;
+        if (!newCertificate.certificateFile) {
+          toast.error("El archivo del certificado es requerido");
+          return;
+        }
       }
 
       setSubmitting(true);
 
       const formData = new FormData();
       formData.append("certificationId", newCertificate.certificationId);
-      formData.append("expirationDate", newCertificate.expirationDate);
-      formData.append("certificateFile", newCertificate.certificateFile);
+      formData.append("isCommitment", newCertificate.isCommitment.toString());
+      
+      if (newCertificate.isCommitment) {
+        formData.append("commitmentDate", newCertificate.commitmentDate);
+      } else {
+        formData.append("expirationDate", newCertificate.expirationDate);
+        if (newCertificate.certificateFile) {
+          formData.append("certificateFile", newCertificate.certificateFile);
+        }
+      }
 
       const response = await fetch(`/api/companies/${companyId}/certificates`, {
         method: "POST",
@@ -160,6 +180,8 @@ export function CertificatesModal({
         certificationId: "",
         certificateFile: null,
         expirationDate: "",
+        isCommitment: false,
+        commitmentDate: "",
       });
       loadCertificates();
     } catch (error) {
@@ -255,7 +277,8 @@ export function CertificatesModal({
 
           <div className="space-y-4">
             {/* Formulario para agregar certificado */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="space-y-4">
+              {/* Primera fila: Certificación */}
               <div className="space-y-2">
                 <Label>Certificación</Label>
                 <Select
@@ -277,45 +300,99 @@ export function CertificatesModal({
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label>Fecha de Vencimiento</Label>
-                <Input
-                  type="date"
-                  value={newCertificate.expirationDate}
-                  onChange={(e) =>
+              {/* Segunda fila: Checkbox de compromiso */}
+              <div className="flex items-center space-x-2 py-2">
+                <Checkbox
+                  id="isCommitment"
+                  checked={newCertificate.isCommitment}
+                  onCheckedChange={(checked) =>
                     setNewCertificate((prev) => ({
                       ...prev,
-                      expirationDate: e.target.value,
+                      isCommitment: checked === true,
+                      // Limpiar campos no relevantes según el tipo
+                      certificateFile: checked === true ? null : prev.certificateFile,
+                      expirationDate: checked === true ? "" : prev.expirationDate,
+                      commitmentDate: checked === true ? prev.commitmentDate : "",
                     }))
                   }
-                  className="w-full"
                 />
+                <label
+                  htmlFor="isCommitment"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Es un compromiso de certificación
+                </label>
               </div>
 
-              <div className="space-y-2">
-                <Label>Archivo de Certificado</Label>
-                <Input
-                  type="file"
-                  onChange={(e) =>
-                    setNewCertificate((prev) => ({
-                      ...prev,
-                      certificateFile: e.target.files?.[0] || null,
-                    }))
-                  }
-                  accept=".pdf,.doc,.docx"
-                  className="w-full"
-                />
+              {/* Tercera fila: Campos condicionales */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border rounded-lg p-4 bg-muted/30">
+                {newCertificate.isCommitment ? (
+                  /* Si es compromiso */
+                  <div className="space-y-2">
+                    <Label>Fecha de Compromiso</Label>
+                    <Input
+                      type="date"
+                      value={newCertificate.commitmentDate}
+                      onChange={(e) =>
+                        setNewCertificate((prev) => ({
+                          ...prev,
+                          commitmentDate: e.target.value,
+                        }))
+                      }
+                      className="w-full"
+                    />
+                  </div>
+                ) : (
+                  /* Si no es compromiso */
+                  <>
+                    <div className="space-y-2">
+                      <Label>Fecha de Vencimiento</Label>
+                      <Input
+                        type="date"
+                        value={newCertificate.expirationDate}
+                        onChange={(e) =>
+                          setNewCertificate((prev) => ({
+                            ...prev,
+                            expirationDate: e.target.value,
+                          }))
+                        }
+                        className="w-full"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Archivo de Certificado</Label>
+                      <Input
+                        type="file"
+                        onChange={(e) =>
+                          setNewCertificate((prev) => ({
+                            ...prev,
+                            certificateFile: e.target.files?.[0] || null,
+                          }))
+                        }
+                        className="w-full"
+                      />
+                    </div>
+                  </>
+                )}
               </div>
-            </div>
 
-            <div className="flex justify-end mt-4">
-              <Button
-                onClick={handleAddCertificate}
-                disabled={submitting}
-              >
-                {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Agregar Certificado
-              </Button>
+              {/* Botón de agregar */}
+              <div className="flex justify-end mt-4">
+                <Button
+                  type="button"
+                  onClick={handleAddCertificate}
+                  disabled={submitting}
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Agregando...
+                    </>
+                  ) : (
+                    "Agregar Certificado"
+                  )}
+                </Button>
+              </div>
             </div>
 
             {/* Tabla de certificados */}
@@ -327,20 +404,21 @@ export function CertificatesModal({
                       <TableHead className="whitespace-nowrap">Certificación</TableHead>
                       <TableHead className="whitespace-nowrap">Archivo</TableHead>
                       <TableHead className="whitespace-nowrap">Vence</TableHead>
+                      <TableHead className="whitespace-nowrap">Compromiso</TableHead>
                       <TableHead className="w-20 text-center whitespace-nowrap">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {loading ? (
                       <TableRow>
-                        <TableCell colSpan={4} className="text-center">
+                        <TableCell colSpan={5} className="text-center">
                           <Loader2 className="mx-auto h-6 w-6 animate-spin" />
                         </TableCell>
                       </TableRow>
                     ) : certificates.length === 0 ? (
                       <TableRow>
                         <TableCell
-                          colSpan={4}
+                          colSpan={5}
                           className="h-24 text-center"
                         >
                           No hay certificados registrados
@@ -366,7 +444,10 @@ export function CertificatesModal({
                             )}
                           </TableCell>
                           <TableCell className="whitespace-nowrap">
-                            {new Date(cert.expirationDate).toLocaleDateString()}
+                            {cert.expirationDate ? new Date(cert.expirationDate).toLocaleDateString() : 'N/A'}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            {cert.commitmentDate ? new Date(cert.commitmentDate).toLocaleDateString() : 'N/A'}
                           </TableCell>
                           <TableCell className="text-center">
                             <Button

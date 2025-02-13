@@ -52,6 +52,8 @@ export async function GET(
         },
         certificateFileName: true,
         expirationDate: true,
+        isCommitment: true,
+        commitmentDate: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -79,7 +81,9 @@ export async function POST(
 
     const formData = await request.formData();
     const certificationId = parseInt(formData.get("certificationId") as string);
-    const expirationDate = new Date(formData.get("expirationDate") as string);
+    const isCommitment = formData.get("isCommitment") === "true";
+    const expirationDate = formData.get("expirationDate") as string;
+    const commitmentDate = formData.get("commitmentDate") as string;
     const certificateFile = formData.get("certificateFile") as File;
 
     if (!certificationId || isNaN(certificationId)) {
@@ -89,46 +93,73 @@ export async function POST(
       );
     }
 
-    if (!expirationDate || isNaN(expirationDate.getTime())) {
-      return NextResponse.json(
-        { error: "La fecha de vencimiento es requerida" },
-        { status: 400 }
-      );
+    // Validaciones según si es compromiso o no
+    if (isCommitment) {
+      if (!commitmentDate) {
+        return NextResponse.json(
+          { error: "La fecha de compromiso es requerida" },
+          { status: 400 }
+        );
+      }
+    } else {
+      if (!expirationDate) {
+        return NextResponse.json(
+          { error: "La fecha de vencimiento es requerida" },
+          { status: 400 }
+        );
+      }
+
+      if (!certificateFile) {
+        return NextResponse.json(
+          { error: "El archivo del certificado es requerido" },
+          { status: 400 }
+        );
+      }
     }
 
-    if (!certificateFile) {
-      return NextResponse.json(
-        { error: "El archivo del certificado es requerido" },
-        { status: 400 }
-      );
+    // Convertir fechas
+    let parsedExpirationDate = null;
+    let parsedCommitmentDate = null;
+
+    if (expirationDate) {
+      parsedExpirationDate = new Date(expirationDate);
+      if (isNaN(parsedExpirationDate.getTime())) {
+        return NextResponse.json(
+          { error: "Fecha de vencimiento inválida" },
+          { status: 400 }
+        );
+      }
     }
 
-    // Validar que no exista un certificado activo con la misma fecha de vencimiento
-    const existingCertificate = await prisma.companyCertifications.findFirst({
-      where: {
-        companyId,
-        certificationId,
-        expirationDate,
-        isActive: true,
-        isDeleted: false,
-      },
-    });
-
-    if (existingCertificate) {
-      return NextResponse.json(
-        { error: "Ya existe un certificado activo para esta certificación con la misma fecha de vencimiento" },
-        { status: 400 }
-      );
+    if (commitmentDate) {
+      parsedCommitmentDate = new Date(commitmentDate);
+      if (isNaN(parsedCommitmentDate.getTime())) {
+        return NextResponse.json(
+          { error: "Fecha de compromiso inválida" },
+          { status: 400 }
+        );
+      }
     }
 
-    const fileBuffer = Buffer.from(await certificateFile.arrayBuffer());
+    // Procesar el archivo si existe
+    let certificateBuffer = null;
+    let fileName = null;
+    if (certificateFile && 'arrayBuffer' in certificateFile) {
+      const bytes = await certificateFile.arrayBuffer();
+      certificateBuffer = Buffer.from(bytes);
+      fileName = certificateFile.name;
+    }
+
+    // Crear el certificado
     const certificate = await prisma.companyCertifications.create({
       data: {
         companyId,
         certificationId,
-        expirationDate,
-        certificateFile: fileBuffer,
-        certificateFileName: certificateFile.name,
+        isCommitment,
+        expirationDate: parsedExpirationDate,
+        commitmentDate: parsedCommitmentDate,
+        certificateFile: certificateBuffer,
+        certificateFileName: fileName,
         userId,
       },
     });
