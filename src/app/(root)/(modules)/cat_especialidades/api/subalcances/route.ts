@@ -197,6 +197,7 @@ export async function PUT(req: Request) {
           equals: body.name,
           mode: 'insensitive'
         },
+        scopeId: body.scopeId,
         id: {
           not: body.id
         },
@@ -206,7 +207,7 @@ export async function PUT(req: Request) {
 
     if (existingSubalcance) {
       return NextResponse.json(
-        { error: "Ya existe un subalcance con este nombre" },
+        { error: "Ya existe un subalcance con este nombre en este alcance" },
         { status: 400 }
       );
     }

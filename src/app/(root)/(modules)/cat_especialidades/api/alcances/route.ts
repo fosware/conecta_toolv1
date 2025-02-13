@@ -55,13 +55,16 @@ export async function GET(req: Request) {
     });
   } catch (error) {
     console.error("Error al obtener alcances:", error);
-    return NextResponse.json({
-      items: [],
-      total: 0,
-      totalPages: 1,
-      currentPage: 1,
-      error: "Error al obtener alcances"
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        items: [],
+        total: 0,
+        totalPages: 1,
+        currentPage: 1,
+        error: "Error al obtener alcances",
+      },
+      { status: 500 }
+    );
   }
 }
 
@@ -74,7 +77,10 @@ export async function POST(req: Request) {
     } catch (error) {
       console.error("Error al obtener el userId:", error);
       return NextResponse.json(
-        { error: error instanceof Error ? error.message : "Error de autorización" },
+        {
+          error:
+            error instanceof Error ? error.message : "Error de autorización",
+        },
         { status: 401 }
       );
     }
@@ -95,7 +101,7 @@ export async function POST(req: Request) {
       where: {
         name: {
           equals: body.name,
-          mode: 'insensitive'
+          mode: "insensitive",
         },
         specialtyId: body.specialtyId,
         isDeleted: false,
@@ -116,7 +122,7 @@ export async function POST(req: Request) {
         isDeleted: false,
       },
       orderBy: {
-        num: 'desc',
+        num: "desc",
       },
     });
 
@@ -134,10 +140,7 @@ export async function POST(req: Request) {
       });
     } catch (error) {
       console.error("Error de validación:", error);
-      return NextResponse.json(
-        { error: "Datos inválidos" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
     }
 
     // Crear el alcance
@@ -171,7 +174,10 @@ export async function PUT(req: Request) {
     } catch (error) {
       console.error("Error al obtener el userId:", error);
       return NextResponse.json(
-        { error: error instanceof Error ? error.message : "Error de autorización" },
+        {
+          error:
+            error instanceof Error ? error.message : "Error de autorización",
+        },
         { status: 401 }
       );
     }
@@ -187,15 +193,28 @@ export async function PUT(req: Request) {
       );
     }
 
+    // Obtener el alcance existente primero
+    const currentAlcance = await prisma.scopes.findUnique({
+      where: { id: body.id },
+    });
+
+    if (!currentAlcance) {
+      return NextResponse.json(
+        { error: "Alcance no encontrado" },
+        { status: 404 }
+      );
+    }
+
     // Verificar si ya existe un alcance con el mismo nombre en la misma especialidad
     const existingAlcance = await prisma.scopes.findFirst({
       where: {
         name: {
           equals: body.name,
-          mode: 'insensitive'
+          mode: "insensitive",
         },
+        specialtyId: currentAlcance.specialtyId,
         id: {
-          not: body.id
+          not: body.id,
         },
         isDeleted: false,
       },
@@ -203,7 +222,7 @@ export async function PUT(req: Request) {
 
     if (existingAlcance) {
       return NextResponse.json(
-        { error: "Ya existe un alcance con este nombre" },
+        { error: "Ya existe un alcance con este nombre en esta especialidad" },
         { status: 400 }
       );
     }
@@ -211,20 +230,16 @@ export async function PUT(req: Request) {
     // Validar los datos con el schema
     let validatedData;
     try {
-      const existingAlcance = await prisma.scopes.findUnique({ where: { id: body.id } });
       validatedData = catAlcancesSchema.parse({
         name: body.name,
-        num: existingAlcance?.num || 0,
-        specialtyId: existingAlcance?.specialtyId || 0,
+        num: currentAlcance.num,
+        specialtyId: currentAlcance.specialtyId,
         isActive: true,
         isDeleted: false,
       });
     } catch (error) {
       console.error("Error de validación:", error);
-      return NextResponse.json(
-        { error: "Datos inválidos" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
     }
 
     // Actualizar el alcance
@@ -273,10 +288,7 @@ export async function PATCH(req: Request) {
   } catch (error) {
     console.error("Error al actualizar estado de alcance:", error);
     if (error instanceof Error && error.message === "No autorizado") {
-      return NextResponse.json(
-        { error: "No autorizado" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
     return NextResponse.json(
       { error: "Error al actualizar estado de alcance" },
@@ -294,7 +306,10 @@ export async function DELETE(req: Request) {
     } catch (error) {
       console.error("Error al obtener el userId:", error);
       return NextResponse.json(
-        { error: error instanceof Error ? error.message : "Error de autorización" },
+        {
+          error:
+            error instanceof Error ? error.message : "Error de autorización",
+        },
         { status: 401 }
       );
     }
