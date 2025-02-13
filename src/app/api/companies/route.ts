@@ -158,22 +158,22 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData();
 
-    const logoFile = formData.get("companyLogo") as File | null;
+    const logoFile = formData.get("companyLogo");
     let companyLogo = null;
-    if (logoFile && logoFile instanceof File && logoFile.size > 0) {
+    if (logoFile && typeof logoFile === 'object' && 'arrayBuffer' in logoFile && typeof logoFile.arrayBuffer === 'function') {
       const bytes = await logoFile.arrayBuffer();
       const buffer = Buffer.from(bytes);
       companyLogo = buffer.toString('base64');
     }
 
-    const ndaFile = formData.get("nda") as File | null;
+    const ndaFile = formData.get("nda");
     let ndaBuffer: Uint8Array | null = null;
     let ndaFileName = formData.get("ndaFileName") as string | null;
     
-    if (ndaFile && ndaFile instanceof File && ndaFile.size > 0) {
+    if (ndaFile && typeof ndaFile === 'object' && 'arrayBuffer' in ndaFile && typeof ndaFile.arrayBuffer === 'function') {
       const bytes = await ndaFile.arrayBuffer();
       ndaBuffer = new Uint8Array(bytes);
-      ndaFileName = ndaFile.name;
+      ndaFileName = 'name' in ndaFile ? (ndaFile.name as string) : (formData.get("ndaFileName") as string);
     }
 
     const validationData = {
@@ -270,7 +270,7 @@ export async function POST(request: NextRequest) {
         ...result,
         message: "Empresa creada exitosamente"
       });
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         return NextResponse.json(
           { error: "Error al crear la empresa en la base de datos" },
@@ -279,12 +279,13 @@ export async function POST(request: NextRequest) {
       }
 
       // Error de validación de Zod
-      if (error.name === "ZodError") {
+      if (error && typeof error === 'object' && 'name' in error && error.name === "ZodError") {
+        const zodError = error as { issues: Array<{ path: string[]; message: string }> };
         return NextResponse.json(
           {
             error: "Error de validación",
             type: "VALIDATION_ERROR",
-            fields: error.issues.map((issue) => ({
+            fields: zodError.issues.map((issue) => ({
               field: issue.path[0],
               message: issue.message
             }))
@@ -310,38 +311,37 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function PUT(request: NextRequest) {
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    const formData = await request.formData();
-    const id = parseInt(formData.get("id") as string);
-
-    const existingCompany = await prisma.company.findUnique({
-      where: { id },
-    });
-
-    if (!existingCompany) {
+    const userId = await getUserFromToken();
+    if (!userId) {
       return NextResponse.json(
-        { error: "Empresa no encontrada" },
-        { status: 404 }
+        { error: "No autorizado" },
+        { status: 401 }
       );
     }
 
-    const logoFile = formData.get("companyLogo") as File | null;
+    const formData = await request.formData();
+
+    const logoFile = formData.get("companyLogo");
     let companyLogo = undefined;
-    if (logoFile && logoFile instanceof File) {
+    if (logoFile && typeof logoFile === 'object' && 'arrayBuffer' in logoFile && typeof logoFile.arrayBuffer === 'function') {
       const bytes = await logoFile.arrayBuffer();
       const buffer = Buffer.from(bytes);
       companyLogo = buffer.toString('base64');
     }
 
-    const ndaFile = formData.get("nda") as File | null;
+    const ndaFile = formData.get("nda");
     let ndaBuffer = undefined;
     let ndaFileName = undefined;
     
-    if (ndaFile && ndaFile instanceof File) {
+    if (ndaFile && typeof ndaFile === 'object' && 'arrayBuffer' in ndaFile && typeof ndaFile.arrayBuffer === 'function') {
       const bytes = await ndaFile.arrayBuffer();
       ndaBuffer = new Uint8Array(bytes);
-      ndaFileName = ndaFile.name;
+      ndaFileName = 'name' in ndaFile ? (ndaFile.name as string) : (formData.get("ndaFileName") as string);
     }
 
     const updateData: Prisma.CompanyUpdateInput = {
@@ -353,38 +353,73 @@ export async function PUT(request: NextRequest) {
       neighborhood: formData.get("neighborhood") as string,
       postalCode: formData.get("postalCode") as string,
       city: formData.get("city") as string,
+      stateId: parseInt(formData.get("stateId") as string),
       phone: formData.get("phone") as string,
       email: formData.get("email") as string,
       machineCount: parseInt(formData.get("machineCount") as string) || 0,
       employeeCount: parseInt(formData.get("employeeCount") as string) || 0,
-      shifts: formData.get("shifts") as string || null,
+      shifts: formData.get("shifts") as string || "",
       achievementDescription: formData.get("achievementDescription") as string || null,
       profile: formData.get("profile") as string || null,
       locationState: {
         connect: {
           id: parseInt(formData.get("stateId") as string)
         }
-      }
+      },
+      ...(companyLogo !== undefined && { companyLogo }),
+      ...(ndaBuffer !== undefined && { nda: ndaBuffer }),
+      ...(ndaFileName !== undefined && { ndaFileName }),
     };
 
-    if (companyLogo !== undefined) {
-      updateData.companyLogo = companyLogo;
-    }
-    if (ndaBuffer !== undefined) {
-      updateData.nda = ndaBuffer;
-      updateData.ndaFileName = ndaFileName;
-    }
+    try {
+      const result = await prisma.company.update({
+        where: { id: parseInt(params.id) },
+        data: updateData,
+      });
 
-    const company = await prisma.company.update({
-      where: { id },
-      data: updateData,
-    });
+      return NextResponse.json({
+        ...result,
+        message: "Empresa actualizada exitosamente"
+      });
+    } catch (error: unknown) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') {
+          return NextResponse.json(
+            { error: "Ya existe una empresa con ese nombre o correo electrónico" },
+            { status: 400 }
+          );
+        }
+        return NextResponse.json(
+          { error: "Error al actualizar la empresa en la base de datos" },
+          { status: 500 }
+        );
+      }
 
-    return NextResponse.json({ items: [company] });
-  } catch (error) {
+      // Error de validación de Zod
+      if (error && typeof error === 'object' && 'name' in error && error.name === "ZodError") {
+        const zodError = error as { issues: Array<{ path: string[]; message: string }> };
+        return NextResponse.json(
+          {
+            error: "Error de validación",
+            type: "VALIDATION_ERROR",
+            fields: zodError.issues.map((issue) => ({
+              field: issue.path[0],
+              message: issue.message
+            }))
+          },
+          { status: 400 }
+        );
+      }
+
+      return NextResponse.json(
+        { error: "Error interno del servidor" },
+        { status: 500 }
+      );
+    }
+  } catch (error: unknown) {
     console.error("Error in PUT /api/companies:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Error al actualizar la empresa" },
+      { error: "Error interno del servidor" },
       { status: 500 }
     );
   }
