@@ -6,18 +6,18 @@ export async function GET(request: NextRequest) {
   try {
     const userId = await getUserFromToken();
     const { searchParams } = new URL(request.url);
-    const associateId = parseInt(searchParams.get("associateId") || "");
+    const companyId = parseInt(searchParams.get("associateId") || "");
 
-    if (isNaN(associateId)) {
+    if (isNaN(companyId)) {
       return new NextResponse(
-        JSON.stringify({ error: "ID de asociado inválido" }),
+        JSON.stringify({ error: "ID de empresa inválido" }),
         { status: 400, headers: { "Content-Type": "application/json" } }
       );
     }
 
-    const certificates = await prisma.associateCertifications.findMany({
+    const certificates = await prisma.companyCertifications.findMany({
       where: {
-        associateId,
+        companyId,
         isActive: true,
         isDeleted: false,
       },
@@ -53,15 +53,15 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
 
     // Obtener y validar los campos básicos
-    const associateId = parseInt(formData.get("associateId")?.toString() || "");
+    const companyId = parseInt(formData.get("associateId")?.toString() || "");
     const certificationId = parseInt(formData.get("certificationId")?.toString() || "");
     const expiryDate = formData.get("expiryDate")?.toString();
     const documentFile = formData.get("document");
 
     // Validaciones
-    if (!associateId || isNaN(associateId)) {
+    if (!companyId || isNaN(companyId)) {
       return new NextResponse(
-        JSON.stringify({ error: "ID de asociado inválido" }),
+        JSON.stringify({ error: "ID de empresa inválido" }),
         { status: 400, headers: { "Content-Type": "application/json" } }
       );
     }
@@ -81,10 +81,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Manejar el archivo del certificado
-    let documentBuffer: Buffer | null = null;
+    let fileBuffer: Buffer | null = null;
+    let fileName: string | null = null;
     if (documentFile && documentFile instanceof File) {
       const bytes = await documentFile.arrayBuffer();
-      documentBuffer = Buffer.from(bytes);
+      fileBuffer = Buffer.from(bytes);
+      fileName = documentFile.name;
     } else {
       return new NextResponse(
         JSON.stringify({ error: "El documento PDF es requerido" }),
@@ -92,39 +94,41 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verificar si ya existe un certificado activo para este asociado
-    const existingCertificate = await prisma.associateCertifications.findFirst({
+    // Verificar si ya existe un certificado activo para esta empresa
+    const existingCertificate = await prisma.companyCertifications.findFirst({
       where: {
-        associateId,
+        companyId,
         certificationId,
-        isActive: true,
         isDeleted: false,
       },
     });
 
     if (existingCertificate) {
       return new NextResponse(
-        JSON.stringify({ error: "El asociado ya tiene este certificado activo" }),
+        JSON.stringify({ error: "La empresa ya tiene este certificado activo" }),
         { status: 400, headers: { "Content-Type": "application/json" } }
       );
     }
 
     // Crear el certificado
-    const newCertificate = await prisma.associateCertifications.create({
+    const newCertificate = await prisma.companyCertifications.create({
       data: {
-        associateId,
+        companyId,
         certificationId,
         userId,
-        expiryDate: new Date(expiryDate),
+        expirationDate: new Date(expiryDate),
+        certificateFile: fileBuffer,
+        certificateFileName: fileName,
         isActive: true,
         isDeleted: false,
-        certificationFile: documentBuffer,
       },
       select: {
         id: true,
+        companyId: true,
         certificationId: true,
-        expiryDate: true,
+        expirationDate: true,
         isActive: true,
+        createdAt: true,
         certification: {
           select: {
             name: true,

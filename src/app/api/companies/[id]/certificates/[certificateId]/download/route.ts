@@ -9,10 +9,10 @@ export async function GET(
   try {
     const userId = await getUserFromToken();
     const { id, certificateId } = await params;
-    const associateId = parseInt(id);
+    const companyId = parseInt(id);
     const certId = parseInt(certificateId);
 
-    if (isNaN(associateId) || isNaN(certId)) {
+    if (isNaN(companyId) || isNaN(certId)) {
       return new NextResponse(
         JSON.stringify({ error: "ID inválido" }),
         { status: 400, headers: { "Content-Type": "application/json" } }
@@ -22,12 +22,21 @@ export async function GET(
     // Obtener el certificado
     const certificate = await prisma.companyCertifications.findFirst({
       where: {
-        companyId: associateId,
+        companyId,
         id: certId,
       },
+      select: {
+        id: true,
+        certificateFile: true,
+        certification: {
+          select: {
+            name: true
+          }
+        }
+      }
     });
 
-    if (!certificate || !certificate.certificationFile) {
+    if (!certificate || !certificate.certificateFile) {
       return new NextResponse(
         JSON.stringify({ error: "Certificado no encontrado" }),
         { status: 404, headers: { "Content-Type": "application/json" } }
@@ -37,7 +46,7 @@ export async function GET(
     // Generar un nombre de archivo basado en el nombre de la certificación
     const fileName = `${certificate.certification.name.replace(/\s+/g, '_')}_${certificate.id}.pdf`;
 
-    return new NextResponse(certificate.certificationFile, {
+    return new NextResponse(certificate.certificateFile, {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",

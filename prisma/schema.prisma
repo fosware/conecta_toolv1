@@ -173,6 +173,7 @@ model LocationState {
 model Company {
   id                     Int                     @id @default(autoincrement())
   companyName            String                  @unique
+  comercialName          String                  @unique
   contactName            String
   street                 String
   externalNumber         String
@@ -182,12 +183,14 @@ model Company {
   city                   String
   stateId                Int
   phone                  String
+  website                String?
   email                  String                  @unique
   machineCount           Int
   employeeCount          Int
   shifts                 String?
   achievementDescription String?
   profile                String?
+  shiftsProfileLink      String?
   nda                    Bytes?
   ndaFileName            String?
   companyLogo            String?
@@ -234,23 +237,24 @@ model CompanyCertifications {
 
 // Relación entre empresas y especialidades
 model CompanySpecialties {
-  id          Int         @id @default(autoincrement())
-  companyId   Int
-  specialtyId Int
-  scopeId     Int?
-  subscopeId  Int?
-  materials   String?
-  isActive    Boolean     @default(true)
-  isDeleted   Boolean     @default(false)
-  dateDeleted DateTime?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  userId      Int
-  user        User        @relation(fields: [userId], references: [id])
-  company     Company     @relation(fields: [companyId], references: [id])
-  specialty   Specialties @relation(fields: [specialtyId], references: [id])
-  scope       Scopes?     @relation(fields: [scopeId], references: [id])
-  subscope    Subscopes?  @relation(fields: [subscopeId], references: [id])
+  id              Int         @id @default(autoincrement())
+  companyId       Int
+  specialtyId     Int
+  scopeId         Int?
+  subscopeId      Int?
+  materials       String?
+  machineCapacity String?
+  isActive        Boolean     @default(true)
+  isDeleted       Boolean     @default(false)
+  dateDeleted     DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  userId          Int
+  user            User        @relation(fields: [userId], references: [id])
+  company         Company     @relation(fields: [companyId], references: [id])
+  specialty       Specialties @relation(fields: [specialtyId], references: [id])
+  scope           Scopes?     @relation(fields: [scopeId], references: [id])
+  subscope        Subscopes?  @relation(fields: [subscopeId], references: [id])
 
   @@unique([companyId, specialtyId, scopeId, subscopeId])
   @@index([isDeleted, isActive])

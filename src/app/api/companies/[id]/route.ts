@@ -5,6 +5,7 @@ import { z } from "zod";
 
 const updateCompanySchema = z.object({
   companyName: z.string().optional(),
+  comercialName: z.string().optional(),
   contactName: z.string().optional(),
   street: z.string().optional(),
   externalNumber: z.string().optional(),
@@ -14,6 +15,7 @@ const updateCompanySchema = z.object({
   city: z.string().optional(),
   stateId: z.coerce.number().optional(),
   phone: z.string().optional(),
+  website: z.string().optional(),
   email: z.string().email().optional(),
   machineCount: z.coerce.number().optional(),
   employeeCount: z.coerce.number().optional(),
@@ -22,6 +24,8 @@ const updateCompanySchema = z.object({
   nda: z.instanceof(Buffer).nullable().optional(),
   ndaFileName: z.string().nullable().optional(),
   isActive: z.boolean().optional(),
+  profile: z.string().nullable().optional(),
+  shiftsProfileLink: z.string().nullable().optional(),
 });
 
 // GET: Obtener una empresa por ID
@@ -50,10 +54,10 @@ export async function GET(
         locationState: {
           select: {
             id: true,
-            name: true
-          }
-        }
-      }
+            name: true,
+          },
+        },
+      },
     });
 
     if (!company) {
@@ -93,29 +97,40 @@ export async function PUT(
     const formData = await request.formData();
 
     // Construir objeto de datos
-    const data: Record<string, any> = {};
-    for (const [key, value] of formData.entries()) {
-      if (key === "companyLogo") {
-        if (value instanceof File && value.size > 0) {
-          const buffer = Buffer.from(await value.arrayBuffer());
-          data.companyLogo = buffer.toString('base64');
-        } else if (typeof value === 'string') {
-          // Si el valor es un string, asumimos que es el base64 existente
-          data.companyLogo = value;
-        }
-      } else if (key === "nda" && value instanceof File) {
-        if (value.size > 0) {
-          const buffer = Buffer.from(await value.arrayBuffer());
-          data.nda = buffer;
-          data.ndaFileName = value.name;
-        }
-      } else if (key === "stateId") {
-        data.stateId = value ? parseInt(value.toString()) : null;
-      } else if (key === "machineCount" || key === "employeeCount") {
-        data[key] = value ? parseInt(value.toString()) : 0;
-      } else {
-        data[key] = value;
-      }
+    const data: Record<string, any> = {
+      companyName: formData.get("companyName") as string,
+      comercialName: formData.get("comercialName") as string,
+      contactName: formData.get("contactName") as string,
+      street: formData.get("street") as string,
+      externalNumber: formData.get("externalNumber") as string,
+      internalNumber: formData.get("internalNumber") as string,
+      neighborhood: formData.get("neighborhood") as string,
+      postalCode: formData.get("postalCode") as string,
+      city: formData.get("city") as string,
+      stateId: formData.get("stateId") ? parseInt(formData.get("stateId") as string) : null,
+      phone: formData.get("phone") as string,
+      profile: (formData.get("profile") as string) || null,
+      shiftsProfileLink: (formData.get("shiftsProfileLink") as string) || null,
+      website: (formData.get("website") as string) || null,
+      email: formData.get("email") as string,
+      machineCount: formData.get("machineCount") ? parseInt(formData.get("machineCount") as string) : 0,
+      employeeCount: formData.get("employeeCount") ? parseInt(formData.get("employeeCount") as string) : 0,
+      shifts: formData.get("shifts") as string,
+    };
+
+    // Manejar archivos por separado
+    const companyLogoFile = formData.get("companyLogo") as File | null;
+    const ndaFile = formData.get("nda") as File | null;
+
+    if (companyLogoFile instanceof File && companyLogoFile.size > 0) {
+      data.companyLogo = Buffer.from(await companyLogoFile.arrayBuffer()).toString("base64");
+    } else if (typeof companyLogoFile === "string") {
+      data.companyLogo = companyLogoFile;
+    }
+
+    if (ndaFile instanceof File && ndaFile.size > 0) {
+      data.nda = Buffer.from(await ndaFile.arrayBuffer());
+      data.ndaFileName = ndaFile.name;
     }
 
     // Validar los datos

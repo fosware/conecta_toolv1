@@ -54,7 +54,12 @@ const scopes = [
 export async function seedScopes() {
   for (const scope of scopes) {
     await prisma.scopes.upsert({
-      where: { name: scope.name },
+      where: {
+        unique_name_per_specialty: {
+          name: scope.name,
+          specialtyId: scope.specialtyId
+        }
+      },
       update: {},
       create: {
         name: scope.name,

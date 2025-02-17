@@ -1,6 +1,13 @@
 "use client";
 
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Pencil, Trash2, Users, Award, Medal, Loader2 } from "lucide-react";
@@ -53,7 +60,7 @@ export function CompanyTable({
             <TableHead>Teléfono</TableHead>
             <TableHead>Estado</TableHead>
             {showActiveColumn && <TableHead>Activo</TableHead>}
-            <TableHead className="text-right">Acciones</TableHead>
+            <TableHead className="text-center">Acciones</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -74,7 +81,7 @@ export function CompanyTable({
           ) : (
             data.map((item) => (
               <TableRow key={item.id}>
-                <TableCell>{item.companyName}</TableCell>
+                <TableCell>{item.comercialName}</TableCell>
                 <TableCell>{item.contactName}</TableCell>
                 <TableCell>{item.email}</TableCell>
                 <TableCell>{item.phone}</TableCell>
@@ -86,7 +93,9 @@ export function CompanyTable({
                     {onToggleStatus && (
                       <Switch
                         checked={item.isActive}
-                        onCheckedChange={() => onToggleStatus(item.id, item.isActive)}
+                        onCheckedChange={() =>
+                          onToggleStatus(item.id, item.isActive)
+                        }
                       />
                     )}
                   </TableCell>

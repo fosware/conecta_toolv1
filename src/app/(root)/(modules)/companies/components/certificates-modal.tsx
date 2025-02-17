@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { getToken } from "@/lib/auth";
-import { FileText, Loader2, Trash2 } from "lucide-react";
+import { FileText, Loader2, Trash2, Pencil } from "lucide-react";
 
 interface CertificatesModalProps {
   open: boolean;
@@ -70,6 +70,7 @@ export function CertificatesModal({
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [certificateToDelete, setCertificateToDelete] = useState<CompanyCertificate | null>(null);
+  const [editingCertificate, setEditingCertificate] = useState<CompanyCertificate | null>(null);
   const [newCertificate, setNewCertificate] = useState({
     certificationId: "",
     certificateFile: null as File | null,
@@ -114,6 +115,12 @@ export function CertificatesModal({
       }
 
       const data = await response.json();
+      console.log('Certificados cargados:', data.items.map((cert: CompanyCertificate) => ({
+        id: cert.id,
+        certification: cert.certification.name,
+        expirationDate: cert.expirationDate,
+        commitmentDate: cert.commitmentDate
+      })));
       setCertificates(data.items || []);
     } catch (error) {
       console.error("Error:", error);
@@ -141,7 +148,7 @@ export function CertificatesModal({
           return;
         }
 
-        if (!newCertificate.certificateFile) {
+        if (!editingCertificate && !newCertificate.certificateFile) {
           toast.error("El archivo del certificado es requerido");
           return;
         }
@@ -153,17 +160,19 @@ export function CertificatesModal({
       formData.append("certificationId", newCertificate.certificationId);
       formData.append("isCommitment", newCertificate.isCommitment.toString());
       
-      if (newCertificate.isCommitment) {
+      // Ajustar las fechas a UTC antes de enviar
+      if (newCertificate.isCommitment && newCertificate.commitmentDate) {
         formData.append("commitmentDate", newCertificate.commitmentDate);
-      } else {
+      } else if (!newCertificate.isCommitment && newCertificate.expirationDate) {
         formData.append("expirationDate", newCertificate.expirationDate);
-        if (newCertificate.certificateFile) {
-          formData.append("certificateFile", newCertificate.certificateFile);
-        }
       }
 
-      const response = await fetch(`/api/companies/${companyId}/certificates`, {
-        method: "POST",
+      if (!newCertificate.isCommitment && newCertificate.certificateFile) {
+        formData.append("certificateFile", newCertificate.certificateFile);
+      }
+
+      const response = await fetch(`/api/companies/${companyId}/certificates${editingCertificate ? `/${editingCertificate.id}` : ''}`, {
+        method: editingCertificate ? "PUT" : "POST",
         headers: {
           Authorization: `Bearer ${getToken()}`,
         },
@@ -175,7 +184,7 @@ export function CertificatesModal({
         throw new Error(data.error || "Error al agregar el certificado");
       }
 
-      toast.success("Certificado agregado correctamente");
+      toast.success(editingCertificate ? "Certificado actualizado correctamente" : "Certificado agregado correctamente");
       setNewCertificate({
         certificationId: "",
         certificateFile: null,
@@ -183,6 +192,7 @@ export function CertificatesModal({
         isCommitment: false,
         commitmentDate: "",
       });
+      setEditingCertificate(null);
       loadCertificates();
     } catch (error) {
       console.error("Error:", error);
@@ -254,6 +264,55 @@ export function CertificatesModal({
     } catch (error) {
       console.error("Error:", error);
       toast.error("Error al eliminar el certificado");
+    }
+  };
+
+  const handleEditCertificate = (cert: CompanyCertificate) => {
+    setEditingCertificate(cert);
+    
+    // Función auxiliar para formatear fecha para input type="date"
+    const formatDateForInput = (date: Date | null) => {
+      if (!date) return '';
+      return new Date(date).toISOString().split('T')[0];
+    };
+
+    setNewCertificate({
+      certificationId: cert.certification.id.toString(),
+      certificateFile: null,
+      expirationDate: formatDateForInput(cert.expirationDate),
+      isCommitment: cert.isCommitment,
+      commitmentDate: formatDateForInput(cert.commitmentDate),
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCertificate(null);
+    setNewCertificate({
+      certificationId: "",
+      certificateFile: null,
+      expirationDate: "",
+      isCommitment: false,
+      commitmentDate: "",
+    });
+  };
+
+  // Función para formatear fecha para mostrar en la tabla
+  const formatDateForDisplay = (date: string | Date | null) => {
+    if (!date) return 'N/A';
+    try {
+      // Si la fecha ya es un objeto Date, usarlo directamente
+      const d = date instanceof Date ? date : new Date(date);
+      if (isNaN(d.getTime())) throw new Error('Invalid date');
+      
+      return d.toLocaleDateString('es-ES', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        timeZone: 'UTC'  // Forzar interpretación UTC
+      });
+    } catch (error) {
+      console.error('Error formatting date:', date, error);
+      return 'Fecha inválida';
     }
   };
 
@@ -377,19 +436,26 @@ export function CertificatesModal({
               </div>
 
               {/* Botón de agregar */}
-              <div className="flex justify-end mt-4">
+              <div className="flex justify-end gap-2">
+                {editingCertificate && (
+                  <Button
+                    variant="outline"
+                    onClick={handleCancelEdit}
+                    type="button"
+                  >
+                    Cancelar
+                  </Button>
+                )}
                 <Button
-                  type="button"
                   onClick={handleAddCertificate}
                   disabled={submitting}
                 >
                   {submitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Agregando...
-                    </>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : editingCertificate ? (
+                    "Guardar"
                   ) : (
-                    "Agregar Certificado"
+                    "Agregar"
                   )}
                 </Button>
               </div>
@@ -426,7 +492,11 @@ export function CertificatesModal({
                       </TableRow>
                     ) : (
                       certificates.map((cert) => (
-                        <TableRow key={cert.id}>
+                        <TableRow 
+                          key={cert.id}
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => handleEditCertificate(cert)}
+                        >
                           <TableCell className="font-medium whitespace-nowrap">
                             {cert.certification.name}
                           </TableCell>
@@ -435,7 +505,10 @@ export function CertificatesModal({
                               <div className="flex items-center gap-2">
                                 <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                                 <button
-                                  onClick={() => handleDownload(cert.id)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDownload(cert.id);
+                                  }}
                                   className="text-sm text-blue-600 hover:text-blue-800 hover:underline truncate max-w-[200px]"
                                 >
                                   {cert.certificateFileName}
@@ -444,20 +517,22 @@ export function CertificatesModal({
                             )}
                           </TableCell>
                           <TableCell className="whitespace-nowrap">
-                            {cert.expirationDate ? new Date(cert.expirationDate).toLocaleDateString() : 'N/A'}
+                            {formatDateForDisplay(cert.expirationDate)}
                           </TableCell>
                           <TableCell className="whitespace-nowrap">
-                            {cert.commitmentDate ? new Date(cert.commitmentDate).toLocaleDateString() : 'N/A'}
+                            {formatDateForDisplay(cert.commitmentDate)}
                           </TableCell>
                           <TableCell className="text-center">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDeleteCertificate(cert)}
-                              className="mx-auto"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            <div className="flex justify-center gap-2" onClick={(e) => e.stopPropagation()}>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDeleteCertificate(cert)}
+                                className="mx-auto"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))

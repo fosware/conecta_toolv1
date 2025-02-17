@@ -8,7 +8,7 @@ import { Company } from "@prisma/client";
 import { getToken } from "@/lib/auth";
 import Image from "next/image";
 import { Loader2 } from "lucide-react";
-import { useUserRole } from '@/hooks/use-user-role';
+import { useUserRole } from "@/hooks/use-user-role";
 
 interface LocationState {
   id: number;
@@ -23,7 +23,13 @@ interface CompanyFormProps {
   validationErrors?: { field: string; message: string }[];
 }
 
-interface CompanyFormData extends Omit<Company, 'id' | 'createdAt' | 'updatedAt' | 'dateDeleted'> {
+interface CompanyFormData
+  extends Omit<
+    Company,
+    "id" | "createdAt" | "updatedAt" | "dateDeleted" | "nda" | "companyLogo"
+  > {
+  companyLogo?: File;
+  nda?: File;
 }
 
 export function CompanyForm({
@@ -34,11 +40,9 @@ export function CompanyForm({
   validationErrors = [],
 }: CompanyFormProps) {
   const { refresh: refreshUserRole } = useUserRole();
-  const [formState, setFormState] = useState<Partial<CompanyFormData> & {
-    companyLogo?: File;
-    nda?: File;
-  }>({
+  const [formState, setFormState] = useState<Partial<CompanyFormData>>({
     companyName: initialData?.companyName || "",
+    comercialName: initialData?.comercialName || "",
     contactName: initialData?.contactName || "",
     street: initialData?.street || "",
     externalNumber: initialData?.externalNumber || "",
@@ -49,16 +53,20 @@ export function CompanyForm({
     stateId: initialData?.stateId || 0,
     phone: initialData?.phone || "",
     email: initialData?.email || "",
+    website: initialData?.website || "",
     machineCount: initialData?.machineCount || 0,
     employeeCount: initialData?.employeeCount || 0,
     shifts: initialData?.shifts || "",
     achievementDescription: initialData?.achievementDescription || "",
     profile: initialData?.profile || "",
+    shiftsProfileLink: initialData?.shiftsProfileLink || "",
   });
 
   const [statesList, setStatesList] = useState<LocationState[]>([]);
   const [previewImage, setPreviewImage] = useState<string | null>(
-    initialData?.companyLogo ? `data:image/png;base64,${initialData.companyLogo}` : null
+    initialData?.companyLogo
+      ? `data:image/png;base64,${initialData.companyLogo}`
+      : null
   );
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -88,7 +96,9 @@ export function CompanyForm({
   }, []);
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
   ) => {
     const { name, value, type } = e.target;
     if (type === "number") {
@@ -104,13 +114,16 @@ export function CompanyForm({
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: 'companyLogo' | 'nda') => {
+  const handleFileChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    field: "companyLogo" | "nda"
+  ) => {
     const file = e.target.files?.[0];
     if (file) {
       setFormState((prev) => ({ ...prev, [field]: file }));
-      
+
       // Si es el logo, crear preview
-      if (field === 'companyLogo') {
+      if (field === "companyLogo") {
         const reader = new FileReader();
         reader.onloadend = () => {
           setPreviewImage(reader.result as string);
@@ -131,7 +144,7 @@ export function CompanyForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const formData = new FormData();
-    
+
     Object.entries(formState).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
         if (key === "companyLogo" || key === "nda") {
@@ -191,7 +204,7 @@ export function CompanyForm({
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
-                onChange={(e) => handleFileChange(e, 'companyLogo')}
+                onChange={(e) => handleFileChange(e, "companyLogo")}
                 className="hidden"
               />
             </div>
@@ -207,9 +220,9 @@ export function CompanyForm({
               onChange={handleInputChange}
               required
             />
-            {validationErrors.find(err => err.field === 'email') && (
+            {validationErrors.find((err) => err.field === "email") && (
               <p className="text-sm text-red-500">
-                {validationErrors.find(err => err.field === 'email')?.message}
+                {validationErrors.find((err) => err.field === "email")?.message}
               </p>
             )}
           </div>
@@ -218,23 +231,26 @@ export function CompanyForm({
         {/* Columna derecha: Datos principales */}
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="companyName">Nombre de la Empresa *</Label>
+            <Label htmlFor="comercialName">Nombre comercial *</Label>
             <Input
-              id="companyName"
-              name="companyName"
-              value={formState.companyName || ""}
+              id="comercialName"
+              name="comercialName"
+              value={formState.comercialName || ""}
               onChange={handleInputChange}
               required
             />
-            {validationErrors.find(err => err.field === 'companyName') && (
+            {validationErrors.find((err) => err.field === "comercialName") && (
               <p className="text-sm text-red-500">
-                {validationErrors.find(err => err.field === 'companyName')?.message}
+                {
+                  validationErrors.find((err) => err.field === "comercialName")
+                    ?.message
+                }
               </p>
             )}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="contactName">Nombre del Contacto *</Label>
+            <Label htmlFor="contactName">Contacto Principal de Ventas *</Label>
             <Input
               id="contactName"
               name="contactName"
@@ -242,14 +258,17 @@ export function CompanyForm({
               onChange={handleInputChange}
               required
             />
-            {validationErrors.find(err => err.field === 'contactName') && (
+            {validationErrors.find((err) => err.field === "contactName") && (
               <p className="text-sm text-red-500">
-                {validationErrors.find(err => err.field === 'contactName')?.message}
+                {
+                  validationErrors.find((err) => err.field === "contactName")
+                    ?.message
+                }
               </p>
             )}
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-4">
             <Label htmlFor="phone">Teléfono *</Label>
             <Input
               id="phone"
@@ -258,13 +277,40 @@ export function CompanyForm({
               onChange={handleInputChange}
               required
             />
-            {validationErrors.find(err => err.field === 'phone') && (
+            {validationErrors.find((err) => err.field === "phone") && (
               <p className="text-sm text-red-500">
-                {validationErrors.find(err => err.field === 'phone')?.message}
+                {validationErrors.find((err) => err.field === "phone")?.message}
               </p>
             )}
           </div>
         </div>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="companyName">Razón social *</Label>
+        <Input
+          id="companyName"
+          name="companyName"
+          value={formState.companyName || ""}
+          onChange={handleInputChange}
+          required
+        />
+        {validationErrors.find((err) => err.field === "companyName") && (
+          <p className="text-sm text-red-500">
+            {
+              validationErrors.find((err) => err.field === "companyName")
+                ?.message
+            }
+          </p>
+        )}
+      </div>
+      <div className="space-y-4">
+        <Label htmlFor="website">Página web</Label>
+        <Input
+          id="website"
+          name="website"
+          value={formState.website || ""}
+          onChange={handleInputChange}
+        />
       </div>
 
       {/* Segunda sección: Dirección y otros datos */}
@@ -278,9 +324,9 @@ export function CompanyForm({
             onChange={handleInputChange}
             required
           />
-          {validationErrors.find(err => err.field === 'street') && (
+          {validationErrors.find((err) => err.field === "street") && (
             <p className="text-sm text-red-500">
-              {validationErrors.find(err => err.field === 'street')?.message}
+              {validationErrors.find((err) => err.field === "street")?.message}
             </p>
           )}
         </div>
@@ -294,9 +340,12 @@ export function CompanyForm({
             onChange={handleInputChange}
             required
           />
-          {validationErrors.find(err => err.field === 'externalNumber') && (
+          {validationErrors.find((err) => err.field === "externalNumber") && (
             <p className="text-sm text-red-500">
-              {validationErrors.find(err => err.field === 'externalNumber')?.message}
+              {
+                validationErrors.find((err) => err.field === "externalNumber")
+                  ?.message
+              }
             </p>
           )}
         </div>
@@ -309,9 +358,12 @@ export function CompanyForm({
             value={formState.internalNumber || ""}
             onChange={handleInputChange}
           />
-          {validationErrors.find(err => err.field === 'internalNumber') && (
+          {validationErrors.find((err) => err.field === "internalNumber") && (
             <p className="text-sm text-red-500">
-              {validationErrors.find(err => err.field === 'internalNumber')?.message}
+              {
+                validationErrors.find((err) => err.field === "internalNumber")
+                  ?.message
+              }
             </p>
           )}
         </div>
@@ -325,9 +377,12 @@ export function CompanyForm({
             onChange={handleInputChange}
             required
           />
-          {validationErrors.find(err => err.field === 'neighborhood') && (
+          {validationErrors.find((err) => err.field === "neighborhood") && (
             <p className="text-sm text-red-500">
-              {validationErrors.find(err => err.field === 'neighborhood')?.message}
+              {
+                validationErrors.find((err) => err.field === "neighborhood")
+                  ?.message
+              }
             </p>
           )}
         </div>
@@ -341,9 +396,12 @@ export function CompanyForm({
             onChange={handleInputChange}
             required
           />
-          {validationErrors.find(err => err.field === 'postalCode') && (
+          {validationErrors.find((err) => err.field === "postalCode") && (
             <p className="text-sm text-red-500">
-              {validationErrors.find(err => err.field === 'postalCode')?.message}
+              {
+                validationErrors.find((err) => err.field === "postalCode")
+                  ?.message
+              }
             </p>
           )}
         </div>
@@ -357,9 +415,9 @@ export function CompanyForm({
             onChange={handleInputChange}
             required
           />
-          {validationErrors.find(err => err.field === 'city') && (
+          {validationErrors.find((err) => err.field === "city") && (
             <p className="text-sm text-red-500">
-              {validationErrors.find(err => err.field === 'city')?.message}
+              {validationErrors.find((err) => err.field === "city")?.message}
             </p>
           )}
         </div>
@@ -381,15 +439,15 @@ export function CompanyForm({
               </option>
             ))}
           </select>
-          {validationErrors.find(err => err.field === 'stateId') && (
+          {validationErrors.find((err) => err.field === "stateId") && (
             <p className="text-sm text-red-500">
-              {validationErrors.find(err => err.field === 'stateId')?.message}
+              {validationErrors.find((err) => err.field === "stateId")?.message}
             </p>
           )}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="machineCount">Número de Máquinas *</Label>
+          <Label htmlFor="machineCount">Número de máquinas principales *</Label>
           <Input
             id="machineCount"
             name="machineCount"
@@ -399,9 +457,12 @@ export function CompanyForm({
             onChange={handleInputChange}
             required
           />
-          {validationErrors.find(err => err.field === 'machineCount') && (
+          {validationErrors.find((err) => err.field === "machineCount") && (
             <p className="text-sm text-red-500">
-              {validationErrors.find(err => err.field === 'machineCount')?.message}
+              {
+                validationErrors.find((err) => err.field === "machineCount")
+                  ?.message
+              }
             </p>
           )}
         </div>
@@ -417,9 +478,12 @@ export function CompanyForm({
             onChange={handleInputChange}
             required
           />
-          {validationErrors.find(err => err.field === 'employeeCount') && (
+          {validationErrors.find((err) => err.field === "employeeCount") && (
             <p className="text-sm text-red-500">
-              {validationErrors.find(err => err.field === 'employeeCount')?.message}
+              {
+                validationErrors.find((err) => err.field === "employeeCount")
+                  ?.message
+              }
             </p>
           )}
         </div>
@@ -432,9 +496,9 @@ export function CompanyForm({
             value={formState.shifts || ""}
             onChange={handleInputChange}
           />
-          {validationErrors.find(err => err.field === 'shifts') && (
+          {validationErrors.find((err) => err.field === "shifts") && (
             <p className="text-sm text-red-500">
-              {validationErrors.find(err => err.field === 'shifts')?.message}
+              {validationErrors.find((err) => err.field === "shifts")?.message}
             </p>
           )}
         </div>
@@ -451,7 +515,10 @@ export function CompanyForm({
                   className="h-auto p-0 text-blue-500 hover:text-blue-700"
                   onClick={() => {
                     if (initialData.id) {
-                      window.open(`/api/companies/${initialData.id}/nda`, '_blank');
+                      window.open(
+                        `/api/companies/${initialData.id}/nda`,
+                        "_blank"
+                      );
                     }
                   }}
                 >
@@ -473,16 +540,18 @@ export function CompanyForm({
               </p>
             )}
           </div>
-          {validationErrors.find(err => err.field === 'nda') && (
+          {validationErrors.find((err) => err.field === "nda") && (
             <p className="text-sm text-red-500">
-              {validationErrors.find(err => err.field === 'nda')?.message}
+              {validationErrors.find((err) => err.field === "nda")?.message}
             </p>
           )}
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="achievementDescription" className="block">Logros</Label>
+        <Label htmlFor="achievementDescription" className="block">
+          Logros
+        </Label>
         <textarea
           id="achievementDescription"
           name="achievementDescription"
@@ -491,15 +560,23 @@ export function CompanyForm({
           rows={4}
           className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         />
-        {validationErrors.find(err => err.field === 'achievementDescription') && (
+        {validationErrors.find(
+          (err) => err.field === "achievementDescription"
+        ) && (
           <p className="text-sm text-red-500">
-            {validationErrors.find(err => err.field === 'achievementDescription')?.message}
+            {
+              validationErrors.find(
+                (err) => err.field === "achievementDescription"
+              )?.message
+            }
           </p>
         )}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="profile" className="block">Semblanza</Label>
+        <Label htmlFor="profile" className="block">
+          Semblanza
+        </Label>
         <textarea
           id="profile"
           name="profile"
@@ -508,14 +585,23 @@ export function CompanyForm({
           rows={4}
           className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         />
-        {validationErrors.find(err => err.field === 'profile') && (
+        {validationErrors.find((err) => err.field === "profile") && (
           <p className="text-sm text-red-500">
-            {validationErrors.find(err => err.field === 'profile')?.message}
+            {validationErrors.find((err) => err.field === "profile")?.message}
           </p>
         )}
       </div>
+      <div className="space-y-2">
+        <Label htmlFor="shiftsProfileLink">Logros y semblanza liga</Label>
+        <Input
+          id="shiftsProfileLink"
+          name="shiftsProfileLink"
+          value={formState.shiftsProfileLink || ""}
+          onChange={handleInputChange}
+        />
+      </div>
 
-      <div className="flex justify-end gap-4">
+      <div className="flex justify-end gap-4 pt-4">
         {onCancel && (
           <Button
             type="button"

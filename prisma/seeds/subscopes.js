@@ -13,7 +13,12 @@ const subscopes = [
 export async function seedSubscopes() {
   for (const subscope of subscopes) {
     await prisma.subscopes.upsert({
-      where: { name: subscope.name },
+      where: {
+        unique_name_per_scope: {
+          name: subscope.name,
+          scopeId: subscope.scopeId
+        }
+      },
       update: {},
       create: {
         name: subscope.name,

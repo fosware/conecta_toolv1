@@ -107,7 +107,8 @@ export async function POST(
       );
     }
 
-    const { specialtyId, scopeId, subscopeId, materials } = body;
+    const { specialtyId, scopeId, subscopeId, materials, machineCapacity } =
+      body;
 
     if (!specialtyId) {
       return NextResponse.json(
@@ -161,6 +162,7 @@ export async function POST(
           isActive: true,
           isDeleted: false,
           materials: materials || "",
+          machineCapacity: machineCapacity || "",
           userId,
         },
       });
@@ -180,6 +182,7 @@ export async function POST(
         scopeId: scopeId ? parseInt(scopeId) : null,
         subscopeId: subscopeId ? parseInt(subscopeId) : null,
         materials: materials || "",
+        machineCapacity: machineCapacity || "",
         userId,
       },
     });

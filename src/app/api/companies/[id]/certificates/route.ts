@@ -57,6 +57,9 @@ export async function GET(
         createdAt: true,
         updatedAt: true,
       },
+      orderBy: {
+        createdAt: 'desc'
+      }
     });
 
     return NextResponse.json({ items });
@@ -115,6 +118,50 @@ export async function POST(
           { status: 400 }
         );
       }
+    }
+
+    // Validar si ya existe un certificado activo y no vencido para esta certificación
+    const existingCertificate = await prisma.companyCertifications.findFirst({
+      where: {
+        companyId,
+        certificationId,
+        isActive: true,
+        isDeleted: false,
+        AND: [
+          {
+            OR: [
+              // Si es un compromiso, verificar que no haya otro compromiso activo
+              {
+                isCommitment: true,
+                commitmentDate: {
+                  gt: new Date()
+                }
+              },
+              // Si es un certificado, verificar que no haya otro certificado activo y no vencido
+              {
+                isCommitment: false,
+                expirationDate: {
+                  gt: new Date()
+                }
+              }
+            ]
+          },
+          // Que coincida con el tipo que estamos intentando agregar
+          {
+            isCommitment: isCommitment
+          }
+        ]
+      }
+    });
+
+    if (existingCertificate) {
+      return NextResponse.json(
+        { error: isCommitment 
+          ? "Ya existe un compromiso activo para esta certificación" 
+          : "Ya existe un certificado activo para esta certificación" 
+        },
+        { status: 400 }
+      );
     }
 
     // Convertir fechas

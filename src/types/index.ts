@@ -88,6 +88,7 @@ export interface CompanySpecialty {
   subscopeId?: number;
   subscope?: Subalcance;
   materials?: string;
+  machineCapacity?: string;
   isActive: boolean;
   isDeleted: boolean;
   userId: number;
