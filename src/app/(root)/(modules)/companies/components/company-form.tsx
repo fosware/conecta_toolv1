@@ -310,7 +310,22 @@ export function CompanyForm({
           name="website"
           value={formState.website || ""}
           onChange={handleInputChange}
+          placeholder="https://ejemplo.com"
         />
+        {formState.website && (
+          <a
+            href={
+              formState.website.startsWith("http")
+                ? formState.website
+                : `https://${formState.website}`
+            }
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+          >
+            {formState.website}
+          </a>
+        )}
       </div>
 
       {/* Segunda sección: Dirección y otros datos */}
@@ -557,7 +572,7 @@ export function CompanyForm({
           name="achievementDescription"
           value={formState.achievementDescription || ""}
           onChange={handleInputChange}
-          rows={4}
+          rows={8}
           className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         />
         {validationErrors.find(
@@ -582,7 +597,7 @@ export function CompanyForm({
           name="profile"
           value={formState.profile || ""}
           onChange={handleInputChange}
-          rows={4}
+          rows={8}
           className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         />
         {validationErrors.find((err) => err.field === "profile") && (
@@ -598,7 +613,22 @@ export function CompanyForm({
           name="shiftsProfileLink"
           value={formState.shiftsProfileLink || ""}
           onChange={handleInputChange}
+          placeholder="https://ejemplo.com/logros"
         />
+        {formState.shiftsProfileLink && (
+          <a
+            href={
+              formState.shiftsProfileLink.startsWith("http")
+                ? formState.shiftsProfileLink
+                : `https://${formState.shiftsProfileLink}`
+            }
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+          >
+            {formState.shiftsProfileLink}
+          </a>
+        )}
       </div>
 
       <div className="flex justify-end gap-4 pt-4">

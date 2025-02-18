@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -78,6 +78,8 @@ export function CertificatesModal({
     isCommitment: false,
     commitmentDate: "",
   });
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Cargar el catálogo de certificaciones
   const loadCertifications = async () => {
@@ -185,14 +187,11 @@ export function CertificatesModal({
       }
 
       toast.success(editingCertificate ? "Certificado actualizado correctamente" : "Certificado agregado correctamente");
-      setNewCertificate({
-        certificationId: "",
-        certificateFile: null,
-        expirationDate: "",
-        isCommitment: false,
-        commitmentDate: "",
-      });
-      setEditingCertificate(null);
+      
+      // Limpiar completamente el estado
+      resetForm();
+      
+      // Recargar la lista de certificados
       loadCertificates();
     } catch (error) {
       console.error("Error:", error);
@@ -294,7 +293,33 @@ export function CertificatesModal({
       isCommitment: false,
       commitmentDate: "",
     });
+    // Limpiar el input de archivo
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
+
+  const resetForm = () => {
+    setEditingCertificate(null);
+    setNewCertificate({
+      certificationId: "",
+      certificateFile: null,
+      expirationDate: "",
+      isCommitment: false,
+      commitmentDate: "",
+    });
+    // Limpiar el input de archivo
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  // Limpiar estado cuando se cierra el modal
+  useEffect(() => {
+    if (!open) {
+      handleCancelEdit();
+    }
+  }, [open]);
 
   // Función para formatear fecha para mostrar en la tabla
   const formatDateForDisplay = (date: string | Date | null) => {
@@ -420,16 +445,25 @@ export function CertificatesModal({
                     </div>
                     <div className="space-y-2">
                       <Label>Archivo de Certificado</Label>
-                      <Input
-                        type="file"
-                        onChange={(e) =>
-                          setNewCertificate((prev) => ({
-                            ...prev,
-                            certificateFile: e.target.files?.[0] || null,
-                          }))
-                        }
-                        className="w-full"
-                      />
+                      <div className="space-y-2">
+                        <Input
+                          type="file"
+                          ref={fileInputRef}
+                          onChange={(e) =>
+                            setNewCertificate((prev) => ({
+                              ...prev,
+                              certificateFile: e.target.files?.[0] || null,
+                            }))
+                          }
+                          className="w-full"
+                        />
+                        {editingCertificate?.certificateFileName && !newCertificate.certificateFile && (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <FileText className="h-4 w-4" />
+                            <span>Archivo actual: {editingCertificate.certificateFileName}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </>
                 )}
@@ -494,8 +528,7 @@ export function CertificatesModal({
                       certificates.map((cert) => (
                         <TableRow 
                           key={cert.id}
-                          className="cursor-pointer hover:bg-muted/50"
-                          onClick={() => handleEditCertificate(cert)}
+                          className="hover:bg-muted/50"
                         >
                           <TableCell className="font-medium whitespace-nowrap">
                             {cert.certification.name}
@@ -505,10 +538,7 @@ export function CertificatesModal({
                               <div className="flex items-center gap-2">
                                 <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                                 <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDownload(cert.id);
-                                  }}
+                                  onClick={(e) => handleDownload(cert.id)}
                                   className="text-sm text-blue-600 hover:text-blue-800 hover:underline truncate max-w-[200px]"
                                 >
                                   {cert.certificateFileName}
@@ -523,7 +553,15 @@ export function CertificatesModal({
                             {formatDateForDisplay(cert.commitmentDate)}
                           </TableCell>
                           <TableCell className="text-center">
-                            <div className="flex justify-center gap-2" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex justify-center gap-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEditCertificate(cert)}
+                                className="mx-auto"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
                               <Button
                                 variant="ghost"
                                 size="icon"

@@ -80,6 +80,27 @@ export function SpecialtiesModal({
     null
   );
 
+  const resetForm = () => {
+    setNewSpecialty({
+      id: null,
+      specialtyId: "",
+      scopeId: "",
+      subscopeId: "",
+      materials: "",
+      machineCapacity: "",
+    });
+    setIsEditing(false);
+    setScopes([]);
+    setSubscopes([]);
+  };
+
+  // Limpiar estado cuando se cierra el modal
+  useEffect(() => {
+    if (!open) {
+      resetForm();
+    }
+  }, [open]);
+
   const loadCompanySpecialties = async () => {
     try {
       setLoading(true);
@@ -196,54 +217,61 @@ export function SpecialtiesModal({
 
       setSubmitting(true);
 
-      const response = await fetch(`/api/companies/${companyId}/specialties${newSpecialty.id ? `/${newSpecialty.id}` : ''}`, {
-        method: newSpecialty.id ? "PUT" : "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${getToken()}`,
-        },
-        body: JSON.stringify({
-          specialtyId: parseInt(newSpecialty.specialtyId),
-          scopeId:
-            newSpecialty.scopeId && newSpecialty.scopeId !== "none"
-              ? parseInt(newSpecialty.scopeId)
-              : null,
-          subscopeId:
-            newSpecialty.subscopeId && newSpecialty.subscopeId !== "none"
-              ? parseInt(newSpecialty.subscopeId)
-              : null,
-          materials: newSpecialty.materials || "",
-          machineCapacity: newSpecialty.machineCapacity || "",
-        }),
-      });
+      const response = await fetch(
+        `/api/companies/${companyId}/specialties${newSpecialty.id ? `/${newSpecialty.id}` : ""}`,
+        {
+          method: newSpecialty.id ? "PUT" : "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${getToken()}`,
+          },
+          body: JSON.stringify({
+            specialtyId: parseInt(newSpecialty.specialtyId),
+            scopeId:
+              newSpecialty.scopeId && newSpecialty.scopeId !== "none"
+                ? parseInt(newSpecialty.scopeId)
+                : null,
+            subscopeId:
+              newSpecialty.subscopeId && newSpecialty.subscopeId !== "none"
+                ? parseInt(newSpecialty.subscopeId)
+                : null,
+            materials: newSpecialty.materials || "",
+            machineCapacity: newSpecialty.machineCapacity || "",
+          }),
+        }
+      );
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || `Error al ${newSpecialty.id ? 'actualizar' : 'agregar'} la especialidad`);
+        throw new Error(
+          data.error ||
+            `Error al ${newSpecialty.id ? "actualizar" : "agregar"} la especialidad`
+        );
       }
 
       if (!data.success) {
-        throw new Error(data.error || `Error al ${newSpecialty.id ? 'actualizar' : 'agregar'} la especialidad`);
+        throw new Error(
+          data.error ||
+            `Error al ${newSpecialty.id ? "actualizar" : "agregar"} la especialidad`
+        );
       }
 
-      toast.success(data.message || `Especialidad ${newSpecialty.id ? 'actualizada' : 'agregada'} correctamente`);
-      setNewSpecialty({
-        id: null,
-        specialtyId: "",
-        scopeId: "",
-        subscopeId: "",
-        materials: "",
-        machineCapacity: "",
-      });
-      setIsEditing(false);
+      toast.success(
+        data.message ||
+          `Especialidad ${newSpecialty.id ? "actualizada" : "agregada"} correctamente`
+      );
+      resetForm();
       loadCompanySpecialties();
     } catch (error) {
-      console.error(`Error al ${newSpecialty.id ? 'actualizar' : 'agregar'} la especialidad:`, error);
+      console.error(
+        `Error al ${newSpecialty.id ? "actualizar" : "agregar"} la especialidad:`,
+        error
+      );
       toast.error(
         error instanceof Error
           ? error.message
-          : `Error al ${newSpecialty.id ? 'actualizar' : 'agregar'} la especialidad`
+          : `Error al ${newSpecialty.id ? "actualizar" : "agregar"} la especialidad`
       );
     } finally {
       setSubmitting(false);
@@ -260,7 +288,7 @@ export function SpecialtiesModal({
       machineCapacity: spec.machineCapacity || "",
     });
     setIsEditing(true);
-    
+
     // Cargar los alcances para la especialidad seleccionada
     if (spec.specialtyId) {
       loadScopes(spec.specialtyId.toString());
@@ -272,15 +300,7 @@ export function SpecialtiesModal({
   };
 
   const cancelEdit = () => {
-    setNewSpecialty({
-      id: null,
-      specialtyId: "",
-      scopeId: "",
-      subscopeId: "",
-      materials: "",
-      machineCapacity: "",
-    });
-    setIsEditing(false);
+    resetForm();
   };
 
   const handleDeleteSpecialty = async (specialtyId: number) => {
@@ -462,6 +482,7 @@ export function SpecialtiesModal({
                 </Label>
                 <Textarea
                   value={newSpecialty.materials}
+                  rows={6}
                   onChange={(e) =>
                     setNewSpecialty((prev) => ({
                       ...prev,
@@ -479,6 +500,7 @@ export function SpecialtiesModal({
                 </Label>
                 <Textarea
                   value={newSpecialty.machineCapacity}
+                  rows={6}
                   onChange={(e) =>
                     setNewSpecialty((prev) => ({
                       ...prev,
@@ -490,12 +512,12 @@ export function SpecialtiesModal({
                 />
               </div>
               <div className="flex justify-end mt-4">
-                <Button 
-                  variant="outline" 
-                  onClick={cancelEdit} 
+                <Button
+                  variant="outline"
+                  onClick={cancelEdit}
                   className="mr-2"
                   disabled={submitting}
-                  style={{ display: isEditing ? 'inline-flex' : 'none' }}
+                  style={{ display: isEditing ? "inline-flex" : "none" }}
                 >
                   Cancelar
                 </Button>
@@ -503,7 +525,9 @@ export function SpecialtiesModal({
                   {submitting && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   )}
-                  {isEditing ? 'Actualizar Especialidad' : 'Agregar Especialidad'}
+                  {isEditing
+                    ? "Actualizar Especialidad"
+                    : "Agregar Especialidad"}
                 </Button>
               </div>
 
@@ -541,10 +565,9 @@ export function SpecialtiesModal({
                         </TableRow>
                       ) : (
                         companySpecialties.map((spec) => (
-                          <TableRow 
+                          <TableRow
                             key={spec.id}
-                            className="cursor-pointer hover:bg-muted/50"
-                            onClick={() => handleEditSpecialty(spec)}
+                            className="hover:bg-muted/50"
                           >
                             <TableCell className="font-medium whitespace-nowrap">
                               {spec.specialty?.name}
@@ -556,7 +579,15 @@ export function SpecialtiesModal({
                               {spec.subscope?.name || "-"}
                             </TableCell>
                             <TableCell className="text-center">
-                              <div className="flex justify-center gap-2" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex justify-center gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleEditSpecialty(spec)}
+                                  className="mx-auto"
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
                                 <Button
                                   variant="ghost"
                                   size="icon"
