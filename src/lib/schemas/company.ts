@@ -26,6 +26,9 @@ export const companyCreateSchema = z.object({
   profile: z.string().optional(),
   shiftsProfileLink: z.string().optional(),
   website: z.string().optional(),
+  companyLogo: z.string().optional(),
+  nda: z.instanceof(Uint8Array).optional(),
+  ndaFileName: z.string().optional(),
 });
 
 export const companyUpdateSchema = companyCreateSchema.partial();

@@ -18,7 +18,7 @@ echo "🗄️ Aplicando migraciones..."
 npx prisma migrate deploy
 
 echo "📊 Creando vistas en la base de datos..."
-docker exec -i conecta_toolv1-db-1 psql -U admin -d conecta_toolv1 < prisma/sql/create_views.sql
+docker exec -i conecta_toolv1_db_1 psql -U admin -d conecta_toolv1 < prisma/sql/create_views.sql
 
 echo "🌱 Cargando semillas..."
 npm run prisma:seed

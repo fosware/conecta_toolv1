@@ -413,7 +413,30 @@ export async function PUT(
           id: parseInt(formData.get("stateId") as string),
         },
       },
+      ...(companyLogo && { companyLogo }),
+      ...(ndaBuffer && { nda: ndaBuffer }),
+      ...(ndaFileName && { ndaFileName }),
     };
+
+    // Validate the data
+    try {
+      const validationResult = companyCreateSchema.parse({
+        ...updateData,
+        stateId: parseInt(formData.get("stateId") as string),
+      });
+    } catch (validationError) {
+      return NextResponse.json(
+        {
+          error: "Error de validación",
+          type: "VALIDATION_ERROR",
+          details: (validationError as import("zod").ZodError).issues.map((issue) => ({
+            field: issue.path[0],
+            message: issue.message,
+          })),
+        },
+        { status: 400 }
+      );
+    }
 
     try {
       const result = await prisma.company.update({
