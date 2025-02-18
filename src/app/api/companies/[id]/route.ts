@@ -21,7 +21,7 @@ const updateCompanySchema = z.object({
   employeeCount: z.coerce.number().optional(),
   shifts: z.string().optional(),
   companyLogo: z.string().nullable().optional(),
-  nda: z.instanceof(Buffer).nullable().optional(),
+  nda: z.any().nullable().optional(),
   ndaFileName: z.string().nullable().optional(),
   isActive: z.boolean().optional(),
   profile: z.string().nullable().optional(),
@@ -119,18 +119,26 @@ export async function PUT(
     };
 
     // Manejar archivos por separado
-    const companyLogoFile = formData.get("companyLogo") as File | null;
-    const ndaFile = formData.get("nda") as File | null;
+    const companyLogoFile = formData.get("companyLogo");
+    const ndaFile = formData.get("nda");
 
-    if (companyLogoFile instanceof File && companyLogoFile.size > 0) {
-      data.companyLogo = Buffer.from(await companyLogoFile.arrayBuffer()).toString("base64");
+    if (companyLogoFile && 
+        typeof companyLogoFile === "object" && 
+        "arrayBuffer" in companyLogoFile && 
+        typeof companyLogoFile.arrayBuffer === "function") {
+      const bytes = await companyLogoFile.arrayBuffer();
+      data.companyLogo = Buffer.from(bytes).toString("base64");
     } else if (typeof companyLogoFile === "string") {
       data.companyLogo = companyLogoFile;
     }
 
-    if (ndaFile instanceof File && ndaFile.size > 0) {
-      data.nda = Buffer.from(await ndaFile.arrayBuffer());
-      data.ndaFileName = ndaFile.name;
+    if (ndaFile && 
+        typeof ndaFile === "object" && 
+        "arrayBuffer" in ndaFile && 
+        typeof ndaFile.arrayBuffer === "function") {
+      const bytes = await ndaFile.arrayBuffer();
+      data.nda = Buffer.from(bytes);
+      data.ndaFileName = "name" in ndaFile ? ndaFile.name : formData.get("ndaFileName") as string;
     }
 
     // Validar los datos
