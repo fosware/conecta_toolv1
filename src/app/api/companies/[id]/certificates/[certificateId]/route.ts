@@ -132,12 +132,15 @@ export async function PUT(
     }
 
     // Procesar el archivo si existe
-    let certificateBuffer = existingCertificate.certificateFile;
-    let fileName = existingCertificate.certificateFileName;
-    if (certificateFile && 'arrayBuffer' in certificateFile) {
+    let certificateBuffer = null;
+    let fileName = null;
+    if (certificateFile && 
+        typeof certificateFile === "object" && 
+        "arrayBuffer" in certificateFile && 
+        typeof certificateFile.arrayBuffer === "function") {
       const bytes = await certificateFile.arrayBuffer();
       certificateBuffer = Buffer.from(bytes);
-      fileName = certificateFile.name;
+      fileName = "name" in certificateFile ? certificateFile.name : null;
     }
 
     // Actualizar el certificado

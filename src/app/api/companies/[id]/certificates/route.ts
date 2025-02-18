@@ -87,7 +87,7 @@ export async function POST(
     const isCommitment = formData.get("isCommitment") === "true";
     const expirationDate = formData.get("expirationDate") as string;
     const commitmentDate = formData.get("commitmentDate") as string;
-    const certificateFile = formData.get("certificateFile") as File;
+    const certificateFile = formData.get("certificateFile");
 
     if (!certificationId || isNaN(certificationId)) {
       return NextResponse.json(
@@ -191,10 +191,13 @@ export async function POST(
     // Procesar el archivo si existe
     let certificateBuffer = null;
     let fileName = null;
-    if (certificateFile && 'arrayBuffer' in certificateFile) {
+    if (certificateFile && 
+        typeof certificateFile === "object" && 
+        "arrayBuffer" in certificateFile && 
+        typeof certificateFile.arrayBuffer === "function") {
       const bytes = await certificateFile.arrayBuffer();
       certificateBuffer = Buffer.from(bytes);
-      fileName = certificateFile.name;
+      fileName = "name" in certificateFile ? certificateFile.name : null;
     }
 
     // Crear el certificado
