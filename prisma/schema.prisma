@@ -280,22 +280,24 @@ model CompanyUser {
   @@map("r_company_users")
 }
 
-// Vista para reporte de empresas
-model CompanyProfile {
-  id                   Int     @id
-  nombre_comercial     String
-  razon_social         String
-  logros               String?
-  semblanza            String?
-  contato_ventas       String?
-  maquinas_principales Int?
-  total_empleados      Int?
-  telefono             String?
-  correo               String?
-  liga_semblanza       String?
-  sitio_web            String?
-  certificaciones      Json
-  especialidades       Json
-
-  @@map("v_company_profile") // Hace referencia a la vista en la BD
-}
+// Vista para reporte de empresas, ver prisma/sql/create_views.sql
+/**
+ * model CompanyProfile {
+ * id                   Int     @id
+ * nombre_comercial     String
+ * razon_social         String
+ * logros               String?
+ * semblanza            String?
+ * contato_ventas       String?
+ * maquinas_principales Int?
+ * total_empleados      Int?
+ * telefono             String?
+ * correo               String?
+ * liga_semblanza       String?
+ * sitio_web            String?
+ * certificaciones      Json
+ * especialidades       Json
+ * @@map("v_company_profile") // Hace referencia a la vista en la BD
+ * @@ignore
+ * }
+ */

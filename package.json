@@ -7,14 +7,15 @@
     "build": "next build",
     "start": "next start -p 8091",
     "lint": "next lint",
-    "prisma:seed": "node --import 'data:text/javascript,import { register } from \"node:module\"; import { pathToFileURL } from \"node:url\"; register(\"ts-node/esm\", pathToFileURL(\"./\"));' prisma/seed.ts"
+    "prisma:seed": "node --import 'data:text/javascript,import { register } from \"node:module\"; import { pathToFileURL } from \"node:url\"; register(\"ts-node/esm\", pathToFileURL(\"./\"));' prisma/seed.ts",
+    "apply-views": "docker exec -i conecta_toolv1-db-1 psql -U admin -d conecta_toolv1 < prisma/sql/create_views.sql"
   },
   "dependencies": {
     "@fontsource/inter": "^5.1.0",
     "@heroicons/react": "^2.2.0",
     "@hookform/resolvers": "^3.9.1",
     "@nextui-org/react": "^2.6.11",
-    "@prisma/client": "^6.1.0",
+    "@prisma/client": "^6.3.1",
     "@radix-ui/react-alert-dialog": "^1.1.5",
     "@radix-ui/react-avatar": "^1.1.2",
     "@radix-ui/react-checkbox": "^1.1.4",
@@ -35,7 +36,6 @@
     "lucide-react": "^0.468.0",
     "next": "15.1.6",
     "next-themes": "^0.4.4",
-    "prisma": "^6.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.54.2",
@@ -65,6 +65,7 @@
     "eslint-plugin-tailwindcss": "^3.17.5",
     "postcss": "^8",
     "prettier": "^3.4.2",
+    "prisma": "^6.3.1",
     "tailwindcss": "^3.4.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.3"
