@@ -27,7 +27,7 @@ export const companyCreateSchema = z.object({
   shiftsProfileLink: z.string().optional(),
   website: z.string().optional(),
   companyLogo: z.string().optional(),
-  nda: z.instanceof(Uint8Array).optional(),
+  nda: z.any().optional(),
   ndaFileName: z.string().optional(),
 });
 
