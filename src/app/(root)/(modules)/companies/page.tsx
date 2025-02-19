@@ -213,6 +213,10 @@ export default function CompanyPage() {
   const handleSuccess = async () => {
     await refreshUserRole();
     await loadCompanies();
+    // Si hay una empresa expandida, recargar su perfil
+    if (expandedCompanyId) {
+      await loadCompanyProfile(expandedCompanyId);
+    }
   };
 
   return (

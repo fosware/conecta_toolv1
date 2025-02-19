@@ -10,6 +10,8 @@ import {
   Cog,
   Factory,
   Calendar,
+  Trophy,
+  FileBadge,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -22,8 +24,8 @@ interface Especialidad {
   especialidad: string;
   alcance: string;
   subalcance: string;
-  materials: string;
-  machineCapacity: string;
+  materiales: string;
+  capacidades_maquinas: string;
 }
 
 interface CompanyData {
@@ -186,16 +188,43 @@ export function CompanyOverview({ data }: CompanyOverviewProps) {
                     {esp.alcance}
                   </p>
                   <p>
+                    <span className="text-muted-foreground">Subalcance:</span>{" "}
+                    {esp.subalcance}
+                  </p>
+                  <p>
                     <span className="text-muted-foreground">Materiales:</span>{" "}
-                    {esp.materials}
+                    {esp.materiales}
                   </p>
                   <p>
                     <span className="text-muted-foreground">Capacidad:</span>{" "}
-                    {esp.machineCapacity}
+                    {esp.capacidades_maquinas}
                   </p>
                 </div>
               </div>
             ))}
+          </div>
+          <div className="mt-6 pt-6 border-t">
+            <h3 className="text-lg font-medium flex items-center space-x-2 mb-4">
+              <Trophy className="w-5 h-5" />
+              <span>Logros</span>
+            </h3>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+
+            <div className="space-y-1 text-sm">
+              <p>{data.logros}</p>
+            </div>
+          </div>
+
+          <div className="mt-6 pt-6 border-t">
+            <h3 className="text-lg font-medium flex items-center space-x-2 mb-4">
+              <FileBadge className="w-5 h-5" />
+              <span>Semplanza</span>
+            </h3>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+
+            <div className="space-y-1 text-sm">
+              <p>{data.semblanza}</p>
+            </div>
           </div>
         </div>
       )}
