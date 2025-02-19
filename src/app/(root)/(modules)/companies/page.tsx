@@ -27,6 +27,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { CompanyOverview } from "./components/company-overview";
 
 export default function CompanyPage() {
   const { role, loading: roleLoading, isStaff, isAsociado, hasCompany, refresh: refreshUserRole } = useUserRole();
@@ -77,6 +78,9 @@ export default function CompanyPage() {
     companyName: null,
   });
 
+  const [selectedCompanyProfile, setSelectedCompanyProfile] = useState<any>(null);
+  const [expandedCompanyId, setExpandedCompanyId] = useState<number | null>(null);
+
   const debouncedSearch = useDebounce(searchQuery, 300);
 
   const loadCompanies = useCallback(async () => {
@@ -105,6 +109,36 @@ export default function CompanyPage() {
       setLoading(false);
     }
   }, [debouncedSearch, showActive]);
+
+  const loadCompanyProfile = useCallback(async (companyId: number) => {
+    try {
+      const response = await fetch(`/api/companies/${companyId}/profile`, {
+        headers: {
+          Authorization: `Bearer ${getToken()}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Error al cargar el perfil de la empresa");
+      }
+
+      const data = await response.json();
+      setSelectedCompanyProfile(data);
+    } catch (error) {
+      console.error("Error loading company profile:", error);
+      toast.error("Error al cargar el perfil de la empresa");
+    }
+  }, []);
+
+  const handleRowClick = useCallback((company: Company) => {
+    if (expandedCompanyId === company.id) {
+      setExpandedCompanyId(null);
+      setSelectedCompanyProfile(null);
+    } else {
+      setExpandedCompanyId(company.id);
+      loadCompanyProfile(company.id);
+    }
+  }, [expandedCompanyId, loadCompanyProfile]);
 
   useEffect(() => {
     loadCompanies();
@@ -197,9 +231,15 @@ export default function CompanyPage() {
           onManageCertificates={handleManageCertificates}
           onManageSpecialties={handleManageSpecialties}
           onManageUsers={handleManageUsers}
+          onRowClick={handleRowClick}
           isStaff={isStaff}
           isAsociado={isAsociado}
+          expandedId={expandedCompanyId}
         />
+
+        {selectedCompanyProfile && (
+          <CompanyOverview data={selectedCompanyProfile} />
+        )}
 
         <CompanyModal
           open={editModal.isOpen}

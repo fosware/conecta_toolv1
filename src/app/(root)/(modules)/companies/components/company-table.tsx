@@ -10,8 +10,9 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Pencil, Trash2, Users, Award, Medal, Loader2 } from "lucide-react";
+import { Pencil, Trash2, Users, Award, Medal, Loader2, ChevronRight, ChevronDown, FileText } from "lucide-react";
 import { Company } from "@prisma/client";
+import { useState } from "react";
 
 interface CompanyTableProps {
   data: (Company & {
@@ -27,8 +28,10 @@ interface CompanyTableProps {
   onManageCertificates?: (item: Company) => void;
   onManageSpecialties?: (item: Company) => void;
   onManageUsers?: (item: Company) => void;
+  onRowClick?: (item: Company) => void;
   isStaff: boolean;
   isAsociado: boolean;
+  expandedId: number | null;
 }
 
 export function CompanyTable({
@@ -40,8 +43,10 @@ export function CompanyTable({
   onManageCertificates,
   onManageSpecialties,
   onManageUsers,
+  onRowClick,
   isStaff,
   isAsociado,
+  expandedId,
 }: CompanyTableProps) {
   // Determinar si el usuario puede editar y eliminar
   const canEdit = !isStaff;
@@ -54,6 +59,7 @@ export function CompanyTable({
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="w-[50px]"></TableHead>
             <TableHead>Empresa</TableHead>
             <TableHead>Contacto</TableHead>
             <TableHead>Email</TableHead>
@@ -66,7 +72,7 @@ export function CompanyTable({
         <TableBody>
           {loading ? (
             <TableRow>
-              <TableCell colSpan={7} className="text-center">
+              <TableCell colSpan={8} className="text-center">
                 <div className="flex items-center justify-center py-4">
                   <Loader2 className="h-6 w-6 animate-spin" />
                 </div>
@@ -74,13 +80,29 @@ export function CompanyTable({
             </TableRow>
           ) : data.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={7} className="text-center">
+              <TableCell colSpan={8} className="text-center">
                 No hay empresas para mostrar
               </TableCell>
             </TableRow>
           ) : (
             data.map((item) => (
               <TableRow key={item.id}>
+                <TableCell>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onRowClick?.(item)}
+                    title={expandedId === item.id ? "Contraer detalles" : "Expandir detalles"}
+                    className="hover:bg-muted flex items-center gap-1 h-8 px-2"
+                  >
+                    <FileText className="h-4 w-4" />
+                    {expandedId === item.id ? (
+                      <ChevronDown className="h-4 w-4" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4" />
+                    )}
+                  </Button>
+                </TableCell>
                 <TableCell>{item.comercialName}</TableCell>
                 <TableCell>{item.contactName}</TableCell>
                 <TableCell>{item.email}</TableCell>

@@ -297,7 +297,7 @@ model CompanyUser {
  * sitio_web            String?
  * certificaciones      Json
  * especialidades       Json
- * @@map("v_company_profile") // Hace referencia a la vista en la BD
+ * @@map("v_companies_overview") // Hace referencia a la vista en la BD
  * @@ignore
  * }
  */
