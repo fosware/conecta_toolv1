@@ -411,6 +411,9 @@ export async function PUT(
       ...(companyLogo && { companyLogo }),
       ...(ndaBuffer && { nda: ndaBuffer }),
       ...(ndaFileName && { ndaFileName }),
+      ...(formData.has("isActive") && { 
+        isActive: formData.get("isActive") === "true" 
+      }),
     };
 
     // Validate the data

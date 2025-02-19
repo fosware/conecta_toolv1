@@ -162,7 +162,24 @@ export default function CompanyPage() {
   };
 
   const handleToggleStatus = async (id: number, currentStatus: boolean) => {
-    // Implementar lógica de cambio de estado
+    try {
+      const response = await fetch(`/api/companies/${id}/toggle-status`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${getToken()}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Error al cambiar el estado de la empresa");
+      }
+
+      await loadCompanies();
+      toast.success("Estado de la empresa actualizado correctamente");
+    } catch (error) {
+      console.error("Error toggling company status:", error);
+      toast.error("Error al cambiar el estado de la empresa");
+    }
   };
 
   const handleManageCertificates = (item: Company) => {
