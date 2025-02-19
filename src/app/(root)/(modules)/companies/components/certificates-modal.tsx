@@ -1,7 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -69,8 +74,10 @@ export function CertificatesModal({
   const [certifications, setCertifications] = useState<Certification[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [certificateToDelete, setCertificateToDelete] = useState<CompanyCertificate | null>(null);
-  const [editingCertificate, setEditingCertificate] = useState<CompanyCertificate | null>(null);
+  const [certificateToDelete, setCertificateToDelete] =
+    useState<CompanyCertificate | null>(null);
+  const [editingCertificate, setEditingCertificate] =
+    useState<CompanyCertificate | null>(null);
   const [newCertificate, setNewCertificate] = useState({
     certificationId: "",
     certificateFile: null as File | null,
@@ -84,7 +91,7 @@ export function CertificatesModal({
   // Cargar el catálogo de certificaciones
   const loadCertifications = async () => {
     try {
-      const response = await fetch('/api/certifications', {
+      const response = await fetch("/api/certifications", {
         headers: {
           Authorization: `Bearer ${getToken()}`,
         },
@@ -117,12 +124,7 @@ export function CertificatesModal({
       }
 
       const data = await response.json();
-      console.log('Certificados cargados:', data.items.map((cert: CompanyCertificate) => ({
-        id: cert.id,
-        certification: cert.certification.name,
-        expirationDate: cert.expirationDate,
-        commitmentDate: cert.commitmentDate
-      })));
+
       setCertificates(data.items || []);
     } catch (error) {
       console.error("Error:", error);
@@ -161,11 +163,14 @@ export function CertificatesModal({
       const formData = new FormData();
       formData.append("certificationId", newCertificate.certificationId);
       formData.append("isCommitment", newCertificate.isCommitment.toString());
-      
+
       // Ajustar las fechas a UTC antes de enviar
       if (newCertificate.isCommitment && newCertificate.commitmentDate) {
         formData.append("commitmentDate", newCertificate.commitmentDate);
-      } else if (!newCertificate.isCommitment && newCertificate.expirationDate) {
+      } else if (
+        !newCertificate.isCommitment &&
+        newCertificate.expirationDate
+      ) {
         formData.append("expirationDate", newCertificate.expirationDate);
       }
 
@@ -173,29 +178,40 @@ export function CertificatesModal({
         formData.append("certificateFile", newCertificate.certificateFile);
       }
 
-      const response = await fetch(`/api/companies/${companyId}/certificates${editingCertificate ? `/${editingCertificate.id}` : ''}`, {
-        method: editingCertificate ? "PUT" : "POST",
-        headers: {
-          Authorization: `Bearer ${getToken()}`,
-        },
-        body: formData,
-      });
+      const response = await fetch(
+        `/api/companies/${companyId}/certificates${editingCertificate ? `/${editingCertificate.id}` : ""}`,
+        {
+          method: editingCertificate ? "PUT" : "POST",
+          headers: {
+            Authorization: `Bearer ${getToken()}`,
+          },
+          body: formData,
+        }
+      );
 
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || "Error al agregar el certificado");
       }
 
-      toast.success(editingCertificate ? "Certificado actualizado correctamente" : "Certificado agregado correctamente");
-      
+      toast.success(
+        editingCertificate
+          ? "Certificado actualizado correctamente"
+          : "Certificado agregado correctamente"
+      );
+
       // Limpiar completamente el estado
       resetForm();
-      
+
       // Recargar la lista de certificados
       loadCertificates();
     } catch (error) {
       console.error("Error:", error);
-      toast.error(error instanceof Error ? error.message : "Error al agregar el certificado");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Error al agregar el certificado"
+      );
     } finally {
       setSubmitting(false);
     }
@@ -241,7 +257,9 @@ export function CertificatesModal({
   const handleDeleteCertificate = async (certificate: CompanyCertificate) => {
     try {
       // Actualizar el estado local inmediatamente
-      setCertificates((prev) => prev.filter((cert) => cert.id !== certificate.id));
+      setCertificates((prev) =>
+        prev.filter((cert) => cert.id !== certificate.id)
+      );
 
       const response = await fetch(
         `/api/companies/${companyId}/certificates/${certificate.id}`,
@@ -268,11 +286,11 @@ export function CertificatesModal({
 
   const handleEditCertificate = (cert: CompanyCertificate) => {
     setEditingCertificate(cert);
-    
+
     // Función auxiliar para formatear fecha para input type="date"
     const formatDateForInput = (date: Date | null) => {
-      if (!date) return '';
-      return new Date(date).toISOString().split('T')[0];
+      if (!date) return "";
+      return new Date(date).toISOString().split("T")[0];
     };
 
     setNewCertificate({
@@ -323,21 +341,21 @@ export function CertificatesModal({
 
   // Función para formatear fecha para mostrar en la tabla
   const formatDateForDisplay = (date: string | Date | null) => {
-    if (!date) return 'N/A';
+    if (!date) return "N/A";
     try {
       // Si la fecha ya es un objeto Date, usarlo directamente
       const d = date instanceof Date ? date : new Date(date);
-      if (isNaN(d.getTime())) throw new Error('Invalid date');
-      
-      return d.toLocaleDateString('es-ES', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        timeZone: 'UTC'  // Forzar interpretación UTC
+      if (isNaN(d.getTime())) throw new Error("Invalid date");
+
+      return d.toLocaleDateString("es-ES", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        timeZone: "UTC", // Forzar interpretación UTC
       });
     } catch (error) {
-      console.error('Error formatting date:', date, error);
-      return 'Fecha inválida';
+      console.error("Error formatting date:", date, error);
+      return "Fecha inválida";
     }
   };
 
@@ -355,7 +373,9 @@ export function CertificatesModal({
           <DialogHeader className="mb-4">
             <DialogTitle>
               <span className="text-muted-foreground">Certificados de </span>
-              <span className="text-blue-500 dark:text-blue-400 font-bold">{companyName}</span>
+              <span className="text-blue-500 dark:text-blue-400 font-bold">
+                {companyName}
+              </span>
             </DialogTitle>
           </DialogHeader>
 
@@ -368,7 +388,10 @@ export function CertificatesModal({
                 <Select
                   value={newCertificate.certificationId}
                   onValueChange={(value) =>
-                    setNewCertificate((prev) => ({ ...prev, certificationId: value }))
+                    setNewCertificate((prev) => ({
+                      ...prev,
+                      certificationId: value,
+                    }))
                   }
                 >
                   <SelectTrigger className="w-full">
@@ -394,9 +417,12 @@ export function CertificatesModal({
                       ...prev,
                       isCommitment: checked === true,
                       // Limpiar campos no relevantes según el tipo
-                      certificateFile: checked === true ? null : prev.certificateFile,
-                      expirationDate: checked === true ? "" : prev.expirationDate,
-                      commitmentDate: checked === true ? prev.commitmentDate : "",
+                      certificateFile:
+                        checked === true ? null : prev.certificateFile,
+                      expirationDate:
+                        checked === true ? "" : prev.expirationDate,
+                      commitmentDate:
+                        checked === true ? prev.commitmentDate : "",
                     }))
                   }
                 />
@@ -457,12 +483,16 @@ export function CertificatesModal({
                           }
                           className="w-full"
                         />
-                        {editingCertificate?.certificateFileName && !newCertificate.certificateFile && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <FileText className="h-4 w-4" />
-                            <span>Archivo actual: {editingCertificate.certificateFileName}</span>
-                          </div>
-                        )}
+                        {editingCertificate?.certificateFileName &&
+                          !newCertificate.certificateFile && (
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <FileText className="h-4 w-4" />
+                              <span>
+                                Archivo actual:{" "}
+                                {editingCertificate.certificateFileName}
+                              </span>
+                            </div>
+                          )}
                       </div>
                     </div>
                   </>
@@ -480,10 +510,7 @@ export function CertificatesModal({
                     Cancelar
                   </Button>
                 )}
-                <Button
-                  onClick={handleAddCertificate}
-                  disabled={submitting}
-                >
+                <Button onClick={handleAddCertificate} disabled={submitting}>
                   {submitting ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : editingCertificate ? (
@@ -501,11 +528,19 @@ export function CertificatesModal({
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="whitespace-nowrap">Certificación</TableHead>
-                      <TableHead className="whitespace-nowrap">Archivo</TableHead>
+                      <TableHead className="whitespace-nowrap">
+                        Certificación
+                      </TableHead>
+                      <TableHead className="whitespace-nowrap">
+                        Archivo
+                      </TableHead>
                       <TableHead className="whitespace-nowrap">Vence</TableHead>
-                      <TableHead className="whitespace-nowrap">Compromiso</TableHead>
-                      <TableHead className="w-20 text-center whitespace-nowrap">Acciones</TableHead>
+                      <TableHead className="whitespace-nowrap">
+                        Compromiso
+                      </TableHead>
+                      <TableHead className="w-20 text-center whitespace-nowrap">
+                        Acciones
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -517,19 +552,13 @@ export function CertificatesModal({
                       </TableRow>
                     ) : certificates.length === 0 ? (
                       <TableRow>
-                        <TableCell
-                          colSpan={5}
-                          className="h-24 text-center"
-                        >
+                        <TableCell colSpan={5} className="h-24 text-center">
                           No hay certificados registrados
                         </TableCell>
                       </TableRow>
                     ) : (
                       certificates.map((cert) => (
-                        <TableRow 
-                          key={cert.id}
-                          className="hover:bg-muted/50"
-                        >
+                        <TableRow key={cert.id} className="hover:bg-muted/50">
                           <TableCell className="font-medium whitespace-nowrap">
                             {cert.certification.name}
                           </TableCell>
@@ -583,17 +612,24 @@ export function CertificatesModal({
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={!!certificateToDelete} onOpenChange={() => setCertificateToDelete(null)}>
+      <AlertDialog
+        open={!!certificateToDelete}
+        onOpenChange={() => setCertificateToDelete(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción eliminará el certificado &quot;{certificateToDelete?.certification.name}&quot; y no se puede deshacer.
+              Esta acción eliminará el certificado &quot;
+              {certificateToDelete?.certification.name}&quot; y no se puede
+              deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => handleDeleteCertificate(certificateToDelete!)}>
+            <AlertDialogAction
+              onClick={() => handleDeleteCertificate(certificateToDelete!)}
+            >
               Eliminar
             </AlertDialogAction>
           </AlertDialogFooter>

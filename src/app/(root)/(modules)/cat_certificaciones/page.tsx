@@ -122,7 +122,7 @@ const CatalogCertifications = () => {
         },
         body: JSON.stringify({
           ...data,
-          userId: userId
+          userId: userId,
         }),
       });
 
@@ -302,10 +302,6 @@ const CatalogCertifications = () => {
                     size="icon"
                     title="Editar certificación"
                     onClick={() => {
-                      console.log(
-                        "Edit button clicked, certification:",
-                        certificacion
-                      );
                       setEditingCertification(certificacion);
                       setModalOpen(true);
                     }}
@@ -353,7 +349,12 @@ const CatalogCertifications = () => {
                       }
                     }}
                     trigger={
-                      <Button variant="ghost" size="icon" title="Eliminar certificación" className="h-9 w-9 p-0">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Eliminar certificación"
+                        className="h-9 w-9 p-0"
+                      >
                         <Trash2 className="h-6 w-6" />
                       </Button>
                     }

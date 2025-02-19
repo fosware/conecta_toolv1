@@ -38,7 +38,6 @@ export async function GET(
     }
 
     const profile = profiles[0];
-    console.log("Datos de la vista:", JSON.stringify(profile, null, 2));
 
     return NextResponse.json({
       id: profile.id,
