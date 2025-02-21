@@ -159,12 +159,27 @@ export default function CompanyPage() {
 
   const handleDelete = async (item: Company) => {
     // Implementar lógica de eliminación
-    console.log("Eliminar", item.id);
   };
 
   const handleToggleStatus = async (id: number, currentStatus: boolean) => {
-    // Implementar lógica de cambio de estado
-    console.log("Toggle status", id, currentStatus);
+    try {
+      const response = await fetch(`/api/companies/${id}/toggle-status`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${getToken()}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Error al cambiar el estado de la empresa");
+      }
+
+      await loadCompanies();
+      toast.success("Estado de la empresa actualizado correctamente");
+    } catch (error) {
+      console.error("Error toggling company status:", error);
+      toast.error("Error al cambiar el estado de la empresa");
+    }
   };
 
   const handleManageCertificates = (item: Company) => {
@@ -198,6 +213,10 @@ export default function CompanyPage() {
   const handleSuccess = async () => {
     await refreshUserRole();
     await loadCompanies();
+    // Si hay una empresa expandida, recargar su perfil
+    if (expandedCompanyId) {
+      await loadCompanyProfile(expandedCompanyId);
+    }
   };
 
   return (

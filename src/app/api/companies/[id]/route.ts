@@ -26,6 +26,7 @@ const updateCompanySchema = z.object({
   isActive: z.boolean().optional(),
   profile: z.string().nullable().optional(),
   shiftsProfileLink: z.string().nullable().optional(),
+  achievementDescription: z.string().nullable().optional(),
 });
 
 // GET: Obtener una empresa por ID
@@ -107,38 +108,52 @@ export async function PUT(
       neighborhood: formData.get("neighborhood") as string,
       postalCode: formData.get("postalCode") as string,
       city: formData.get("city") as string,
-      stateId: formData.get("stateId") ? parseInt(formData.get("stateId") as string) : null,
+      stateId: formData.get("stateId")
+        ? parseInt(formData.get("stateId") as string)
+        : null,
       phone: formData.get("phone") as string,
       profile: (formData.get("profile") as string) || null,
       shiftsProfileLink: (formData.get("shiftsProfileLink") as string) || null,
       website: (formData.get("website") as string) || null,
       email: formData.get("email") as string,
-      machineCount: formData.get("machineCount") ? parseInt(formData.get("machineCount") as string) : 0,
-      employeeCount: formData.get("employeeCount") ? parseInt(formData.get("employeeCount") as string) : 0,
+      machineCount: formData.get("machineCount")
+        ? parseInt(formData.get("machineCount") as string)
+        : 0,
+      employeeCount: formData.get("employeeCount")
+        ? parseInt(formData.get("employeeCount") as string)
+        : 0,
       shifts: formData.get("shifts") as string,
+      achievementDescription: formData.get("achievementDescription") as string,
     };
 
     // Manejar archivos por separado
     const companyLogoFile = formData.get("companyLogo");
     const ndaFile = formData.get("nda");
 
-    if (companyLogoFile && 
-        typeof companyLogoFile === "object" && 
-        "arrayBuffer" in companyLogoFile && 
-        typeof companyLogoFile.arrayBuffer === "function") {
+    if (
+      companyLogoFile &&
+      typeof companyLogoFile === "object" &&
+      "arrayBuffer" in companyLogoFile &&
+      typeof companyLogoFile.arrayBuffer === "function"
+    ) {
       const bytes = await companyLogoFile.arrayBuffer();
       data.companyLogo = Buffer.from(bytes).toString("base64");
     } else if (typeof companyLogoFile === "string") {
       data.companyLogo = companyLogoFile;
     }
 
-    if (ndaFile && 
-        typeof ndaFile === "object" && 
-        "arrayBuffer" in ndaFile && 
-        typeof ndaFile.arrayBuffer === "function") {
+    if (
+      ndaFile &&
+      typeof ndaFile === "object" &&
+      "arrayBuffer" in ndaFile &&
+      typeof ndaFile.arrayBuffer === "function"
+    ) {
       const bytes = await ndaFile.arrayBuffer();
       data.nda = Buffer.from(bytes);
-      data.ndaFileName = "name" in ndaFile ? ndaFile.name : formData.get("ndaFileName") as string;
+      data.ndaFileName =
+        "name" in ndaFile
+          ? ndaFile.name
+          : (formData.get("ndaFileName") as string);
     }
 
     // Validar los datos

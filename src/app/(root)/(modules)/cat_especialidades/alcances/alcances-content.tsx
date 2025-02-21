@@ -30,7 +30,7 @@ const mapToAlcance = (api: AlcanceAPI): Alcance => ({
   isDeleted: false,
   userId: 1,
   dateCreated: new Date(),
-  dateUpdated: null
+  dateUpdated: null,
 });
 
 export default function AlcancesContent() {
@@ -61,7 +61,9 @@ export default function AlcancesContent() {
       }
       const data = await response.json();
       // Mapear los datos de la API al tipo Alcance
-      const mappedAlcances: Alcance[] = (data.items as AlcanceAPI[]).map(mapToAlcance);
+      const mappedAlcances: Alcance[] = (data.items as AlcanceAPI[]).map(
+        mapToAlcance
+      );
       setAlcances(mappedAlcances);
       setTotalPages(data.totalPages || 1);
     } catch (error) {
@@ -85,58 +87,64 @@ export default function AlcancesContent() {
   const handleDelete = async (alcance: Alcance) => {
     try {
       // Actualización optimista
-      const updatedAlcances = alcances.filter(a => a.id !== alcance.id);
+      const updatedAlcances = alcances.filter((a) => a.id !== alcance.id);
       setAlcances(updatedAlcances);
 
-      const response = await fetch(`/cat_especialidades/api/alcances/${alcance.id}/delete`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...alcance,
-          isDeleted: true,
-          dateUpdated: new Date(),
-        }),
-      });
+      const response = await fetch(
+        `/cat_especialidades/api/alcances/${alcance.id}/delete`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ...alcance,
+            isDeleted: true,
+            dateUpdated: new Date(),
+          }),
+        }
+      );
 
       if (!response.ok) {
-        throw new Error('Error al eliminar el alcance');
+        throw new Error("Error al eliminar el alcance");
       }
 
-      toast.success('Alcance eliminado correctamente');
+      toast.success("Alcance eliminado correctamente");
     } catch (error) {
-      console.error('Error:', error);
+      console.error("Error:", error);
       // Revertir la actualización optimista
       loadAlcances();
-      toast.error('Error al eliminar el alcance');
+      toast.error("Error al eliminar el alcance");
     }
   };
 
   const handleEdit = (alcance: Alcance) => {
     // Implementar lógica de edición
-    console.log('Editar alcance:', alcance);
   };
 
   const handleToggleStatus = async (alcance: Alcance) => {
     try {
-      const response = await fetch(`/cat_especialidades/api/alcances/${alcance.id}/toggle-status`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...alcance,
-          isActive: !alcance.isActive,
-          dateUpdated: new Date(),
-        }),
-      });
-      if (!response.ok) throw new Error('Error al cambiar el estado del alcance');
-      toast.success('Estado actualizado correctamente');
+      const response = await fetch(
+        `/cat_especialidades/api/alcances/${alcance.id}/toggle-status`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ...alcance,
+            isActive: !alcance.isActive,
+            dateUpdated: new Date(),
+          }),
+        }
+      );
+      if (!response.ok)
+        throw new Error("Error al cambiar el estado del alcance");
+      toast.success("Estado actualizado correctamente");
       loadAlcances();
     } catch (error) {
-      console.error('Error:', error);
-      toast.error('Error al cambiar el estado del alcance');
+      console.error("Error:", error);
+      toast.error("Error al cambiar el estado del alcance");
     }
   };
 

@@ -153,7 +153,6 @@ export async function POST(request: NextRequest) {
     }
 
     const userRole = user.role.name.toLowerCase();
-    console.log("User Role:", userRole);
 
     // Si es Asociado, verificar que no tenga ya una empresa
     if (
@@ -274,11 +273,8 @@ export async function POST(request: NextRequest) {
           },
         });
 
-        console.log("Company created:", company.id);
-
         // 2. Si el usuario es Asociado, crear la relación CompanyUser
         if (userRole === "asociado") {
-          console.log("Creating CompanyUser relation for Asociado");
           await tx.companyUser.create({
             data: {
               userId: userId,
@@ -288,7 +284,6 @@ export async function POST(request: NextRequest) {
               isDeleted: false,
             },
           });
-          console.log("CompanyUser relation created");
         }
 
         return company;
@@ -416,6 +411,9 @@ export async function PUT(
       ...(companyLogo && { companyLogo }),
       ...(ndaBuffer && { nda: ndaBuffer }),
       ...(ndaFileName && { ndaFileName }),
+      ...(formData.has("isActive") && { 
+        isActive: formData.get("isActive") === "true" 
+      }),
     };
 
     // Validate the data
@@ -429,10 +427,12 @@ export async function PUT(
         {
           error: "Error de validación",
           type: "VALIDATION_ERROR",
-          details: (validationError as import("zod").ZodError).issues.map((issue) => ({
-            field: issue.path[0],
-            message: issue.message,
-          })),
+          details: (validationError as import("zod").ZodError).issues.map(
+            (issue) => ({
+              field: issue.path[0],
+              message: issue.message,
+            })
+          ),
         },
         { status: 400 }
       );

@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { getToken } from '@/lib/auth';
+import { useState, useEffect, useCallback } from "react";
+import { getToken } from "@/lib/auth";
 
 interface UserRoleInfo {
   role: string | null;
@@ -24,7 +24,7 @@ export function useUserRole(): UserRoleInfo {
         return;
       }
 
-      const response = await fetch('/profile/api/get', {
+      const response = await fetch("/profile/api/get", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -32,24 +32,23 @@ export function useUserRole(): UserRoleInfo {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('User data:', data);
+
         const userRole = data.user?.role;
-        console.log('User role:', userRole);
-        
+
         // Verificar si el usuario tiene una empresa asociada
         const companyUser = data.user?.CompanyUser;
-        const hasAssociatedCompany = Array.isArray(companyUser) && companyUser.length > 0;
-        console.log('Has company:', hasAssociatedCompany);
+        const hasAssociatedCompany =
+          Array.isArray(companyUser) && companyUser.length > 0;
 
         setRole(userRole || null);
         setHasCompany(hasAssociatedCompany);
       } else {
-        console.error('Error response:', await response.text());
+        console.error("Error response:", await response.text());
         setRole(null);
         setHasCompany(false);
       }
     } catch (error) {
-      console.error('Error fetching user role:', error);
+      console.error("Error fetching user role:", error);
       setRole(null);
       setHasCompany(false);
     } finally {
@@ -66,9 +65,9 @@ export function useUserRole(): UserRoleInfo {
   return {
     role: normalizedRole,
     loading,
-    isStaff: normalizedRole === 'staff',
-    isAsociado: normalizedRole === 'asociado',
+    isStaff: normalizedRole === "staff",
+    isAsociado: normalizedRole === "asociado",
     hasCompany,
-    refresh: fetchUserRole
+    refresh: fetchUserRole,
   };
 }
