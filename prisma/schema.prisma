@@ -28,6 +28,9 @@ model User {
   CompanyCertifications CompanyCertifications[]
   CompanySpecialties    CompanySpecialties[]
   CompanyUser           CompanyUser[]
+  Clients               Clients[]
+  Projects              Project[]
+  projectQuotes         ProjectQuote[]
 
   @@unique([email, isDeleted])
   @@unique([username, isDeleted])
@@ -205,6 +208,7 @@ model Company {
   CompanyCertifications  CompanyCertifications[]
   CompanySpecialties     CompanySpecialties[]
   CompanyUser            CompanyUser[]
+  projectQuotes          ProjectQuote[]
 
   @@index([isDeleted, isActive])
   @@map("d_companies")
@@ -301,3 +305,88 @@ model CompanyUser {
  * @@ignore
  * }
  */
+//----------------------------------------------------
+
+//------------------ SOLICITUDES ---------------------
+
+// Tipos de proyecto
+model ProjectTypes {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  isActive    Boolean   @default(true)
+  isDeleted   Boolean   @default(false)
+  dateDeleted DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  Project     Project[]
+
+  @@index([isDeleted, isActive])
+  @@map("c_project_types")
+}
+
+// Empresas cliente
+model Clients {
+  id           Int       @id @default(autoincrement())
+  name         String
+  contactName  String
+  contactEmail String
+  contactPhone String
+  isActive     Boolean   @default(true)
+  isDeleted    Boolean   @default(false)
+  dateDeleted  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  userId       Int
+  user         User      @relation(fields: [userId], references: [id])
+  Project      Project[]
+
+  @@index([isDeleted, isActive])
+  @@map("cat_clients")
+}
+
+// Proyectos
+model Project {
+  id                        Int            @id @default(autoincrement())
+  name                      String
+  proyectTypeId             Int
+  clientId                  Int
+  requestDate               DateTime       @default(now())
+  drawRequest               Bytes?
+  specialRequest            Boolean?
+  descriptionSpecialRequest String?
+  generalDescription        String?
+  isActive                  Boolean        @default(true)
+  isDeleted                 Boolean        @default(false)
+  dateDeleted               DateTime?
+  createdAt                 DateTime       @default(now())
+  updatedAt                 DateTime       @updatedAt
+  userId                    Int
+  projectType               ProjectTypes   @relation(fields: [proyectTypeId], references: [id])
+  client                    Clients        @relation(fields: [clientId], references: [id])
+  user                      User           @relation(fields: [userId], references: [id])
+  projectQuote              ProjectQuote[]
+
+  @@index([isDeleted, isActive])
+  @@map("d_projects")
+}
+
+// Cotizaciones de proyectos
+model ProjectQuote {
+  id              Int       @id @default(autoincrement())
+  projectId       Int
+  companyId       Int
+  deadline        DateTime
+  itemDescription String // descripcion breve a cotizar
+  isActive        Boolean   @default(true)
+  isDeleted       Boolean   @default(false)
+  dateDeleted     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  userId          Int
+  user            User      @relation(fields: [userId], references: [id])
+  project         Project   @relation(fields: [projectId], references: [id])
+  company         Company   @relation(fields: [companyId], references: [id])
+
+  @@index([isDeleted, isActive])
+  @@map("d_quotes")
+}

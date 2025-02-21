@@ -7,6 +7,7 @@ import { seedScopes } from "./scopes.js";
 import { seedSubscopes } from "./subscopes.js";
 import { seedCertifications } from "./certifications.js";
 import { seedLocationStates } from "./locationStates.js";
+import { seedProjectTypes } from "./projectTypes.js";
 
 export async function seedAll() {
   try {
@@ -29,6 +30,8 @@ export async function seedAll() {
     console.log("Subalcances sembradas.");
     await seedCertifications();
     console.log("Certificaciones sembradas.");
+    await seedProjectTypes();
+    console.log("Tipos de proyecto sembrados correctamente.");
 
     console.log("Semillas completadas.");
   } catch (error) {

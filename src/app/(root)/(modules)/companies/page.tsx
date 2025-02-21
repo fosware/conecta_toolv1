@@ -30,7 +30,14 @@ import {
 import { CompanyOverview } from "./components/company-overview";
 
 export default function CompanyPage() {
-  const { role, loading: roleLoading, isStaff, isAsociado, hasCompany, refresh: refreshUserRole } = useUserRole();
+  const {
+    role,
+    loading: roleLoading,
+    isStaff,
+    isAsociado,
+    hasCompany,
+    refresh: refreshUserRole,
+  } = useUserRole();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -78,8 +85,11 @@ export default function CompanyPage() {
     companyName: null,
   });
 
-  const [selectedCompanyProfile, setSelectedCompanyProfile] = useState<any>(null);
-  const [expandedCompanyId, setExpandedCompanyId] = useState<number | null>(null);
+  const [selectedCompanyProfile, setSelectedCompanyProfile] =
+    useState<any>(null);
+  const [expandedCompanyId, setExpandedCompanyId] = useState<number | null>(
+    null
+  );
 
   const debouncedSearch = useDebounce(searchQuery, 300);
 
@@ -130,15 +140,18 @@ export default function CompanyPage() {
     }
   }, []);
 
-  const handleRowClick = useCallback((company: Company) => {
-    if (expandedCompanyId === company.id) {
-      setExpandedCompanyId(null);
-      setSelectedCompanyProfile(null);
-    } else {
-      setExpandedCompanyId(company.id);
-      loadCompanyProfile(company.id);
-    }
-  }, [expandedCompanyId, loadCompanyProfile]);
+  const handleRowClick = useCallback(
+    (company: Company) => {
+      if (expandedCompanyId === company.id) {
+        setExpandedCompanyId(null);
+        setSelectedCompanyProfile(null);
+      } else {
+        setExpandedCompanyId(company.id);
+        loadCompanyProfile(company.id);
+      }
+    },
+    [expandedCompanyId, loadCompanyProfile]
+  );
 
   useEffect(() => {
     loadCompanies();
@@ -192,7 +205,7 @@ export default function CompanyPage() {
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">Asociados</h1>
-          {(!isStaff && !roleLoading) && (isAsociado ? !hasCompany : true) && (
+          {!isStaff && !roleLoading && (isAsociado ? !hasCompany : true) && (
             <Button onClick={() => setEditModal({ isOpen: true, item: null })}>
               <Plus className="w-4 h-4 mr-2" />
               Nuevo Asociado
@@ -208,7 +221,7 @@ export default function CompanyPage() {
                 placeholder="Buscar asociado..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-[300px]"
+                className="flex-grow flex-1 min-w-[200px]"
               />
             </div>
             <div className="flex items-center space-x-2">
@@ -243,14 +256,22 @@ export default function CompanyPage() {
 
         <CompanyModal
           open={editModal.isOpen}
-          onOpenChange={(open) => setEditModal({ isOpen: open, item: editModal.item })}
+          onOpenChange={(open) =>
+            setEditModal({ isOpen: open, item: editModal.item })
+          }
           item={editModal.item}
           onSuccess={handleSuccess}
         />
         {certificatesModal.companyId && (
           <CertificatesModal
             open={certificatesModal.isOpen}
-            onClose={() => setCertificatesModal({ isOpen: false, companyId: null, companyName: null })}
+            onClose={() =>
+              setCertificatesModal({
+                isOpen: false,
+                companyId: null,
+                companyName: null,
+              })
+            }
             companyId={certificatesModal.companyId}
             companyName={certificatesModal.companyName || ""}
           />
@@ -258,7 +279,13 @@ export default function CompanyPage() {
         {specialtiesModal.companyId && (
           <SpecialtiesModal
             open={specialtiesModal.isOpen}
-            onClose={() => setSpecialtiesModal({ isOpen: false, companyId: null, companyName: null })}
+            onClose={() =>
+              setSpecialtiesModal({
+                isOpen: false,
+                companyId: null,
+                companyName: null,
+              })
+            }
             companyId={specialtiesModal.companyId}
             companyName={specialtiesModal.companyName || ""}
           />
@@ -266,7 +293,13 @@ export default function CompanyPage() {
         {usersModal.companyId && (
           <UsersModal
             open={usersModal.isOpen}
-            onClose={() => setUsersModal({ isOpen: false, companyId: null, companyName: null })}
+            onClose={() =>
+              setUsersModal({
+                isOpen: false,
+                companyId: null,
+                companyName: null,
+              })
+            }
             companyId={usersModal.companyId}
             companyName={usersModal.companyName || ""}
           />
