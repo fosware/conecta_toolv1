@@ -1,5 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Certificacion } from "@/lib/schemas/cat_certifications";
+
 import {
   Building2,
   Users,
@@ -12,8 +13,10 @@ import {
   Calendar,
   Trophy,
   FileBadge,
+  Link as LinkIcon,
 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 
 interface Certificaciones {
   certificacion: string;
@@ -130,7 +133,7 @@ export function CompanyOverview({ data }: CompanyOverviewProps) {
                   rel="noopener noreferrer"
                   className="hover:underline"
                 >
-                  Sitio Web
+                  {data.sitio_web}
                 </a>
               </div>
             )}
@@ -151,13 +154,9 @@ export function CompanyOverview({ data }: CompanyOverviewProps) {
                     key={`${cert.certificacion}-${index}`}
                     className="flex items-start space-x-2 text-sm"
                   >
-                    <Award className="w-4 h-4 text-primary mt-1" />
+                    <Award className="w-4 h-4 text-primary mt-1 ml-1" />
                     <div>
                       <p className="font-medium">{cert.certificacion}</p>
-                      <div className="flex items-center text-muted-foreground text-xs">
-                        <Calendar className="w-3 h-3 mr-1" />
-                        <span>Vence: {cert.fecha_vencimiento}</span>
-                      </div>
                     </div>
                   </div>
                 )
@@ -203,29 +202,41 @@ export function CompanyOverview({ data }: CompanyOverviewProps) {
               </div>
             ))}
           </div>
-          <div className="mt-6 pt-6 border-t">
-            <h3 className="text-lg font-medium flex items-center space-x-2 mb-4">
-              <Trophy className="w-5 h-5" />
-              <span>Logros</span>
-            </h3>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+        </div>
+      )}
+      <div className="mt-6 pt-6 border-t">
+        <h3 className="text-lg font-medium flex items-center space-x-2 mb-4">
+          <Trophy className="w-5 h-5" />
+          <span>Logros</span>
+        </h3>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
 
-            <div className="space-y-1 text-sm">
-              <p>{data.logros}</p>
-            </div>
-          </div>
+        <div className="space-y-1 text-sm">
+          <p>{data.logros}</p>
+        </div>
+      </div>
 
-          <div className="mt-6 pt-6 border-t">
-            <h3 className="text-lg font-medium flex items-center space-x-2 mb-4">
-              <FileBadge className="w-5 h-5" />
-              <span>Semplanza</span>
-            </h3>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+      <div className="mt-6 pt-6 border-t">
+        <h3 className="text-lg font-medium flex items-center space-x-2 mb-4">
+          <FileBadge className="w-5 h-5" />
+          <span>Semblanza</span>
+        </h3>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
 
-            <div className="space-y-1 text-sm">
-              <p>{data.semblanza}</p>
-            </div>
-          </div>
+        <div className="space-y-1 text-sm">
+          <p>{data.semblanza}</p>
+        </div>
+      </div>
+      {data.liga_semblanza && (
+        <div className="mt-6 pt-6 border-t">
+          <h3 className="text-lg font-medium flex items-center space-x-2 mb-4">
+            <LinkIcon className="w-4 h-4" />
+            <span>Logros y semblanza liga</span>
+          </h3>
+
+          <Link href={data.liga_semblanza} target="_blank">
+            {data.liga_semblanza}
+          </Link>
         </div>
       )}
     </div>

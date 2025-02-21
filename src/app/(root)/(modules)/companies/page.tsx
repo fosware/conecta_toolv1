@@ -231,25 +231,38 @@ export default function CompanyPage() {
             </Button>
           )}
         </div>
-
-        {/* Solo mostrar búsqueda y filtros para Admin */}
         {!isStaff && !isAsociado && !roleLoading && (
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Input
-                placeholder="Buscar asociado..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-grow flex-1 min-w-[200px]"
-              />
+          <div className="flex flex-col lg:flex-row gap-4">
+            <div className="flex flex-row gap-2 md:gap-4 flex-1">
+              <div className="flex-1">
+                <label
+                  htmlFor="search-company"
+                  className="text-sm font-medium mb-2 block"
+                >
+                  Buscar asociado
+                </label>
+                <div className="relative">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="search-company"
+                    placeholder="Buscar asociado..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-8 min-w-[300px]"
+                  />
+                </div>
+              </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <Switch
-                checked={showActive}
-                onCheckedChange={setShowActive}
-                id="active-filter"
-              />
-              <label htmlFor="active-filter">Mostrar solo activos</label>
+            <div className="flex flex-col justify-end">
+              <div className="h-[40px] flex items-center">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={showActive}
+                    onCheckedChange={setShowActive}
+                  />
+                  <span className="text-sm">Mostrar solo activos</span>
+                </div>
+              </div>
             </div>
           </div>
         )}
