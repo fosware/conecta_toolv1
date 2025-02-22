@@ -38,5 +38,7 @@ export async function seedAll() {
     console.error("Error al ejecutar semillas:", error);
   }
 }
+// npx prisma migrate dev --name update_models
+// npx prisma generate
 // npm run prisma:seed
-//seedAll();
+// seedAll();

@@ -326,22 +326,40 @@ model ProjectTypes {
 
 // Empresas cliente
 model Clients {
-  id           Int       @id @default(autoincrement())
-  name         String
-  contactName  String
-  contactEmail String
-  contactPhone String
-  isActive     Boolean   @default(true)
-  isDeleted    Boolean   @default(false)
-  dateDeleted  DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  userId       Int
-  user         User      @relation(fields: [userId], references: [id])
-  Project      Project[]
+  id                 Int           @id @default(autoincrement())
+  name               String
+  registered_address String
+  rfc                String
+  isActive           Boolean       @default(true)
+  isDeleted          Boolean       @default(false)
+  dateDeleted        DateTime?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  userId             Int
+  user               User          @relation(fields: [userId], references: [id])
+  Project            Project[]
+  ClientAreas        ClientAreas[]
 
   @@index([isDeleted, isActive])
-  @@map("cat_clients")
+  @@map("c_clients")
+}
+
+model ClientAreas {
+  id                   Int       @id @default(autoincrement())
+  clientId             Int
+  areaName             String
+  contactName          String
+  contactEmail         String
+  contactPhone         String
+  terms_and_conditions String?
+  isActive             Boolean   @default(true)
+  isDeleted            Boolean   @default(false)
+  dateDeleted          DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  client               Clients   @relation(fields: [clientId], references: [id])
+
+  @@map("c_client_areas")
 }
 
 // Proyectos
@@ -388,5 +406,5 @@ model ProjectQuote {
   company         Company   @relation(fields: [companyId], references: [id])
 
   @@index([isDeleted, isActive])
-  @@map("d_quotes")
+  @@map("d_project_quotes")
 }
