@@ -45,9 +45,13 @@ export async function POST(request: NextRequest) {
       descriptionSpecialRequest: formData.get("descriptionSpecialRequest"),
       generalDescription: formData.get("generalDescription"),
       drawRequest: formData.get("drawRequest"),
-      nameDrawRequest: formData.get("drawRequest") && typeof formData.get("drawRequest") === "object" && "name" in formData.get("drawRequest")
-        ? (formData.get("drawRequest") as { name: string }).name
-        : null,
+      nameDrawRequest: (() => {
+        const file = formData.get("drawRequest");
+        if (file && typeof file === "object" && "name" in file) {
+          return (file as { name: string }).name;
+        }
+        return null;
+      })(),
     };
 
     const validatedData = projectCreateSchema.safeParse(data);
