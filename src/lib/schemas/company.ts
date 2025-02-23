@@ -23,12 +23,12 @@ export const companyCreateSchema = z.object({
     .min(0, "El número de empleados no puede ser negativo"),
   shifts: z.string().nullable(),
   achievementDescription: z.string().nullable(),
-  profile: z.string().optional(),
-  shiftsProfileLink: z.string().optional(),
-  website: z.string().optional(),
-  companyLogo: z.string().optional(),
-  nda: z.any().optional(),
-  ndaFileName: z.string().optional(),
+  profile: z.string().nullable(),
+  shiftsProfileLink: z.string().nullable(),
+  website: z.string().nullable(),
+  companyLogo: z.string().nullable(),
+  nda: z.any().nullable(),
+  ndaFileName: z.string().nullable(),
 });
 
 export const companyUpdateSchema = companyCreateSchema.partial();

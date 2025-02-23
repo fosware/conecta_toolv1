@@ -1,7 +1,8 @@
-import { prisma } from "../../../lib/prisma";
-import { getUserFromToken } from "../../../lib/get-user-from-token";
+import { prisma } from "@/lib/prisma";
+import { getUserFromToken } from "@/lib/get-user-from-token";
 import { NextRequest, NextResponse } from "next/server";
-import { companyCreateSchema } from "../../../lib/schemas/company";
+import { z } from "zod";
+import { companyCreateSchema } from "@/lib/schemas/company";
 import { Prisma } from "@prisma/client";
 
 export async function GET(request: Request) {
@@ -85,6 +86,35 @@ export async function GET(request: Request) {
       stateId: true,
       website: true,
       shiftsProfileLink: true,
+      CompanySpecialties: {
+        where: {
+          isDeleted: false,
+        },
+        select: {
+          id: true,
+          specialtyId: true,
+          scopeId: true,
+          subscopeId: true,
+          specialty: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          scope: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          subscope: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      },
     } satisfies Prisma.CompanySelect;
 
     const userRole = user.role.name.toLowerCase();
@@ -215,13 +245,13 @@ export async function POST(request: NextRequest) {
       email: formData.get("email") as string,
       machineCount: parseInt(formData.get("machineCount") as string) || 0,
       employeeCount: parseInt(formData.get("employeeCount") as string) || 0,
-      shifts: (formData.get("shifts") as string) || "",
+      shifts: (formData.get("shifts") as string) || null,
       achievementDescription:
         (formData.get("achievementDescription") as string) || null,
       profile: (formData.get("profile") as string) || null,
       shiftsProfileLink: (formData.get("shiftsProfileLink") as string) || null,
       companyLogo,
-      nda: ndaBuffer,
+      nda: ndaBuffer ? Buffer.from(ndaBuffer) : null,
       ndaFileName,
       userId,
       isActive: true,
@@ -294,26 +324,12 @@ export async function POST(request: NextRequest) {
         message: "Empresa creada exitosamente",
       });
     } catch (error: unknown) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        return NextResponse.json(
-          { error: "Error al crear la empresa en la base de datos" },
-          { status: 500 }
-        );
-      }
-
-      // Error de validación de Zod
-      if (
-        error &&
-        typeof error === "object" &&
-        "name" in error &&
-        error.name === "ZodError"
-      ) {
-        const zodError = error as import("zod").ZodError;
+      if (error instanceof z.ZodError) {
         return NextResponse.json(
           {
             error: "Error de validación",
             type: "VALIDATION_ERROR",
-            fields: zodError.issues.map((issue) => ({
+            fields: error.issues.map((issue: z.ZodIssue) => ({
               field: issue.path[0],
               message: issue.message,
             })),
@@ -322,10 +338,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      return NextResponse.json(
-        { error: "Error interno del servidor" },
-        { status: 500 }
-      );
+      throw error;
     }
   } catch (error) {
     console.error("Error in POST /api/companies:", error);
@@ -353,7 +366,7 @@ export async function PUT(
     const formData = await request.formData();
 
     const logoFile = formData.get("companyLogo");
-    let companyLogo = undefined;
+    let companyLogo = null;
     if (
       logoFile &&
       typeof logoFile === "object" &&
@@ -366,8 +379,8 @@ export async function PUT(
     }
 
     const ndaFile = formData.get("nda");
-    let ndaBuffer = undefined;
-    let ndaFileName = undefined;
+    let ndaBuffer: Uint8Array | null = null;
+    let ndaFileName = formData.get("ndaFileName") as string | null;
 
     if (
       ndaFile &&
@@ -383,7 +396,7 @@ export async function PUT(
           : (formData.get("ndaFileName") as string);
     }
 
-    const updateData: Prisma.CompanyUpdateInput = {
+    const validationData = {
       companyName: formData.get("companyName") as string,
       comercialName: formData.get("comercialName") as string,
       contactName: formData.get("contactName") as string,
@@ -393,46 +406,35 @@ export async function PUT(
       neighborhood: formData.get("neighborhood") as string,
       postalCode: formData.get("postalCode") as string,
       city: formData.get("city") as string,
+      stateId: parseInt(formData.get("stateId") as string),
       phone: formData.get("phone") as string,
-      website: (formData.get("website") as string) || null,
       email: formData.get("email") as string,
       machineCount: parseInt(formData.get("machineCount") as string) || 0,
       employeeCount: parseInt(formData.get("employeeCount") as string) || 0,
-      shifts: (formData.get("shifts") as string) || "",
-      achievementDescription:
-        (formData.get("achievementDescription") as string) || null,
-      profile: (formData.get("profile") as string) || null,
-      shiftsProfileLink: (formData.get("shiftsProfileLink") as string) || null,
-      locationState: {
-        connect: {
-          id: parseInt(formData.get("stateId") as string),
-        },
-      },
-      ...(companyLogo && { companyLogo }),
-      ...(ndaBuffer && { nda: ndaBuffer }),
-      ...(ndaFileName && { ndaFileName }),
-      ...(formData.has("isActive") && { 
-        isActive: formData.get("isActive") === "true" 
-      }),
+      shifts: (formData.get("shifts") as string) || null,
+      achievementDescription: (formData.get("achievementDescription") as string) || null,
+      profile: formData.get("profile")?.toString() || undefined,
+      shiftsProfileLink: formData.get("shiftsProfileLink")?.toString() || undefined,
+      website: formData.get("website")?.toString() || undefined,
+      companyLogo,
+      nda: ndaBuffer || undefined,
+      ndaFileName: ndaFileName || undefined,
+      userId,
+      isActive: true,
+      isDeleted: false,
     };
 
-    // Validate the data
     try {
-      const validationResult = companyCreateSchema.parse({
-        ...updateData,
-        stateId: parseInt(formData.get("stateId") as string),
-      });
+      const validationResult = companyCreateSchema.parse(validationData);
     } catch (validationError) {
       return NextResponse.json(
         {
           error: "Error de validación",
           type: "VALIDATION_ERROR",
-          details: (validationError as import("zod").ZodError).issues.map(
-            (issue) => ({
-              field: issue.path[0],
-              message: issue.message,
-            })
-          ),
+          fields: (validationError as z.ZodError).issues.map((issue) => ({
+            field: issue.path[0],
+            message: issue.message,
+          })),
         },
         { status: 400 }
       );
@@ -441,7 +443,7 @@ export async function PUT(
     try {
       const result = await prisma.company.update({
         where: { id: parseInt(params.id) },
-        data: updateData,
+        data: validationData,
       });
 
       return NextResponse.json({

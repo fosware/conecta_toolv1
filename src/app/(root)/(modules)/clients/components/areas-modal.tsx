@@ -106,7 +106,7 @@ export const AreasModal = ({ isOpen, onClose, client }: AreasModalProps) => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${getToken()}`,
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, clientId: client.id }),
       });
 
       if (!response.ok) {

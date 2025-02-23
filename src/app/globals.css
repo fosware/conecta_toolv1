@@ -74,3 +74,12 @@ button:not([class*="hover:"]):not([role="combobox"]),
 .sidebar-item {
   @apply hover:bg-hover hover:text-foreground transition-colors duration-200;
 }
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}

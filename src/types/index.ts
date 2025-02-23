@@ -34,6 +34,45 @@ export interface Subalcance {
   dateUpdated: Date | null;
 }
 
+export interface Specialty {
+  id: number;
+  name: string;
+  isActive: boolean;
+  isDeleted: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Scope {
+  id: number;
+  name: string;
+  specialtyId: number;
+  isActive: boolean;
+  isDeleted: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Subscope {
+  id: number;
+  name: string;
+  scopeId: number;
+  isActive: boolean;
+  isDeleted: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CompanySpecialty {
+  id: number;
+  companyId: number;
+  specialtyId: number;
+  scopeId: number | null;
+  subscopeId: number | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface Company {
   id: number;
   companyName: string;
@@ -61,6 +100,7 @@ export interface Company {
   userId: number;
   dateCreated: Date;
   dateUpdated: Date | null;
+  CompanySpecialties?: CompanySpecialty[];
 }
 
 export interface CompanyCertification {
@@ -78,24 +118,6 @@ export interface CompanyCertification {
   dateUpdated: Date | null;
 }
 
-export interface CompanySpecialty {
-  id: number;
-  companyId: number;
-  specialtyId: number;
-  specialty?: Especialidad;
-  scopeId?: number;
-  scope?: Alcance;
-  subscopeId?: number;
-  subscope?: Subalcance;
-  materials?: string;
-  machineCapacity?: string;
-  isActive: boolean;
-  isDeleted: boolean;
-  userId: number;
-  dateCreated: Date;
-  dateUpdated: Date | null;
-}
-
 export interface LocationState {
   id: number;
   name: string;
@@ -104,4 +126,85 @@ export interface LocationState {
   userId: number;
   dateCreated: Date;
   dateUpdated: Date | null;
+}
+
+export interface Client {
+  id: number;
+  name: string;
+  registered_address: string;
+  rfc: string;
+  isActive: boolean;
+  isDeleted: boolean;
+  dateDeleted: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  userId: number;
+  areas: ClientArea[];
+}
+
+export interface ClientArea {
+  id: number;
+  clientId: number;
+  areaName: string;
+  contactName: string;
+  contactEmail: string;
+  contactPhone: string;
+  terms_and_conditions: string | null;
+  isActive: boolean;
+  isDeleted: boolean;
+  dateDeleted: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  client: Client;
+}
+
+export interface Project {
+  id: number;
+  name: string;
+  projectTypeId: number;
+  clientId: number;
+  clientAreaId: number;
+  requestDate: Date;
+  drawRequest: Uint8Array | null;
+  nameDrawRequest: string | null;
+  specialRequest: boolean | null;
+  descriptionSpecialRequest: string | null;
+  generalDescription: string | null;
+  isActive: boolean;
+  isDeleted: boolean;
+  dateDeleted: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  userId: number;
+  projectType: ProjectType;
+  client: Client;
+  clientArea?: ClientArea;
+  projectQuote: ProjectQuote[];
+}
+
+export interface ProjectType {
+  id: number;
+  name: string;
+  description: string | null;
+  isActive: boolean;
+  isDeleted: boolean;
+  dateDeleted: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ProjectQuote {
+  id: number;
+  projectId: number;
+  companyId: number;
+  deadline: Date;
+  itemDescription: string;
+  isActive: boolean;
+  isDeleted: boolean;
+  dateDeleted: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  userId: number;
+  project: Project;
+  company: Company;
 }

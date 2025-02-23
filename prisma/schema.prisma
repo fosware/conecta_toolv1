@@ -358,6 +358,7 @@ model ClientAreas {
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
   client               Clients   @relation(fields: [clientId], references: [id])
+  Project              Project[]
 
   @@map("c_client_areas")
 }
@@ -366,10 +367,12 @@ model ClientAreas {
 model Project {
   id                        Int            @id @default(autoincrement())
   name                      String
-  proyectTypeId             Int
+  projectTypeId             Int
   clientId                  Int
+  clientAreaId              Int
   requestDate               DateTime       @default(now())
   drawRequest               Bytes?
+  nameDrawRequest           String?
   specialRequest            Boolean?
   descriptionSpecialRequest String?
   generalDescription        String?
@@ -379,8 +382,9 @@ model Project {
   createdAt                 DateTime       @default(now())
   updatedAt                 DateTime       @updatedAt
   userId                    Int
-  projectType               ProjectTypes   @relation(fields: [proyectTypeId], references: [id])
+  projectType               ProjectTypes   @relation(fields: [projectTypeId], references: [id])
   client                    Clients        @relation(fields: [clientId], references: [id])
+  clientArea               ClientAreas    @relation(fields: [clientAreaId], references: [id])
   user                      User           @relation(fields: [userId], references: [id])
   projectQuote              ProjectQuote[]
 
