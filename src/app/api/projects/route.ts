@@ -44,9 +44,9 @@ export async function POST(request: NextRequest) {
       specialRequest: formData.get("specialRequest") === "true",
       descriptionSpecialRequest: formData.get("descriptionSpecialRequest"),
       generalDescription: formData.get("generalDescription"),
-      drawRequest: formData.get("drawRequest") as File | null,
-      nameDrawRequest: formData.get("drawRequest") 
-        ? (formData.get("drawRequest") as File).name 
+      drawRequest: formData.get("drawRequest"),
+      nameDrawRequest: formData.get("drawRequest") && typeof formData.get("drawRequest") === "object" && "name" in formData.get("drawRequest")
+        ? (formData.get("drawRequest") as { name: string }).name
         : null,
     };
 
