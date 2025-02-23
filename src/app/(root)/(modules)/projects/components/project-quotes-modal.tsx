@@ -84,12 +84,6 @@ export function ProjectQuotesModal({ project, onClose }: ProjectQuotesModalProps
       }
 
       const data = await response.json();
-      console.log("Respuesta de certificaciones:", data); // Debug
-
-      if (!data.certificaciones || !Array.isArray(data.certificaciones)) {
-        throw new Error("Formato de respuesta inválido");
-      }
-
       setCertifications(data.certificaciones);
     } catch (error) {
       console.error("Error cargando certificaciones:", error);
