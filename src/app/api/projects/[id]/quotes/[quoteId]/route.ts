@@ -8,12 +8,16 @@ export async function PUT(
   context: { params: { id: string; quoteId: string } }
 ) {
   try {
-    const { params } = context;
     const userId = await getUserFromToken();
-    const projectId = Number(params?.id);
-    const quoteId = Number(params?.quoteId);
+    if (!userId) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
 
-    if (isNaN(projectId) || isNaN(quoteId)) {
+    const { id, quoteId } = await Promise.resolve(context.params);
+    const projectId = Number(id);
+    const quoteIdNum = Number(quoteId);
+
+    if (isNaN(projectId) || isNaN(quoteIdNum)) {
       return NextResponse.json(
         { error: "ID de proyecto o cotización inválido" },
         { status: 400 }
@@ -24,11 +28,12 @@ export async function PUT(
     const validatedData = projectQuoteCreateSchema.safeParse({
       ...data,
       projectId,
+      userId,
     });
 
     if (!validatedData.success) {
       return NextResponse.json(
-        { errors: validatedData.error.errors },
+        { error: "Datos inválidos", details: validatedData.error.errors },
         { status: 400 }
       );
     }
@@ -46,7 +51,7 @@ export async function PUT(
     }
 
     const existingQuote = await prisma.projectQuote.findUnique({
-      where: { id: quoteId },
+      where: { id: quoteIdNum },
     });
 
     if (!existingQuote) {
@@ -64,21 +69,28 @@ export async function PUT(
     }
 
     const quote = await prisma.projectQuote.update({
-      where: { id: quoteId },
+      where: { id: quoteIdNum },
       data: {
-        ...validatedData.data,
-        userId,
+        companyId: validatedData.data.companyId,
+        deadline: validatedData.data.deadline,
+        itemDescription: validatedData.data.itemDescription,
       },
       include: {
         company: true,
       },
     });
 
-    return NextResponse.json(quote);
+    return NextResponse.json({
+      success: true,
+      data: quote,
+    });
   } catch (error) {
     console.error("[QUOTE_UPDATE]", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Error al actualizar la cotización" },
+      { 
+        success: false,
+        error: error instanceof Error ? error.message : "Error al actualizar la cotización" 
+      },
       { status: 500 }
     );
   }
@@ -89,35 +101,52 @@ export async function DELETE(
   context: { params: { id: string; quoteId: string } }
 ) {
   try {
-    const { params } = context;
     const userId = await getUserFromToken();
-    const projectId = Number(params?.id);
-    const quoteId = Number(params?.quoteId);
+    if (!userId) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
 
-    if (isNaN(projectId) || isNaN(quoteId)) {
+    const { id, quoteId } = await Promise.resolve(context.params);
+    const projectId = Number(id);
+    const quoteIdNum = Number(quoteId);
+
+    if (isNaN(projectId) || isNaN(quoteIdNum)) {
       return NextResponse.json(
         { error: "ID de proyecto o cotización inválido" },
         { status: 400 }
       );
     }
 
-    const quote = await prisma.projectQuote.update({
-      where: { id: quoteId },
-      data: {
-        isDeleted: true,
-        dateDeleted: new Date(),
-        userId,
-      },
-      include: {
-        company: true,
+    // Verificar que la cotización existe y pertenece al proyecto
+    const existingQuote = await prisma.projectQuote.findFirst({
+      where: {
+        id: quoteIdNum,
+        projectId,
       },
     });
 
-    return NextResponse.json(quote);
+    if (!existingQuote) {
+      return NextResponse.json(
+        { error: "La cotización no existe o no pertenece a este proyecto" },
+        { status: 404 }
+      );
+    }
+
+    await prisma.projectQuote.delete({
+      where: { id: quoteIdNum },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Cotización eliminada correctamente",
+    });
   } catch (error) {
     console.error("[QUOTE_DELETE]", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Error al eliminar la cotización" },
+      { 
+        success: false,
+        error: error instanceof Error ? error.message : "Error al eliminar la cotización" 
+      },
       { status: 500 }
     );
   }

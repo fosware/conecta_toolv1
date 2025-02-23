@@ -5,155 +5,75 @@ import { z } from "zod";
 import { companyCreateSchema } from "@/lib/schemas/company";
 import { Prisma } from "@prisma/client";
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     const userId = await getUserFromToken();
     if (!userId) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
-    // Obtener el usuario con su rol y companyUser
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: {
-        role: true,
-        CompanyUser: true,
-      },
-    });
-
-    if (!user || !user.role) {
-      return NextResponse.json(
-        { error: "Usuario no encontrado o sin rol asignado" },
-        { status: 404 }
-      );
-    }
-
-    const { searchParams } = new URL(request.url);
-    const showActive = searchParams.get("showActive") === "true";
-    const search = searchParams.get("search") || "";
-
-    const baseWhere: Prisma.CompanyWhereInput = {
-      isDeleted: false,
-      ...(showActive && { isActive: true }),
-      ...(search && {
-        OR: [
-          {
-            companyName: {
-              contains: search,
-              mode: Prisma.QueryMode.insensitive,
-            },
-          },
-          {
-            contactName: {
-              contains: search,
-              mode: Prisma.QueryMode.insensitive,
-            },
-          },
-          { email: { contains: search, mode: Prisma.QueryMode.insensitive } },
-        ],
-      }),
-    };
-
-    const baseSelect = {
-      id: true,
-      companyName: true,
-      comercialName: true,
-      contactName: true,
-      street: true,
-      externalNumber: true,
-      internalNumber: true,
-      neighborhood: true,
-      postalCode: true,
-      city: true,
-      phone: true,
-      email: true,
-      machineCount: true,
-      employeeCount: true,
-      shifts: true,
-      locationState: {
-        select: {
-          id: true,
-          name: true,
-        },
-      },
-      companyLogo: true,
-      nda: false,
-      ndaFileName: true,
-      isActive: true,
-      achievementDescription: true,
-      profile: true,
-      userId: true,
-      stateId: true,
-      website: true,
-      shiftsProfileLink: true,
-      CompanySpecialties: {
-        where: {
-          isDeleted: false,
-        },
-        select: {
-          id: true,
-          specialtyId: true,
-          scopeId: true,
-          subscopeId: true,
-          specialty: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          scope: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          subscope: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-        },
-      },
-    } satisfies Prisma.CompanySelect;
-
-    const userRole = user.role.name.toLowerCase();
-
-    // Si es Staff o Asociado, verificar si tiene empresa asignada
-    if (userRole === "staff" || userRole === "asociado") {
-      // Si no tiene empresa asignada, retornar lista vacía
-      if (!user.CompanyUser || user.CompanyUser.length === 0) {
-        return NextResponse.json({ items: [] });
-      }
-
-      // Obtener solo la empresa asignada
-      const assignedCompany = await prisma.company.findFirst({
-        where: {
-          ...baseWhere,
-          id: user.CompanyUser[0].companyId,
-        },
-        select: baseSelect,
-      });
-
-      return NextResponse.json({
-        items: assignedCompany ? [assignedCompany] : [],
-      });
-    }
-
-    // Si es Admin, obtener todas las empresas
     const companies = await prisma.company.findMany({
-      where: baseWhere,
-      select: baseSelect,
+      where: {
+        isActive: true,
+        isDeleted: false,
+      },
+      select: {
+        id: true,
+        companyName: true,
+      },
       orderBy: {
         companyName: "asc",
       },
     });
 
-    return NextResponse.json({ items: companies });
+    return NextResponse.json({
+      success: true,
+      data: companies,
+    });
   } catch (error) {
-    console.error("Error in GET /api/companies:", error);
+    console.error("[COMPANIES_GET]", error);
     return NextResponse.json(
-      { error: "Error al obtener las empresas" },
+      { 
+        success: false,
+        error: error instanceof Error ? error.message : "Error al cargar empresas" 
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GETActiveCompanies(request: NextRequest) {
+  try {
+    const userId = await getUserFromToken();
+    if (!userId) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+
+    const companies = await prisma.company.findMany({
+      where: {
+        isActive: true,
+        isDeleted: false,
+      },
+      select: {
+        id: true,
+        companyName: true,
+      },
+      orderBy: {
+        companyName: "asc",
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: companies,
+    });
+  } catch (error) {
+    console.error("[COMPANIES_GET]", error);
+    return NextResponse.json(
+      { 
+        success: false,
+        error: error instanceof Error ? error.message : "Error al cargar empresas" 
+      },
       { status: 500 }
     );
   }
@@ -412,9 +332,11 @@ export async function PUT(
       machineCount: parseInt(formData.get("machineCount") as string) || 0,
       employeeCount: parseInt(formData.get("employeeCount") as string) || 0,
       shifts: (formData.get("shifts") as string) || null,
-      achievementDescription: (formData.get("achievementDescription") as string) || null,
+      achievementDescription:
+        (formData.get("achievementDescription") as string) || null,
       profile: formData.get("profile")?.toString() || undefined,
-      shiftsProfileLink: formData.get("shiftsProfileLink")?.toString() || undefined,
+      shiftsProfileLink:
+        formData.get("shiftsProfileLink")?.toString() || undefined,
       website: formData.get("website")?.toString() || undefined,
       companyLogo,
       nda: ndaBuffer || undefined,

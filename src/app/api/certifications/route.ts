@@ -6,6 +6,9 @@ import { getUserFromToken } from "@/lib/get-user-from-token";
 export async function GET(request: NextRequest) {
   try {
     const userId = await getUserFromToken();
+    if (!userId) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
 
     const items = await prisma.certifications.findMany({
       where: {
