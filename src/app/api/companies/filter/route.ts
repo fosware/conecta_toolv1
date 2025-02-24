@@ -15,9 +15,14 @@ export async function GET(request: Request) {
     const scopeId = searchParams.get("scopeId");
     const subscopeId = searchParams.get("subscopeId");
     const certificationIds = searchParams.getAll("certificationIds[]");
-
-    console.log("Filtros recibidos:", { specialtyId, scopeId, subscopeId, certificationIds }); // Debug
-
+    /*
+    console.log("Filtros recibidos:", {
+      specialtyId,
+      scopeId,
+      subscopeId,
+      certificationIds,
+    }); // Debug
+  */
     const where: Prisma.CompanyWhereInput = {
       isActive: true,
       isDeleted: false,
@@ -45,7 +50,7 @@ export async function GET(request: Request) {
       where.CompanyCertifications = {
         some: {
           certificationId: {
-            in: certificationIds.map(id => parseInt(id)),
+            in: certificationIds.map((id) => parseInt(id)),
           },
           isActive: true,
           isDeleted: false,
@@ -62,7 +67,7 @@ export async function GET(request: Request) {
       );
     }
 
-    console.log("Query Prisma:", JSON.stringify(where, null, 2)); // Debug
+    // console.log("Query Prisma:", JSON.stringify(where, null, 2)); // Debug
 
     const companies = await prisma.company.findMany({
       where,
@@ -75,7 +80,7 @@ export async function GET(request: Request) {
       },
     });
 
-    console.log("Empresas encontradas:", companies.length); // Debug
+    //console.log("Empresas encontradas:", companies.length); // Debug
 
     return NextResponse.json({
       success: true,

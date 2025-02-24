@@ -44,7 +44,7 @@ export function ProjectsTable({
     );
   }
 
-  console.log("Renderizando proyectos en tabla:", projects); // Debug
+  //console.log("Renderizando proyectos en tabla:", projects); // Debug
 
   return (
     <div className="border rounded-lg">
