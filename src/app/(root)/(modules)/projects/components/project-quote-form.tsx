@@ -95,48 +95,22 @@ export function ProjectQuoteForm({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="date">Fecha</Label>
+          <Label htmlFor="deadline">Fecha límite</Label>
           <Input
-            id="date"
-            name="date"
+            id="deadline"
+            name="deadline"
             type="date"
-            defaultValue={initialData?.date?.split('T')[0]}
+            defaultValue={initialData?.deadline instanceof Date ? initialData.deadline.toISOString().split('T')[0] : undefined}
             required
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="amount">Monto</Label>
-          <Input
-            id="amount"
-            name="amount"
-            type="number"
-            step="0.01"
-            defaultValue={initialData?.amount}
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="status">Estado</Label>
-          <Select name="status" defaultValue={initialData?.status || "PENDING"} required>
-            <SelectTrigger>
-              <SelectValue placeholder="Selecciona un estado" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="PENDING">Pendiente</SelectItem>
-              <SelectItem value="APPROVED">Aprobada</SelectItem>
-              <SelectItem value="REJECTED">Rechazada</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="description">Descripción</Label>
+          <Label htmlFor="itemDescription">Descripción del elemento</Label>
           <Textarea
-            id="description"
-            name="description"
-            defaultValue={initialData?.description}
+            id="itemDescription"
+            name="itemDescription"
+            defaultValue={initialData?.itemDescription}
             required
           />
         </div>

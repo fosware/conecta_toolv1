@@ -205,6 +205,6 @@ export interface ProjectQuote {
   createdAt: Date;
   updatedAt: Date;
   userId: number;
-  project: Project;
-  company: Company;
+  project?: Project;
+  company?: Company;
 }
