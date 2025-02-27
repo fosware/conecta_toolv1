@@ -18,7 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { type Client, type ClientArea } from "@/lib/schemas/client";
-import { AreasTable } from "./areas-table";
+import AreasTable from "./areas-table";
 import { AreaForm } from "./area-form";
 import { getToken } from "@/lib/auth";
 import { toast } from "sonner";
@@ -27,9 +27,17 @@ interface AreasModalProps {
   isOpen: boolean;
   onClose: () => void;
   client?: Client;
+  editingArea?: ClientArea;
+  onAreasUpdated?: (clientId: number, areas: ClientArea[]) => void;
 }
 
-export const AreasModal = ({ isOpen, onClose, client }: AreasModalProps) => {
+export const AreasModal = ({
+  isOpen,
+  onClose,
+  client,
+  editingArea,
+  onAreasUpdated,
+}: AreasModalProps) => {
   const [areas, setAreas] = useState<ClientArea[]>([]);
   const [loading, setLoading] = useState(true);
   const [areaForm, setAreaForm] = useState<{
@@ -56,6 +64,15 @@ export const AreasModal = ({ isOpen, onClose, client }: AreasModalProps) => {
     }
   }, [isOpen, client]);
 
+  useEffect(() => {
+    if (editingArea && isOpen) {
+      setAreaForm({
+        isOpen: true,
+        area: editingArea,
+      });
+    }
+  }, [editingArea, isOpen]);
+
   const loadAreas = async () => {
     if (!client) return;
 
@@ -74,6 +91,8 @@ export const AreasModal = ({ isOpen, onClose, client }: AreasModalProps) => {
 
       const data = await response.json();
       setAreas(data);
+      // Notificar al componente padre que las áreas han sido actualizadas
+      onAreasUpdated?.(client.id, data);
     } catch (error) {
       console.error("[LOAD_AREAS]", error);
       toast.error("Error al cargar las áreas");
@@ -114,7 +133,8 @@ export const AreasModal = ({ isOpen, onClose, client }: AreasModalProps) => {
         throw new Error(error);
       }
 
-      await loadAreas(); // Recargar para obtener el ID real
+      // Recargar para obtener el ID real y datos actualizados
+      await loadAreas(); 
       setAreaForm({ isOpen: false, area: undefined });
       toast.success("Área creada correctamente");
     } catch (error: any) {
@@ -153,6 +173,7 @@ export const AreasModal = ({ isOpen, onClose, client }: AreasModalProps) => {
         throw new Error(error);
       }
 
+      // Recargar para obtener datos actualizados
       await loadAreas();
       setAreaForm({ isOpen: false, area: undefined });
       toast.success("Área actualizada correctamente");
@@ -182,6 +203,9 @@ export const AreasModal = ({ isOpen, onClose, client }: AreasModalProps) => {
       );
 
       if (!response.ok) throw new Error();
+      
+      // Ya no necesitamos llamar a onAreasUpdated aquí porque loadAreas lo hará
+      await loadAreas();
       toast.success("Área eliminada correctamente");
       setDeleteDialog({ isOpen: false, area: undefined });
     } catch (error) {
@@ -213,6 +237,9 @@ export const AreasModal = ({ isOpen, onClose, client }: AreasModalProps) => {
       );
 
       if (!response.ok) throw new Error();
+      
+      // Ya no necesitamos llamar a onAreasUpdated aquí porque loadAreas lo hará
+      await loadAreas();
       toast.success(
         `Área ${!currentStatus ? "habilitada" : "inhabilitada"} correctamente`
       );
@@ -295,3 +322,5 @@ export const AreasModal = ({ isOpen, onClose, client }: AreasModalProps) => {
     </>
   );
 };
+
+export default AreasModal;

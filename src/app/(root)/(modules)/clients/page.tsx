@@ -1,16 +1,11 @@
 "use client";
 
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import React, { useCallback, useEffect, useState } from "react";
 import { Switch } from "@/components/ui/switch";
-import ClientTable from "./components/client-table";
-import ClientModal from "./components/client-modal";
-import { type Client, type ClientCreate } from "@/lib/schemas/client";
-import { useDebounce } from "@/hooks/use-debounce";
-import { getToken } from "@/lib/auth";
-import { toast } from "sonner";
+import { Label } from "@/components/ui/label";
+import { Plus, Search } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,9 +16,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import ClientTable from "./components/client-table";
+import ClientModal from "./components/client-modal";
+import AreaForm from "./components/area-form"; // Corregido import
 import { Pagination } from "@/components/ui/pagination";
-import { Label } from "@/components/ui/label";
-import { AreasModal } from "./components/areas-modal";
+import { getToken } from "@/lib/auth";
+import { toast } from "sonner";
+import { type Client, type ClientArea, type ClientCreate } from "@/lib/schemas/client";
+import { useDebounce } from "@/hooks/use-debounce";
 
 const ClientsPage = () => {
   const [clients, setClients] = useState<Client[]>([]);
@@ -44,12 +44,23 @@ const ClientsPage = () => {
     client: undefined,
   });
 
-  const [areasModal, setAreasModal] = useState<{
+  const [areaForm, setAreaForm] = useState<{
     isOpen: boolean;
     client: Client | undefined;
+    area?: ClientArea;
   }>({
     isOpen: false,
     client: undefined,
+  });
+
+  const [deleteAreaDialog, setDeleteAreaDialog] = useState<{
+    isOpen: boolean;
+    area: ClientArea | null;
+    client: Client | null;
+  }>({
+    isOpen: false,
+    area: null,
+    client: null,
   });
 
   const [deleteDialog, setDeleteDialog] = useState<{
@@ -60,8 +71,13 @@ const ClientsPage = () => {
     client: null,
   });
 
+  const [expandedClientId, setExpandedClientId] = useState<number | null>(null);
+  const [clientAreas, setClientAreas] = useState<ClientArea[]>([]);
+  const [loadingAreas, setLoadingAreas] = useState(false);
+
   const loadClients = useCallback(async () => {
     try {
+      setIsLoading(true);
       const params = new URLSearchParams({
         search: debouncedSearch,
         onlyActive: showActive.toString(),
@@ -94,6 +110,20 @@ const ClientsPage = () => {
   useEffect(() => {
     loadClients();
   }, [loadClients]);
+
+  // Efecto para limpiar las áreas cuando cambia de página
+  useEffect(() => {
+    // Cuando cambia la página, limpiamos el cliente expandido y sus áreas
+    setExpandedClientId(null);
+    setClientAreas([]);
+  }, [currentPage]);
+
+  // Efecto para limpiar las áreas cuando cambian los filtros o la búsqueda
+  useEffect(() => {
+    // Cuando cambian los filtros o la búsqueda, limpiamos el cliente expandido y sus áreas
+    setExpandedClientId(null);
+    setClientAreas([]);
+  }, [debouncedSearch, showActive]);
 
   const handleCreateClient = async (data: ClientCreate) => {
     setIsSubmitting(true);
@@ -215,7 +245,89 @@ const ClientsPage = () => {
   };
 
   const handleManageAreas = (client: Client) => {
-    setAreasModal({ isOpen: true, client });
+    // Ahora abrimos directamente el formulario para crear una nueva área
+    setAreaForm({ isOpen: true, client, area: undefined });
+  };
+
+  const handleAreasUpdated = (clientId: number, areas: ClientArea[]) => {
+    // Si el cliente actualizado es el mismo que está expandido, actualizamos las áreas
+    if (expandedClientId === clientId) {
+      setClientAreas(areas);
+    }
+  };
+
+  const handleEditArea = (area: ClientArea) => {
+    // Abrimos directamente el formulario de área con el área seleccionada para editar
+    if (expandedClientId) {
+      const client = clients.find(c => c.id === expandedClientId);
+      if (client) {
+        setAreaForm({ isOpen: true, client, area });
+      }
+    }
+  };
+
+  const handleDeleteArea = async (area: ClientArea) => {
+    if (!area || !expandedClientId) return;
+    
+    try {
+      const response = await fetch(`/api/clients/${expandedClientId}/areas/${area.id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${getToken()}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Error al eliminar el área");
+      }
+
+      toast.success("Área eliminada correctamente");
+      
+      // Actualizamos las áreas en la vista
+      setClientAreas(prev => prev.filter(a => a.id !== area.id));
+      
+      // Cerramos el diálogo
+      setDeleteAreaDialog({ isOpen: false, area: null, client: null });
+    } catch (error) {
+      console.error("Error al eliminar el área:", error);
+      toast.error("Error al eliminar el área");
+    }
+  };
+
+  const loadClientAreas = async (clientId: number) => {
+    try {
+      setLoadingAreas(true);
+      const response = await fetch(`/api/clients/${clientId}/areas`, {
+        headers: {
+          Authorization: `Bearer ${getToken()}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Error al cargar las áreas");
+      }
+
+      const data = await response.json();
+      setClientAreas(data);
+    } catch (error) {
+      console.error("Error al cargar las áreas:", error);
+      toast.error("Error al cargar las áreas del cliente");
+      setClientAreas([]);
+    } finally {
+      setLoadingAreas(false);
+    }
+  };
+
+  const handleRowClick = (client: Client) => {
+    if (expandedClientId === client.id) {
+      // Si ya está expandido, lo colapsamos
+      setExpandedClientId(null);
+      setClientAreas([]);
+    } else {
+      // Si no está expandido, lo expandimos y cargamos sus áreas
+      setExpandedClientId(client.id);
+      loadClientAreas(client.id);
+    }
   };
 
   return (
@@ -265,10 +377,19 @@ const ClientsPage = () => {
           <ClientTable
             clients={clients}
             isLoading={isLoading}
-            onEdit={(client) => setClientModal({ isOpen: true, client })}
-            onDelete={(client) => setDeleteDialog({ isOpen: true, client })}
+            onEdit={(client: Client) => setClientModal({ isOpen: true, client })}
+            onDelete={(client: Client) => setDeleteDialog({ isOpen: true, client })}
             onToggleStatus={handleToggleStatus}
             onManageAreas={handleManageAreas}
+            onRowClick={handleRowClick}
+            expandedId={expandedClientId}
+            clientAreas={clientAreas}
+            loadingAreas={loadingAreas}
+            onEditArea={handleEditArea}
+            onDeleteArea={(area: ClientArea) => {
+              const client = clients.find(c => c.id === expandedClientId) || null;
+              setDeleteAreaDialog({ isOpen: true, area, client });
+            }}
           />
         </div>
 
@@ -290,10 +411,58 @@ const ClientsPage = () => {
           isSubmitting={isSubmitting}
         />
 
-        <AreasModal
-          isOpen={areasModal.isOpen}
-          onClose={() => setAreasModal({ isOpen: false, client: undefined })}
-          client={areasModal.client || undefined}
+        <AreaForm
+          isOpen={areaForm.isOpen}
+          onClose={() => setAreaForm({ isOpen: false, client: undefined, area: undefined })}
+          onSubmit={async (data) => {
+            if (!areaForm.client) return;
+            
+            try {
+              if (areaForm.area) {
+                // Actualizar área existente
+                const response = await fetch(`/api/clients/${areaForm.client.id}/areas/${areaForm.area.id}`, {
+                  method: "PUT",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${getToken()}`,
+                  },
+                  body: JSON.stringify(data),
+                });
+
+                if (!response.ok) {
+                  throw new Error("Error al actualizar el área");
+                }
+
+                toast.success("Área actualizada correctamente");
+              } else {
+                // Crear nueva área
+                const response = await fetch(`/api/clients/${areaForm.client.id}/areas`, {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${getToken()}`,
+                  },
+                  body: JSON.stringify({ ...data, clientId: areaForm.client.id }),
+                });
+
+                if (!response.ok) {
+                  throw new Error("Error al crear el área");
+                }
+
+                toast.success("Área creada correctamente");
+              }
+
+              // Recargar áreas si el cliente está expandido
+              if (expandedClientId === areaForm.client.id) {
+                await loadClientAreas(areaForm.client.id);
+              }
+            } catch (error) {
+              console.error("Error:", error);
+              toast.error("Error al guardar el área");
+              throw error;
+            }
+          }}
+          initialData={areaForm.area}
         />
 
         <AlertDialog
@@ -312,6 +481,28 @@ const ClientsPage = () => {
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
               <AlertDialogAction onClick={handleDelete}>
+                Eliminar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog
+          open={deleteAreaDialog.isOpen}
+          onOpenChange={(isOpen) =>
+            setDeleteAreaDialog({ isOpen, area: isOpen ? deleteAreaDialog.area : null, client: isOpen ? deleteAreaDialog.client : null })
+          }
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta acción eliminará el área "{deleteAreaDialog.area?.areaName}" y no se puede deshacer.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={() => handleDeleteArea(deleteAreaDialog.area!)}>
                 Eliminar
               </AlertDialogAction>
             </AlertDialogFooter>

@@ -1,0 +1,38 @@
+.noHoverRow:hover {
+  background-color: transparent !important;
+}
+
+.noHoverRow:hover td {
+  background-color: transparent !important;
+}
+
+.noHoverRow[data-state="selected"] {
+  background-color: transparent !important;
+}
+
+/* Eliminar cualquier transición o animación */
+.noHoverRow {
+  transition: none !important;
+}
+
+.noHoverRow td {
+  transition: none !important;
+}
+
+/* Asegurar que no se aplique ningún estilo de hover */
+.noHoverRow:hover,
+.noHoverRow:focus,
+.noHoverRow:active {
+  background-color: transparent !important;
+  outline: none !important;
+}
+
+/* Estilos para el encabezado de áreas */
+.areasHeader {
+  background-color: transparent !important;
+  transition: none !important;
+}
+
+.areasHeader:hover {
+  background-color: transparent !important;
+}

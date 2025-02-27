@@ -211,3 +211,5 @@ export const AreaForm = ({
     </Dialog>
   );
 };
+
+export default AreaForm;
