@@ -111,7 +111,7 @@ export default function CompanyPage() {
       }
 
       const data = await response.json();
-      setCompanies(data.items || []);
+      setCompanies(data.data || []);
     } catch (error) {
       console.error("Error loading companies:", error);
       toast.error("Error al cargar las empresas");
@@ -206,8 +206,30 @@ export default function CompanyPage() {
     });
   };
 
-  const handleEdit = (item: Company) => {
-    setEditModal({ isOpen: true, item });
+  const handleEdit = async (item: Company) => {
+    try {
+      // Cargar los datos completos de la empresa
+      const response = await fetch(`/api/companies/${item.id}`, {
+        headers: {
+          Authorization: `Bearer ${getToken()}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Error al cargar los datos de la empresa");
+      }
+
+      const responseData = await response.json();
+      const companyData = responseData.data;
+
+      // Abrir el modal con los datos completos
+      setEditModal({ isOpen: true, item: companyData });
+    } catch (error) {
+      console.error("Error loading company data:", error);
+      toast.error("Error al cargar los datos de la empresa");
+      // Si hay un error, abrir el modal con los datos básicos que ya tenemos
+      setEditModal({ isOpen: true, item });
+    }
   };
 
   const handleSuccess = async () => {

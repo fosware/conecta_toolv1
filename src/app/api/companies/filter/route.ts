@@ -74,6 +74,19 @@ export async function GET(request: Request) {
       select: {
         id: true,
         companyName: true,
+        comercialName: true,
+        contactName: true,
+        email: true,
+        phone: true,
+        isActive: true,
+        isDeleted: true,
+        stateId: true,
+        locationState: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
       orderBy: {
         companyName: "asc",

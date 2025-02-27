@@ -68,7 +68,7 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ items: [company] });
+    return NextResponse.json({ data: company });
   } catch (error) {
     console.error("Error al obtener empresa:", error);
     return NextResponse.json(
@@ -168,7 +168,7 @@ export async function PUT(
       },
     });
 
-    return NextResponse.json({ items: [updatedCompany] });
+    return NextResponse.json({ data: updatedCompany });
   } catch (error) {
     console.error("Error in PUT /api/companies/[id]:", error);
     if (error instanceof z.ZodError) {
