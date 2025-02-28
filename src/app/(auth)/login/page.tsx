@@ -106,7 +106,7 @@ const LoginPage = () => {
             </div>
             <Button
               type="submit"
-              className="w-full bg-primary text-white hover:bg-primary/90 dark:bg-primary dark:text-white dark:hover:bg-primary/90"
+              className="w-full bg-primary text-white hover:bg-primary/90 dark:bg-primary dark:text-black/80 dark:hover:bg-primary/90"
             >
               Ingresar
             </Button>
