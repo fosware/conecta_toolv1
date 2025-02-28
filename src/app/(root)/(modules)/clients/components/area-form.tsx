@@ -43,7 +43,7 @@ export const AreaForm = ({
       contactName: "",
       contactEmail: "",
       contactPhone: "",
-      terms_and_conditions: "",
+      observations: "",
     },
   });
 
@@ -55,7 +55,7 @@ export const AreaForm = ({
           contactName: initialData.contactName,
           contactEmail: initialData.contactEmail,
           contactPhone: initialData.contactPhone,
-          terms_and_conditions: initialData.terms_and_conditions || "",
+          observations: initialData.observations || "",
         });
       } else {
         form.reset({
@@ -63,7 +63,7 @@ export const AreaForm = ({
           contactName: "",
           contactEmail: "",
           contactPhone: "",
-          terms_and_conditions: "",
+          observations: "",
         });
       }
     }
@@ -175,13 +175,13 @@ export const AreaForm = ({
 
             <FormField
               control={form.control}
-              name="terms_and_conditions"
+              name="observations"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Términos y condiciones</FormLabel>
+                  <FormLabel>Observaciones</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Términos y condiciones"
+                      placeholder="Observaciones"
                       {...field}
                       value={field.value || ""}
                       disabled={isSubmitting}

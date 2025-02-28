@@ -351,7 +351,7 @@ model ClientAreas {
   contactName          String
   contactEmail         String
   contactPhone         String
-  terms_and_conditions String?
+  observations         String?
   isActive             Boolean   @default(true)
   isDeleted            Boolean   @default(false)
   dateDeleted          DateTime?

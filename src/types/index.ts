@@ -149,7 +149,7 @@ export interface ClientArea {
   contactName: string;
   contactEmail: string;
   contactPhone: string;
-  terms_and_conditions: string | null;
+  observations: string | null;
   isActive: boolean;
   isDeleted: boolean;
   dateDeleted: Date | null;

@@ -36,7 +36,7 @@ export const clientAreaSchema = z.object({
   contactName: z.string().min(1, "El nombre del contacto es requerido"),
   contactEmail: z.string().email("El correo electrónico no es válido"),
   contactPhone: z.string().min(10, "El teléfono debe tener al menos 10 dígitos"),
-  terms_and_conditions: z.string().nullable(),
+  observations: z.string().nullable(),
   isActive: z.boolean(),
   isDeleted: z.boolean(),
   dateDeleted: z.date().nullable(),
