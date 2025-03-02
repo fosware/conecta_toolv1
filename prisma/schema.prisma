@@ -8,29 +8,37 @@ datasource db {
 }
 
 model User {
-  id                    Int                     @id @default(autoincrement())
-  email                 String
-  password              String
-  username              String
-  roleId                Int
-  role                  Role                    @relation(fields: [roleId], references: [id])
-  profile               Profile?
-  isActive              Boolean                 @default(true)
-  isDeleted             Boolean                 @default(false)
-  dateDeleted           DateTime?
-  createdAt             DateTime                @default(now())
-  updatedAt             DateTime                @updatedAt
-  Specialties           Specialties[]
-  Scopes                Scopes[]
-  Subscopes             Subscopes[]
-  Cerifications         Certifications[]
-  companies             Company[]
-  CompanyCertifications CompanyCertifications[]
-  CompanySpecialties    CompanySpecialties[]
-  CompanyUser           CompanyUser[]
-  Clients               Clients[]
-  Projects              Project[]
-  projectQuotes         ProjectQuote[]
+  id                            Int                             @id @default(autoincrement())
+  email                         String
+  password                      String
+  username                      String
+  roleId                        Int
+  role                          Role                            @relation(fields: [roleId], references: [id])
+  profile                       Profile?
+  isActive                      Boolean                         @default(true)
+  isDeleted                     Boolean                         @default(false)
+  dateDeleted                   DateTime?
+  createdAt                     DateTime                        @default(now())
+  updatedAt                     DateTime                        @updatedAt
+  Specialties                   Specialties[]
+  Scopes                        Scopes[]
+  Subscopes                     Subscopes[]
+  Cerifications                 Certifications[]
+  companies                     Company[]
+  CompanyCertifications         CompanyCertifications[]
+  CompanySpecialties            CompanySpecialties[]
+  CompanyUser                   CompanyUser[]
+  Clients                       Clients[]
+  Projects                      Project[]
+  projectQuotes                 ProjectQuote[]
+  ProjectRequest                ProjectRequest[]
+  ProjectRequestDetails         ProjectRequestDetails[]
+  RequirementCertification      RequirementCertification[]
+  RequirementSpecialty          RequirementSpecialty[]
+  ProjectRequestDetailCompanies ProjectRequestDetailCompanies[]
+  ProjectRequestDetailNDA       ProjectRequestDetailNDA[]
+  ProjectRequestDetailDocuments ProjectRequestDetailDocuments[]
+  ProjectRequestDetailQuotation ProjectRequestDetailQuotation[]
 
   @@unique([email, isDeleted])
   @@unique([username, isDeleted])
@@ -174,41 +182,42 @@ model LocationState {
 
 // Empresa
 model Company {
-  id                     Int                     @id @default(autoincrement())
-  companyName            String                  @unique
-  comercialName          String                  @unique
-  contactName            String
-  street                 String
-  externalNumber         String
-  internalNumber         String?
-  neighborhood           String
-  postalCode             String
-  city                   String
-  stateId                Int
-  phone                  String
-  website                String?
-  email                  String                  @unique
-  machineCount           Int
-  employeeCount          Int
-  shifts                 String?
-  achievementDescription String?
-  profile                String?
-  shiftsProfileLink      String?
-  nda                    Bytes?
-  ndaFileName            String?
-  companyLogo            String?
-  isActive               Boolean                 @default(true)
-  isDeleted              Boolean                 @default(false)
-  dateDeleted            DateTime?
-  createdAt              DateTime                @default(now())
-  updatedAt              DateTime                @updatedAt
-  userId                 Int?
-  user                   User?                   @relation(fields: [userId], references: [id])
-  locationState          LocationState           @relation(fields: [stateId], references: [id])
-  CompanyCertifications  CompanyCertifications[]
-  CompanySpecialties     CompanySpecialties[]
-  CompanyUser            CompanyUser[]
-  projectQuotes          ProjectQuote[]
+  id                            Int                             @id @default(autoincrement())
+  companyName                   String                          @unique
+  comercialName                 String                          @unique
+  contactName                   String
+  street                        String
+  externalNumber                String
+  internalNumber                String?
+  neighborhood                  String
+  postalCode                    String
+  city                          String
+  stateId                       Int
+  phone                         String
+  website                       String?
+  email                         String                          @unique
+  machineCount                  Int
+  employeeCount                 Int
+  shifts                        String?
+  achievementDescription        String?
+  profile                       String?
+  shiftsProfileLink             String?
+  nda                           Bytes?
+  ndaFileName                   String?
+  companyLogo                   String?
+  isActive                      Boolean                         @default(true)
+  isDeleted                     Boolean                         @default(false)
+  dateDeleted                   DateTime?
+  createdAt                     DateTime                        @default(now())
+  updatedAt                     DateTime                        @updatedAt
+  userId                        Int?
+  user                          User?                           @relation(fields: [userId], references: [id])
+  locationState                 LocationState                   @relation(fields: [stateId], references: [id])
+  CompanyCertifications         CompanyCertifications[]
+  CompanySpecialties            CompanySpecialties[]
+  CompanyUser                   CompanyUser[]
+  projectQuotes                 ProjectQuote[]
+  ProjectRequestDetailCompanies ProjectRequestDetailCompanies[]
 
   @@index([isDeleted, isActive])
   @@map("d_companies")
@@ -345,24 +354,25 @@ model Clients {
 }
 
 model ClientAreas {
-  id                   Int       @id @default(autoincrement())
-  clientId             Int
-  areaName             String
-  contactName          String
-  contactEmail         String
-  contactPhone         String
-  observations         String?
-  isActive             Boolean   @default(true)
-  isDeleted            Boolean   @default(false)
-  dateDeleted          DateTime?
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
-  client               Clients   @relation(fields: [clientId], references: [id])
-  Project              Project[]
+  id           Int       @id @default(autoincrement())
+  clientId     Int
+  areaName     String
+  contactName  String
+  contactEmail String
+  contactPhone String
+  observations String?
+  isActive     Boolean   @default(true)
+  isDeleted    Boolean   @default(false)
+  dateDeleted  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  client       Clients   @relation(fields: [clientId], references: [id])
+  Project      Project[]
 
   @@map("c_client_areas")
 }
 
+//------------------- Estos dos modelos se eliminaran ----------------
 // Proyectos
 model Project {
   id                        Int            @id @default(autoincrement())
@@ -384,7 +394,7 @@ model Project {
   userId                    Int
   projectType               ProjectTypes   @relation(fields: [projectTypeId], references: [id])
   client                    Clients        @relation(fields: [clientId], references: [id])
-  clientArea               ClientAreas    @relation(fields: [clientAreaId], references: [id])
+  clientArea                ClientAreas    @relation(fields: [clientAreaId], references: [id])
   user                      User           @relation(fields: [userId], references: [id])
   projectQuote              ProjectQuote[]
 
@@ -411,4 +421,161 @@ model ProjectQuote {
 
   @@index([isDeleted, isActive])
   @@map("d_project_quotes")
+}
+
+//------------------------------------
+// Solicitud de proyectos
+model ProjectRequest {
+  id          Int                     @id @default(autoincrement())
+  title       String
+  isActive    Boolean                 @default(true)
+  isDeleted   Boolean                 @default(false)
+  dateDeleted DateTime?
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+  userId      Int
+  user        User                    @relation(fields: [userId], references: [id])
+  clientId    Int
+  details     ProjectRequestDetails[]
+
+  @@index([isDeleted, isActive])
+  @@map("d_project_requests")
+}
+
+// Detalles de cada solicitud de proyecto
+model ProjectRequestDetails {
+  id                            Int                             @id @default(autoincrement())
+  name                          String
+  projectRequestId              Int
+  certifications                RequirementCertification[]
+  specialties                   RequirementSpecialty[]
+  isActive                      Boolean                         @default(true)
+  isDeleted                     Boolean                         @default(false)
+  dateDeleted                   DateTime?
+  createdAt                     DateTime                        @default(now())
+  updatedAt                     DateTime                        @updatedAt
+  userId                        Int
+  user                          User                            @relation(fields: [userId], references: [id])
+  ProjectRequest                ProjectRequest                  @relation(fields: [projectRequestId], references: [id])
+  ProjectRequestDetailCompanies ProjectRequestDetailCompanies[]
+
+  @@index([isDeleted, isActive])
+  @@map("d_project_request_details")
+}
+
+// Certificaciones requeridas
+model RequirementCertification {
+  id               Int                   @id @default(autoincrement())
+  projectDetailsId Int
+  certificationId  Int
+  isActive         Boolean               @default(true)
+  isDeleted        Boolean               @default(false)
+  dateDeleted      DateTime?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  userId           Int
+  user             User                  @relation(fields: [userId], references: [id])
+  ProjectDetails   ProjectRequestDetails @relation(fields: [projectDetailsId], references: [id])
+
+  @@index([isDeleted, isActive])
+  @@map("d_project_request_details_certifications")
+}
+
+// Especialidades requeridas
+model RequirementSpecialty {
+  id                    Int                   @id @default(autoincrement())
+  projectDetailsId      Int
+  specialtyId           Int
+  scopeId               Int?
+  subscopeId            Int?
+  isActive              Boolean               @default(true)
+  isDeleted             Boolean               @default(false)
+  dateDeleted           DateTime?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  userId                Int
+  user                  User                  @relation(fields: [userId], references: [id])
+  projectRequestDetails ProjectRequestDetails @relation(fields: [projectDetailsId], references: [id])
+
+  @@index([isDeleted, isActive])
+  @@map("d_project_request_details_specialties")
+}
+
+// Asociados (Companies) que cumplen los criterios
+model ProjectRequestDetailCompanies {
+  id                            Int                            @id @default(autoincrement())
+  projectRequestDetailId        Int
+  companyId                     Int
+  isActive                      Boolean                        @default(true)
+  isDeleted                     Boolean                        @default(false)
+  dateDeleted                   DateTime?
+  createdAt                     DateTime                       @default(now())
+  updatedAt                     DateTime                       @updatedAt
+  userId                        Int
+  user                          User                           @relation(fields: [userId], references: [id])
+  ProjectRequestDetails         ProjectRequestDetails          @relation(fields: [projectRequestDetailId], references: [id])
+  Company                       Company                        @relation(fields: [companyId], references: [id])
+  ProjectRequestDetailNDA       ProjectRequestDetailNDA?
+  ProjectRequestDetailDocuments ProjectRequestDetailDocuments?
+  ProjectRequestDetailQuotation ProjectRequestDetailQuotation?
+
+  @@index([isDeleted, isActive])
+  @@map("d_project_request_details_companies")
+}
+
+// NDA por cada asociado
+model ProjectRequestDetailNDA {
+  id                              Int                           @id @default(autoincrement())
+  projectRequestDetailCompaniesId Int                           @unique
+  ndaFile                         Bytes?
+  ndaFileName                     String?
+  isActive                        Boolean                       @default(true)
+  isDeleted                       Boolean                       @default(false)
+  dateDeleted                     DateTime?
+  createdAt                       DateTime                      @default(now())
+  updatedAt                       DateTime                      @updatedAt
+  userId                          Int
+  user                            User                          @relation(fields: [userId], references: [id])
+  ProjectRequestDetailCompanies   ProjectRequestDetailCompanies @relation(fields: [projectRequestDetailCompaniesId], references: [id])
+
+  @@index([isDeleted, isActive])
+  @@map("d_project_request_details_ndas")
+}
+
+//  Documentación técnica enviada por el cliente
+model ProjectRequestDetailDocuments {
+  id                              Int                           @id @default(autoincrement())
+  projectRequestDetailCompaniesId Int                           @unique
+  documentFile                    Bytes?
+  documentFileName                String?
+  isActive                        Boolean                       @default(true)
+  isDeleted                       Boolean                       @default(false)
+  dateDeleted                     DateTime?
+  createdAt                       DateTime                      @default(now())
+  updatedAt                       DateTime                      @updatedAt
+  userId                          Int
+  user                            User                          @relation(fields: [userId], references: [id])
+  ProjectRequestDetailCompanies   ProjectRequestDetailCompanies @relation(fields: [projectRequestDetailCompaniesId], references: [id])
+
+  @@index([isDeleted, isActive])
+  @@map("d_project_request_details_documents")
+}
+
+// Cotización por cada asociado
+model ProjectRequestDetailQuotation {
+  id                              Int                           @id @default(autoincrement())
+  projectRequestDetailCompaniesId Int                           @unique
+  quotationFile                   Bytes?
+  quotationFileName               String?
+  isActive                        Boolean                       @default(true)
+  isDeleted                       Boolean                       @default(false)
+  dateDeleted                     DateTime?
+  createdAt                       DateTime                      @default(now())
+  updatedAt                       DateTime                      @updatedAt
+  userId                          Int
+  user                            User                          @relation(fields: [userId], references: [id])
+  ProjectRequestDetailCompanies   ProjectRequestDetailCompanies @relation(fields: [projectRequestDetailCompaniesId], references: [id])
+
+  @@index([isDeleted, isActive])
+  @@map("d_project_request_details_quotations")
 }
