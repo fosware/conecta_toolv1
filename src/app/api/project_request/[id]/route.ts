@@ -1,6 +1,200 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserFromToken } from "@/lib/get-user-from-token";
+import { projectRequestFormSchema } from "@/lib/schemas/project-request";
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    // Obtener el usuario
+    const userId = await getUserFromToken();
+    console.log("UserId:", userId);
+    
+    if (!userId) {
+      return NextResponse.json(
+        { message: "Usuario no autenticado" },
+        { status: 401 }
+      );
+    }
+
+    // Obtener y validar el ID
+    const { id } = await params;
+    const parsedId = parseInt(id);
+    console.log("ParsedId:", parsedId);
+    
+    if (isNaN(parsedId)) {
+      return NextResponse.json(
+        { message: "ID inválido" },
+        { status: 400 }
+      );
+    }
+
+    // Verificar que la solicitud existe
+    const existingRequest = await prisma.projectRequest.findUnique({
+      where: { id: parsedId },
+      include: {
+        details: {
+          include: {
+            certifications: true,
+            specialties: true
+          }
+        }
+      }
+    });
+
+    if (!existingRequest) {
+      return NextResponse.json(
+        { message: "Solicitud no encontrada" },
+        { status: 404 }
+      );
+    }
+
+    // Obtener y validar el body
+    const rawBody = await request.text();
+    console.log("Raw body:", rawBody);
+    
+    if (!rawBody) {
+      return NextResponse.json(
+        { message: "El cuerpo de la solicitud está vacío" },
+        { status: 400 }
+      );
+    }
+
+    let body;
+    try {
+      body = JSON.parse(rawBody);
+      console.log("Parsed body:", body);
+    } catch (e) {
+      console.error("Error parsing body:", e);
+      return NextResponse.json(
+        { message: "Error al parsear el cuerpo de la solicitud" },
+        { status: 400 }
+      );
+    }
+
+    const validationResult = projectRequestFormSchema.safeParse(body);
+    console.log("Validation result:", validationResult);
+    
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { 
+          message: "Error de validación", 
+          details: validationResult.error.errors 
+        },
+        { status: 400 }
+      );
+    }
+
+    const validatedData = validationResult.data;
+    console.log("Validated data:", validatedData);
+
+    // Actualizar la solicitud principal
+    const updatedRequest = await prisma.projectRequest.update({
+      where: { id: parsedId },
+      data: {
+        title: validatedData.title,
+        clientAreaId: validatedData.clientAreaId,
+        userId,
+        isDeleted: false,
+        dateDeleted: null,
+      },
+    });
+
+    console.log("Updated request:", updatedRequest);
+
+    // Eliminar las relaciones antiguas y los detalles en orden
+    for (const detail of existingRequest.details) {
+      // Primero eliminar las certificaciones
+      if (detail.certifications.length > 0) {
+        await prisma.requirementCertification.deleteMany({
+          where: { projectDetailsId: detail.id }
+        });
+      }
+
+      // Luego eliminar las especialidades
+      if (detail.specialties.length > 0) {
+        await prisma.requirementSpecialty.deleteMany({
+          where: { projectDetailsId: detail.id }
+        });
+      }
+    }
+
+    // Ahora sí podemos eliminar los detalles
+    await prisma.projectRequestDetails.deleteMany({
+      where: { projectRequestId: parsedId }
+    });
+
+    // Crear los nuevos detalles
+    const updatedDetails = [];
+    
+    for (const detail of validatedData.details) {
+      // Crear el detalle base
+      const newDetail = await prisma.projectRequestDetails.create({
+        data: {
+          projectRequestId: parsedId,
+          name: detail.name,
+          userId,
+        },
+      });
+
+      console.log("Created detail:", newDetail);
+
+      // Conectar certificaciones si existen
+      if (Array.isArray(detail.certifications) && detail.certifications.length > 0) {
+        for (const certId of detail.certifications) {
+          await prisma.requirementCertification.create({
+            data: {
+              projectDetailsId: newDetail.id,
+              certificationId: certId,
+              userId,
+            },
+          });
+        }
+      }
+
+      // Conectar especialidades si existen
+      if (Array.isArray(detail.specialties) && detail.specialties.length > 0) {
+        for (const specId of detail.specialties) {
+          await prisma.requirementSpecialty.create({
+            data: {
+              projectDetailsId: newDetail.id,
+              specialtyId: specId,
+              scopeId: detail.scopeId || null,
+              subscopeId: detail.subscopeId || null,
+              userId,
+            },
+          });
+        }
+      }
+
+      updatedDetails.push(newDetail);
+    }
+
+    return NextResponse.json({ 
+      data: {
+        ...updatedRequest,
+        details: updatedDetails
+      },
+      message: "Solicitud de proyecto actualizada correctamente"
+    });
+
+  } catch (error: any) {
+    const errorMessage = error?.message || "Error al actualizar la solicitud de proyecto";
+    const errorDetails = error?.stack || "";
+    
+    console.error("Error al actualizar la solicitud de proyecto:", errorMessage);
+    if (errorDetails) {
+      console.error("Stack trace:", errorDetails);
+    }
+    
+    return NextResponse.json(
+      { message: errorMessage },
+      { status: 500 }
+    );
+  }
+}
 
 // GET: Obtener una solicitud de proyecto por ID
 export async function GET(
@@ -15,7 +209,7 @@ export async function GET(
     });
 
     if (!userId) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+      return NextResponse.json({ message: "No autorizado" }, { status: 401 });
     }
 
     console.log("Usuario autenticado en GET [id]:", userId);
@@ -25,7 +219,7 @@ export async function GET(
     const parsedId = parseInt(id);
     if (isNaN(parsedId)) {
       return NextResponse.json(
-        { error: "ID de solicitud inválido" },
+        { message: "ID de solicitud inválido" },
         { status: 400 }
       );
     }
@@ -52,7 +246,7 @@ export async function GET(
     if (!projectRequest) {
       console.log(`Solicitud de proyecto con ID ${parsedId} no encontrada`);
       return NextResponse.json(
-        { error: "Solicitud de proyecto no encontrada" },
+        { message: "Solicitud de proyecto no encontrada" },
         { status: 404 }
       );
     }
@@ -84,140 +278,14 @@ export async function GET(
     return NextResponse.json(formattedResponse);
   } catch (error) {
     console.error("Error al obtener la solicitud de proyecto:", error);
-    return NextResponse.json(
-      { message: "Error al obtener la solicitud de proyecto", error: "Internal Server Error" }, 
-      { status: 500 }
-    );
-  }
-}
-
-// PUT: Actualizar una solicitud de proyecto
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    // Obtener el usuario desde el token con manejo de errores mejorado
-    const userId = await getUserFromToken().catch(error => {
-      console.error("Error al obtener el usuario desde el token:", error);
-      return null;
-    });
-
-    if (!userId) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-    }
-
-    console.log("Usuario autenticado en PUT [id]:", userId);
-
-    // Asegurarse de que params se trate como una promesa
-    const { id } = await params;
-    const parsedId = parseInt(id);
-    if (isNaN(parsedId)) {
-      return NextResponse.json(
-        { error: "ID de solicitud inválido" },
-        { status: 400 }
-      );
-    }
-
-    console.log(`Actualizando solicitud de proyecto con ID: ${parsedId}`);
-
-    const body = await req.json();
-    console.log("Datos recibidos para actualización:", JSON.stringify(body, null, 2));
-
-    // Verificar si la solicitud existe
-    const existingRequest = await prisma.projectRequest.findUnique({
-      where: { id: parsedId },
-      include: {
-        details: {
-          include: {
-            certifications: true,
-            specialties: true,
-          }
-        },
-      },
-    });
-
-    if (!existingRequest) {
-      console.log(`Solicitud de proyecto con ID ${parsedId} no encontrada para actualizar`);
-      return NextResponse.json(
-        { error: "Solicitud de proyecto no encontrada" },
-        { status: 404 }
-      );
-    }
-
-    // Actualizar la solicitud principal
-    const updatedRequest = await prisma.projectRequest.update({
-      where: { id: parsedId },
-      data: {
-        title: body.title,
-        clientAreaId: body.clientAreaId,
-        updatedAt: new Date(),
-      },
-    });
-
-    console.log(`Solicitud principal actualizada: ${updatedRequest.id}`);
-
-    // Eliminar todos los detalles existentes
-    await prisma.projectRequestDetails.deleteMany({
-      where: { projectRequestId: parsedId },
-    });
-
-    console.log(`Detalles antiguos eliminados para la solicitud ${parsedId}`);
-
-    // Crear los nuevos detalles
-    for (const detail of body.details) {
-      const newDetail = await prisma.projectRequestDetails.create({
-        data: {
-          projectRequestId: parsedId,
-          name: detail.name,
-          userId,
-        },
-      });
-
-      console.log(`Nuevo detalle creado: ${newDetail.id}`);
-
-      // Conectar certificaciones
-      if (detail.certifications && detail.certifications.length > 0) {
-        for (const certId of detail.certifications) {
-          await prisma.requirementCertification.create({
-            data: {
-              projectDetailsId: newDetail.id,
-              certificationId: certId,
-              userId,
-            },
-          });
+    return new Response(
+      JSON.stringify({ message: "Error al obtener la solicitud de proyecto" }),
+      { 
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json',
         }
-        console.log(`Certificaciones conectadas para el detalle ${newDetail.id}`);
       }
-
-      // Conectar especialidades y opcionalmente alcances/subalcances
-      if (detail.specialties && detail.specialties.length > 0) {
-        for (const specId of detail.specialties) {
-          await prisma.requirementSpecialty.create({
-            data: {
-              projectDetailsId: newDetail.id,
-              specialtyId: specId,
-              scopeId: detail.scopeId || null,
-              subscopeId: detail.subscopeId || null,
-              userId,
-            },
-          });
-        }
-        console.log(`Especialidades conectadas para el detalle ${newDetail.id}`);
-      }
-    }
-
-    console.log(`Solicitud de proyecto ${parsedId} actualizada completamente`);
-
-    return NextResponse.json({
-      message: "Solicitud de proyecto actualizada correctamente",
-      id: updatedRequest.id,
-    });
-  } catch (error) {
-    console.error("Error al actualizar la solicitud de proyecto:", error);
-    return NextResponse.json(
-      { message: "Error al actualizar la solicitud de proyecto", error: "Internal Server Error" }, 
-      { status: 500 }
     );
   }
 }

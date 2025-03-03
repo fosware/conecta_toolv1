@@ -328,6 +328,11 @@ const RequirementForm = ({
     loadSubscopes(scopeId);
   };
 
+  // Agregar nuevos estados para la selección actual
+  const [selectedSpecialty, setSelectedSpecialty] = useState<number | null>(null);
+  const [selectedScope, setSelectedScope] = useState<number | null>(null);
+  const [selectedSubScope, setSelectedSubScope] = useState<number | null>(null);
+
   return (
     <div className="space-y-4">
       {/* El campo de nombre se ha movido al componente padre */}
@@ -456,218 +461,200 @@ const RequirementForm = ({
       <Separator className="my-4" />
 
       {/* Sección de Especialidades */}
-      <div className="space-y-2">
+      <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h4 className="text-sm font-medium">Especialidades</h4>
         </div>
 
-        <FormField
-          control={form.control}
-          name={`details.${index}.specialties`}
-          render={() => (
+        {/* Tabla de especialidades seleccionadas */}
+        <div className="border rounded-md">
+          <table className="w-full">
+            <thead className="bg-muted">
+              <tr>
+                <th className="p-2 text-xs font-medium text-left">Especialidad</th>
+                <th className="p-2 text-xs font-medium text-left">Alcance</th>
+                <th className="p-2 text-xs font-medium text-left">Sub-alcance</th>
+                <th className="p-2 text-xs font-medium text-center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(form.getValues(`details.${index}.specialties`) || []).map((specId, specIndex) => {
+                const specialty = specialties.find(s => s.id === specId);
+                const scope = scopes.find(s => s.id === form.getValues(`details.${index}.scopeId`));
+                const subscope = subscopes.find(s => s.id === form.getValues(`details.${index}.subscopeId`));
+                
+                return (
+                  <tr key={specIndex} className="border-t">
+                    <td className="p-2 text-sm">{specialty?.name}</td>
+                    <td className="p-2 text-sm">{scope?.name || '-'}</td>
+                    <td className="p-2 text-sm">{subscope?.name || '-'}</td>
+                    <td className="p-2 text-center">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeSpecialty(specIndex)}
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
+                    </td>
+                  </tr>
+                );
+              })}
+              {(form.getValues(`details.${index}.specialties`) || []).length === 0 && (
+                <tr>
+                  <td colSpan={4} className="p-4 text-center text-muted-foreground">
+                    No hay especialidades seleccionadas
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Selección secuencial de especialidad, alcance y sub-alcance */}
+        <div className="space-y-4 p-4 border rounded-md">
+          <div className="grid grid-cols-3 gap-4">
+            {/* Select de Especialidad */}
             <FormItem>
-              <div className="relative">
-                <div
-                  className={cn(
-                    "w-full flex flex-wrap gap-1 min-h-8 border rounded-md p-2",
-                    isLoading || isSubmitting ? "opacity-50" : ""
-                  )}
-                >
-                  {(form.getValues(`details.${index}.specialties`) || []).length > 0 ? (
-                    ((form.getValues(`details.${index}.specialties`) || []) as number[]).map((specId, specIndex) => {
-                      const specialty = specialties.find(
-                        (s) => s.id === specId
-                      );
-                      return specialty ? (
-                        <Badge
-                          key={specIndex}
-                          variant="secondary"
-                          className="mb-1 flex items-center gap-1"
-                        >
-                          {specialty.name}
-                          <X
-                            className="h-3 w-3 cursor-pointer"
-                            onClick={() => removeSpecialty(specIndex)}
-                          />
-                        </Badge>
-                      ) : null;
-                    })
-                  ) : (
-                    <div className="text-muted-foreground">
-                      Especialidades seleccionadas
-                    </div>
-                  )}
-                </div>
-
-                <Select>
-                  <SelectTrigger className="mt-2">
-                    <SelectValue placeholder="Seleccionar especialidades" />
+              <FormLabel>Especialidad</FormLabel>
+              <Select
+                disabled={isLoading || isSubmitting}
+                onValueChange={(value) => {
+                  const specialtyId = parseInt(value);
+                  setSelectedSpecialty(specialtyId);
+                  setSelectedScope(null);
+                  setSelectedSubScope(null);
+                  loadScopes(specialtyId);
+                }}
+                value={selectedSpecialty?.toString() || ""}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar especialidad" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <div className="max-h-40 overflow-y-auto">
-                      {specialties && specialties.length > 0 ? (
-                        specialties.map((spec) => {
-                          const isSelected = form
-                            .getValues(`details.${index}.specialties`)
-                            ?.includes(spec.id);
-                          return (
-                            <div
-                              key={spec.id}
-                              className={cn(
-                                "flex items-center gap-2 p-2 hover:bg-muted cursor-pointer",
-                                isSelected ? "bg-muted" : ""
-                              )}
-                              onClick={() => {
-                                const currentSpecs =
-                                  form.getValues(
-                                    `details.${index}.specialties`
-                                  ) || [];
-                                const existingIndex = currentSpecs.indexOf(
-                                  spec.id
-                                );
-
-                                if (existingIndex >= 0) {
-                                  // Si ya existe, lo eliminamos
-                                  const newSpecs = [...currentSpecs];
-                                  newSpecs.splice(existingIndex, 1);
-                                  form.setValue(
-                                    `details.${index}.specialties`,
-                                    newSpecs
-                                  );
-                                } else {
-                                  // Si no existe, lo añadimos
-                                  form.setValue(`details.${index}.specialties`, [
-                                    ...currentSpecs,
-                                    spec.id,
-                                  ]);
-
-                                  // Cargar alcances para esta especialidad si es la primera seleccionada
-                                  if (currentSpecs.length === 0) {
-                                    loadScopes(spec.id);
-                                  }
-                                }
-                              }}
-                            >
-                              <div
-                                className={cn(
-                                  "flex h-4 w-4 items-center justify-center rounded-sm border",
-                                  isSelected
-                                    ? "border-primary bg-primary text-primary-foreground"
-                                    : "border-primary opacity-50"
-                                )}
-                              >
-                                {isSelected && <Check className="h-3 w-3" />}
-                              </div>
-                              <span>{spec.name}</span>
-                            </div>
-                          );
-                        })
-                      ) : (
-                        <div className="p-2 text-center text-muted-foreground">
-                          No hay especialidades disponibles
-                        </div>
-                      )}
-                    </div>
-                  </SelectContent>
-                </Select>
-              </div>
-              <FormMessage />
+                </FormControl>
+                <SelectContent>
+                  {specialties.map((specialty) => (
+                    <SelectItem
+                      key={specialty.id}
+                      value={specialty.id.toString()}
+                    >
+                      {specialty.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </FormItem>
-          )}
-        />
 
-        {/* Mostrar selección de alcance y sub-alcance para la primera especialidad seleccionada */}
-        {form.getValues(`details.${index}.specialties`) && 
-        (form.getValues(`details.${index}.specialties`) || []).length > 0 && (
-          <div className="space-y-2 mt-2 p-2 border rounded-md">
-            <h5 className="text-xs font-medium">Configuración de alcance</h5>
-            <p className="text-xs text-muted-foreground mb-2">
-              Configure el alcance para la especialidad:{" "}
-              {(form.getValues(`details.${index}.specialties`) || []).length > 0 ?
-                (specialties.find(
-                  (s) =>
-                    s.id ===
-                    ((form.getValues(`details.${index}.specialties`) || [])[0] as number)
-                )?.name || "No seleccionada") : "No seleccionada"}
-            </p>
-
-            <div className="grid grid-cols-2 gap-2">
-              <FormField
-                control={form.control}
-                name={`details.${index}.scopeId`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-xs">Alcance</FormLabel>
-                    <Select
-                      disabled={
-                        isLoading || isSubmitting || scopes.length === 0
-                      }
-                      onValueChange={(value) => {
-                        field.onChange(parseInt(value));
-                        loadSubscopes(parseInt(value));
-                      }}
-                      value={field.value ? field.value.toString() : ""}
+            {/* Select de Alcance */}
+            <FormItem>
+              <FormLabel>Alcance</FormLabel>
+              <Select
+                disabled={isLoading || isSubmitting || !selectedSpecialty}
+                onValueChange={(value) => {
+                  const scopeId = parseInt(value);
+                  setSelectedScope(scopeId);
+                  setSelectedSubScope(null);
+                  loadSubscopes(scopeId);
+                }}
+                value={selectedScope?.toString() || ""}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar alcance" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {scopes.map((scope) => (
+                    <SelectItem
+                      key={scope.id}
+                      value={scope.id.toString()}
                     >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Seleccionar alcance" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {scopes.map((scope) => (
-                          <SelectItem
-                            key={scope.id}
-                            value={scope.id.toString()}
-                          >
-                            {scope.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      {scope.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormItem>
 
-              <FormField
-                control={form.control}
-                name={`details.${index}.subscopeId`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-xs">Sub-alcance</FormLabel>
-                    <Select
-                      disabled={
-                        isLoading ||
-                        isSubmitting ||
-                        subscopes.length === 0 ||
-                        !((form.getValues(`details.${index}.specialties`) || [])[0] as number)
-                      }
-                      onValueChange={(value) => field.onChange(parseInt(value))}
-                      value={field.value ? field.value.toString() : ""}
+            {/* Select de Sub-alcance */}
+            <FormItem>
+              <FormLabel>Sub-alcance</FormLabel>
+              <Select
+                disabled={isLoading || isSubmitting || !selectedScope}
+                onValueChange={(value) => {
+                  const subScopeId = parseInt(value);
+                  setSelectedSubScope(subScopeId);
+                }}
+                value={selectedSubScope?.toString() || ""}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar sub-alcance" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {subscopes.map((subscope) => (
+                    <SelectItem
+                      key={subscope.id}
+                      value={subscope.id.toString()}
                     >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Seleccionar sub-alcance" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {subscopes.map((subscope) => (
-                          <SelectItem
-                            key={subscope.id}
-                            value={subscope.id.toString()}
-                          >
-                            {subscope.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+                      {subscope.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormItem>
           </div>
-        )}
+
+          {/* Botón de Agregar Especialidad */}
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              onClick={() => {
+                if (!selectedSpecialty) {
+                  toast.error("Selecciona una especialidad");
+                  return;
+                }
+
+                const currentSpecialties = form.getValues(`details.${index}.specialties`) || [];
+                
+                // Verificar si la especialidad ya existe
+                if (currentSpecialties.includes(selectedSpecialty)) {
+                  toast.error("Esta especialidad ya ha sido agregada");
+                  return;
+                }
+
+                // Agregar la nueva especialidad
+                form.setValue(`details.${index}.specialties`, [
+                  ...currentSpecialties,
+                  selectedSpecialty
+                ]);
+
+                // Si hay alcance seleccionado, actualizarlo
+                if (selectedScope) {
+                  form.setValue(`details.${index}.scopeId`, selectedScope);
+                }
+
+                // Si hay sub-alcance seleccionado, actualizarlo
+                if (selectedSubScope) {
+                  form.setValue(`details.${index}.subscopeId`, selectedSubScope);
+                }
+
+                // Limpiar la selección actual
+                setSelectedSpecialty(null);
+                setSelectedScope(null);
+                setSelectedSubScope(null);
+
+                toast.success("Especialidad agregada correctamente");
+              }}
+              disabled={isLoading || isSubmitting || !selectedSpecialty}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Agregar Especialidad
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   );

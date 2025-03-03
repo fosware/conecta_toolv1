@@ -333,7 +333,7 @@ const ProjectRequestForm = ({ onSuccess, onClose, initialData }: ProjectRequestF
             disabled={isSubmitting}
           >
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Crear solicitud
+            {initialData ? 'Editar solicitud' : 'Crear solicitud'}
           </Button>
           <Button
             type="button"
