@@ -354,20 +354,21 @@ model Clients {
 }
 
 model ClientAreas {
-  id           Int       @id @default(autoincrement())
-  clientId     Int
-  areaName     String
-  contactName  String
-  contactEmail String
-  contactPhone String
-  observations String?
-  isActive     Boolean   @default(true)
-  isDeleted    Boolean   @default(false)
-  dateDeleted  DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  client       Clients   @relation(fields: [clientId], references: [id])
-  Project      Project[]
+  id             Int              @id @default(autoincrement())
+  clientId       Int
+  areaName       String
+  contactName    String
+  contactEmail   String
+  contactPhone   String
+  observations   String?
+  isActive       Boolean          @default(true)
+  isDeleted      Boolean          @default(false)
+  dateDeleted    DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  client         Clients          @relation(fields: [clientId], references: [id])
+  Project        Project[]
+  ProjectRequest ProjectRequest[]
 
   @@map("c_client_areas")
 }
@@ -426,17 +427,18 @@ model ProjectQuote {
 //------------------------------------
 // Solicitud de proyectos
 model ProjectRequest {
-  id          Int                     @id @default(autoincrement())
-  title       String
-  isActive    Boolean                 @default(true)
-  isDeleted   Boolean                 @default(false)
-  dateDeleted DateTime?
-  createdAt   DateTime                @default(now())
-  updatedAt   DateTime                @updatedAt
-  userId      Int
-  user        User                    @relation(fields: [userId], references: [id])
-  clientId    Int
-  details     ProjectRequestDetails[]
+  id           Int                     @id @default(autoincrement())
+  title        String
+  isActive     Boolean                 @default(true)
+  isDeleted    Boolean                 @default(false)
+  dateDeleted  DateTime?
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
+  userId       Int
+  user         User                    @relation(fields: [userId], references: [id])
+  clientAreaId Int
+  clientArea   ClientAreas             @relation(fields: [clientAreaId], references: [id])
+  details      ProjectRequestDetails[]
 
   @@index([isDeleted, isActive])
   @@map("d_project_requests")
