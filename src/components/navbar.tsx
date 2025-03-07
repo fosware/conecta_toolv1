@@ -66,7 +66,7 @@ export default function Navbar({
         } else {
           setUsername(null);
         }
-        
+
         if (data?.profile?.image_profile) {
           setProfileImage(
             `data:image/png;base64,${data.profile.image_profile}`
@@ -139,7 +139,7 @@ export default function Navbar({
               width={42}
               height={42}
               priority
-              className="bg-transparent dark:bg-slate-200 p-1 rounded "
+              className="bg-transparent dark:bg-slate-200 rounded "
             />
             <span className="text-xl font-bold text-foreground dark:text-foreground-dark">
               Tooling Cluster

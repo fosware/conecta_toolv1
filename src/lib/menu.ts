@@ -11,7 +11,6 @@ export interface MenuItem {
 }
 
 export const menuItems: MenuItem[] = [
-  { name: "Proyectos", path: "/projects", icon: "/icons/folder.svg" },
   { name: "Asociados", path: "/companies", icon: "/icons/global-partner.svg" },
   { name: "Clientes", path: "/clients", icon: "/icons/users.svg" },
   {
