@@ -33,6 +33,7 @@ export async function seedRolePrivileges() {
     "Assign Roles",
     "Update Clients",
     "Cat Certificaciones",
+    "Solicitud de Proyectos"
   ];
 
   // Mapear privilegios específicos para Staff

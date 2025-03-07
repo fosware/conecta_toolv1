@@ -62,7 +62,7 @@ export default function Sidebar({
   return (
     <>
       {/* Sidebar fijo para pantallas grandes */}
-      <aside className="hidden lg:block w-64 bg-background dark:bg-background-dark text-foreground dark:text-foreground-dark border-r border-[#EEF1F6] dark:border-[#1D2532] h-screen">
+      <aside className="hidden lg:block w-66 bg-background dark:bg-background-dark text-foreground dark:text-foreground-dark border-r border-[#EEF1F6] dark:border-[#1D2532] h-screen">
         <nav className="p-4">
           <ul className="space-y-4">
             {menuItems.map((item) => (
