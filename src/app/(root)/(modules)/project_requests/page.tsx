@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -9,42 +9,191 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { ProjectRequestsTable } from "./components/project-requests-table";
+import { ProjectRequestModal } from "./components/project-request-modal";
+import { ProjectRequestCertificationsModal } from "./components/project-request-certifications-modal";
+import { ProjectRequestSpecialtiesModal } from "./components/project-request-specialties-modal";
+import { Plus, Search } from "lucide-react";
+import { useUserRole } from "@/hooks/use-user-role";
+import { getToken } from "@/lib/auth";
+
+import { ProjectRequestWithRelations } from "@/lib/schemas/project_request";
 
 export default function ProjectRequestsPage() {
+  const {
+    role,
+    loading: roleLoading,
+    isStaff,
+    isAsociado,
+    refresh: refreshUserRole,
+  } = useUserRole();
+  
+  const [projectRequests, setProjectRequests] = useState<ProjectRequestWithRelations[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showActive, setShowActive] = useState(true);
+  const [expandedRequestId, setExpandedRequestId] = useState<number | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<ProjectRequestWithRelations | null>(null);
+  const [certificationsModalOpen, setCertificationsModalOpen] = useState(false);
+  const [selectedItemForCertifications, setSelectedItemForCertifications] = useState<ProjectRequestWithRelations | null>(null);
+  const [specialtiesModalOpen, setSpecialtiesModalOpen] = useState(false);
+  const [selectedItemForSpecialties, setSelectedItemForSpecialties] = useState<ProjectRequestWithRelations | null>(null);
+  
+  // Función para cargar las solicitudes de proyectos
+  const loadProjectRequests = useCallback(async () => {
+    try {
+      setLoading(true);
+      
+      const response = await fetch(`/api/project_requests?onlyActive=${showActive}`, {
+        headers: {
+          Authorization: `Bearer ${getToken()}`,
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error("Error al cargar las solicitudes de proyectos");
+      }
+      
+      const data = await response.json();
+      setProjectRequests(data.items || []);
+      
+    } catch (error) {
+      console.error("Error loading project requests:", error);
+      toast.error("Error al cargar las solicitudes de proyectos");
+    } finally {
+      setLoading(false);
+    }
+  }, [showActive]);
 
   useEffect(() => {
-    // Aquí se cargarían los datos iniciales cuando sea necesario
-  }, []);
+    loadProjectRequests();
+  }, [loadProjectRequests, showActive]);
+
+  const handleToggleStatus = async (id: number, currentStatus: boolean) => {
+    try {
+      const response = await fetch(`/api/project_requests/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({ isActive: !currentStatus }),
+      });
+      
+      if (!response.ok) {
+        throw new Error("Error al cambiar el estado de la solicitud");
+      }
+      
+      toast.success("Estado de la solicitud actualizado correctamente");
+      await loadProjectRequests();
+    } catch (error) {
+      console.error("Error toggling project request status:", error);
+      toast.error("Error al cambiar el estado de la solicitud");
+    }
+  };
+
+  const handleRowClick = (item: ProjectRequestWithRelations) => {
+    if (expandedRequestId === item.id) {
+      setExpandedRequestId(null);
+    } else {
+      setExpandedRequestId(item.id);
+      // Aquí se podría cargar información adicional si es necesario
+    }
+  };
+
+  const handleEdit = (item: ProjectRequestWithRelations) => {
+    setSelectedItem(item);
+    setModalOpen(true);
+  };
+
+  const handleManageCertifications = (item: ProjectRequestWithRelations) => {
+    setSelectedItemForCertifications(item);
+    setCertificationsModalOpen(true);
+  };
+
+  const handleManageSpecialties = (item: ProjectRequestWithRelations) => {
+    setSelectedItemForSpecialties(item);
+    setSpecialtiesModalOpen(true);
+  };
+
+  const handleCreateNew = () => {
+    setSelectedItem(null);
+    setModalOpen(true);
+  };
+
+  const handleModalSuccess = () => {
+    loadProjectRequests();
+  };
 
   return (
     <div className="container mx-auto py-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Solicitud de Proyectos</h1>
         <Button
-          onClick={() =>
-            toast.info("Esta funcionalidad estará disponible próximamente", {
-              description: "Módulo en desarrollo",
-            })
-          }
+          onClick={handleCreateNew}
+          className="gap-2"
         >
-          Nueva Solicitud
+          <Plus className="h-4 w-4" /> Nueva Solicitud
         </Button>
       </div>
 
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Solicitud de Proyectos</CardTitle>
-          <CardDescription>
-            Gestiona las solicitudes de proyectos de tus clientes
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Solicitud de Proyectos</CardTitle>
+              <CardDescription>
+                Gestiona las solicitudes de proyectos de tus clientes
+              </CardDescription>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="show-active"
+                checked={showActive}
+                onCheckedChange={setShowActive}
+              />
+              <Label htmlFor="show-active">Mostrar activos</Label>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          <ProjectRequestsTable />
+          <ProjectRequestsTable 
+            data={projectRequests}
+            loading={loading}
+            onToggleStatus={handleToggleStatus}
+            onRowClick={handleRowClick}
+            onEdit={handleEdit}
+            onManageCertifications={handleManageCertifications}
+            onManageSpecialties={handleManageSpecialties}
+            expandedId={expandedRequestId}
+            isStaff={isStaff}
+          />
         </CardContent>
       </Card>
+
+      <ProjectRequestModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        item={selectedItem}
+        onSuccess={handleModalSuccess}
+      />
+
+      <ProjectRequestCertificationsModal
+        open={certificationsModalOpen}
+        onOpenChange={setCertificationsModalOpen}
+        projectRequest={selectedItemForCertifications}
+        onSuccess={handleModalSuccess}
+      />
+
+      <ProjectRequestSpecialtiesModal
+        open={specialtiesModalOpen}
+        onOpenChange={setSpecialtiesModalOpen}
+        projectRequest={selectedItemForSpecialties}
+        onSuccess={handleModalSuccess}
+      />
     </div>
   );
 }

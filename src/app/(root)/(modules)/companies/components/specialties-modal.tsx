@@ -101,9 +101,9 @@ export function SpecialtiesModal({
     }
   }, [open]);
 
-  const loadCompanySpecialties = async () => {
+  const loadCompanySpecialties = async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
       const response = await fetch(`/api/companies/${companyId}/specialties`, {
         headers: {
           Authorization: `Bearer ${getToken()}`,
@@ -125,19 +125,24 @@ export function SpecialtiesModal({
       console.error("Error al cargar las especialidades:", error);
       toast.error("Error al cargar las especialidades");
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 
   const loadSpecialties = async () => {
     try {
+      // Depurar el token
+      const token = getToken();
+      console.log("Token disponible:", token ? "Sí" : "No");
+      
       const response = await fetch("/api/specialties", {
         headers: {
-          Authorization: `Bearer ${getToken()}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
       const data = await response.json();
+      console.log("Respuesta API especialidades:", data);
 
       if (!response.ok) {
         throw new Error(
@@ -151,10 +156,52 @@ export function SpecialtiesModal({
         );
       }
 
-      setSpecialties(data.data);
+      // La API devuelve los datos en 'items', no en 'data'
+      setSpecialties(data.items || []);
+      
+      // Registrar en consola para depuración
+      console.log("Especialidades cargadas:", data.items);
     } catch (error) {
       console.error("Error al cargar el catálogo de especialidades:", error);
-      toast.error("Error al cargar el catálogo de especialidades");
+      // Cargar datos de ejemplo para desarrollo
+      if (process.env.NODE_ENV === "development") {
+        console.log("Cargando especialidades de ejemplo para desarrollo");
+        const especialidadesEjemplo: Especialidad[] = [
+          { 
+            id: 1, 
+            name: "Especialidad de ejemplo 1", 
+            num: 1,
+            isActive: true,
+            isDeleted: false,
+            userId: 1,
+            dateCreated: new Date(),
+            dateUpdated: null 
+          },
+          { 
+            id: 2, 
+            name: "Especialidad de ejemplo 2", 
+            num: 2,
+            isActive: true,
+            isDeleted: false,
+            userId: 1,
+            dateCreated: new Date(),
+            dateUpdated: null 
+          },
+          { 
+            id: 3, 
+            name: "Especialidad de ejemplo 3", 
+            num: 3,
+            isActive: true,
+            isDeleted: false,
+            userId: 1,
+            dateCreated: new Date(),
+            dateUpdated: null 
+          },
+        ];
+        setSpecialties(especialidadesEjemplo);
+      } else {
+        toast.error("Error al cargar el catálogo de especialidades");
+      }
     }
   };
 
@@ -262,7 +309,8 @@ export function SpecialtiesModal({
           `Especialidad ${newSpecialty.id ? "actualizada" : "agregada"} correctamente`
       );
       resetForm();
-      loadCompanySpecialties();
+      // Recargar sin mostrar el indicador de carga
+      loadCompanySpecialties(false);
     } catch (error) {
       console.error(
         `Error al ${newSpecialty.id ? "actualizar" : "agregar"} la especialidad:`,
@@ -303,15 +351,23 @@ export function SpecialtiesModal({
     resetForm();
   };
 
-  const handleDeleteSpecialty = async (specialtyId: number) => {
+  // Abrir diálogo de confirmación para eliminar
+  const handleDeleteClick = (id: number) => {
+    setSpecialtyToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteSpecialty = async () => {
+    if (!specialtyToDelete) return;
+    
     try {
       // Actualizar el estado local inmediatamente
       setCompanySpecialties((prev) =>
-        prev.filter((specialty) => specialty.id !== specialtyId)
+        prev.filter((specialty) => specialty.id !== specialtyToDelete)
       );
 
       const response = await fetch(
-        `/api/companies/${companyId}/specialties/${specialtyId}`,
+        `/api/companies/${companyId}/specialties/${specialtyToDelete}`,
         {
           method: "DELETE",
           headers: {
@@ -322,7 +378,7 @@ export function SpecialtiesModal({
 
       if (!response.ok) {
         // Si hay error, revertir el cambio local
-        loadCompanySpecialties();
+        loadCompanySpecialties(false);
         throw new Error("Error al eliminar la especialidad");
       }
 
@@ -383,7 +439,7 @@ export function SpecialtiesModal({
         machineCapacity: "",
       });
     }
-  }, [open]);
+  }, [open, companyId]);
 
   return (
     <>
@@ -411,14 +467,20 @@ export function SpecialtiesModal({
                       <SelectValue placeholder="Selecciona una especialidad" />
                     </SelectTrigger>
                     <SelectContent>
-                      {specialties.map((specialty) => (
-                        <SelectItem
-                          key={specialty.id}
-                          value={specialty.id.toString()}
-                        >
-                          {specialty.name}
+                      {specialties && specialties.length > 0 ? (
+                        specialties.map((specialty) => (
+                          <SelectItem
+                            key={specialty.id}
+                            value={specialty.id.toString()}
+                          >
+                            {specialty.name}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="loading" disabled>
+                          Cargando especialidades...
                         </SelectItem>
-                      ))}
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -591,7 +653,7 @@ export function SpecialtiesModal({
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  onClick={() => handleDeleteSpecialty(spec.id)}
+                                  onClick={() => handleDeleteClick(spec.id)}
                                   className="mx-auto"
                                 >
                                   <Trash2 className="h-4 w-4" />
@@ -607,10 +669,23 @@ export function SpecialtiesModal({
               </div>
             </div>
           </div>
+          <div className="p-6 pt-0 mt-auto border-t">
+            <Button variant="outline" onClick={onClose} className="w-full">
+              Cerrar
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      <AlertDialog 
+        open={deleteDialogOpen} 
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteDialogOpen(false);
+            setSpecialtyToDelete(null);
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Está seguro?</AlertDialogTitle>
@@ -622,9 +697,8 @@ export function SpecialtiesModal({
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() =>
-                specialtyToDelete && handleDeleteSpecialty(specialtyToDelete)
-              }
+              onClick={handleDeleteSpecialty}
+              className="bg-red-500 hover:bg-red-600"
             >
               Eliminar
             </AlertDialogAction>

@@ -23,7 +23,13 @@ export async function GET(req: NextRequest) {
     // Obtener las áreas de clientes
     const clientAreas = await prisma.clientAreas.findMany({
       where,
-      include: {
+      select: {
+        id: true,
+        areaName: true,
+        clientId: true,
+        contactName: true,
+        contactEmail: true,
+        contactPhone: true,
         client: {
           select: {
             id: true,
@@ -38,7 +44,7 @@ export async function GET(req: NextRequest) {
     });
 
     return NextResponse.json({
-      clientAreas,
+      items: clientAreas,
       total: clientAreas.length,
     });
   } catch (error) {

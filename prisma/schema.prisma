@@ -118,17 +118,18 @@ model Subscopes {
 }
 
 model Certifications {
-  id                    Int                     @id @default(autoincrement())
-  name                  String                  @unique
-  description           String?
-  isActive              Boolean                 @default(true)
-  isDeleted             Boolean                 @default(false)
-  dateDeleted           DateTime?
-  createdAt             DateTime                @default(now())
-  updatedAt             DateTime                @updatedAt
-  userId                Int
-  user                  User                    @relation(fields: [userId], references: [id])
-  CompanyCertifications CompanyCertifications[]
+  id                        Int                        @id @default(autoincrement())
+  name                      String                     @unique
+  description               String?
+  isActive                  Boolean                    @default(true)
+  isDeleted                 Boolean                    @default(false)
+  dateDeleted               DateTime?
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
+  userId                    Int
+  user                      User                       @relation(fields: [userId], references: [id])
+  CompanyCertifications     CompanyCertifications[]
+  requirementCertifications RequirementCertification[]
 
   @@index([isDeleted, isActive])
   @@map("c_certifications")
@@ -462,6 +463,7 @@ model RequirementCertification {
   id               Int            @id @default(autoincrement())
   projectRequestId Int
   certificationId  Int
+  observation      String?
   isActive         Boolean        @default(true)
   isDeleted        Boolean        @default(false)
   dateDeleted      DateTime?
@@ -470,6 +472,7 @@ model RequirementCertification {
   userId           Int
   user             User           @relation(fields: [userId], references: [id])
   ProjectRequest   ProjectRequest @relation(fields: [projectRequestId], references: [id])
+  certification    Certifications @relation(fields: [certificationId], references: [id])
 
   ndas ProjectRequestRequirementNDA[]
 
@@ -484,6 +487,7 @@ model RequirementSpecialty {
   specialtyId      Int
   scopeId          Int?
   subscopeId       Int?
+  observation      String?
   isActive         Boolean        @default(true)
   isDeleted        Boolean        @default(false)
   dateDeleted      DateTime?

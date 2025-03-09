@@ -69,8 +69,13 @@ export interface CompanySpecialty {
   specialtyId: number;
   scopeId: number | null;
   subscopeId: number | null;
+  materials?: string;
+  machineCapacity?: string;
   createdAt: Date;
   updatedAt: Date;
+  specialty?: Especialidad;
+  scope?: Alcance;
+  subscope?: Subalcance;
 }
 
 export interface Company {
