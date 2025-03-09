@@ -302,11 +302,8 @@ export default function CompanyPage() {
           isStaff={isStaff}
           isAsociado={isAsociado}
           expandedId={expandedCompanyId}
+          selectedCompanyProfile={selectedCompanyProfile}
         />
-
-        {selectedCompanyProfile && (
-          <CompanyOverview data={selectedCompanyProfile} />
-        )}
 
         <CompanyModal
           open={editModal.isOpen}

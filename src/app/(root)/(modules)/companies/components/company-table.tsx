@@ -13,6 +13,8 @@ import { Switch } from "@/components/ui/switch";
 import { Pencil, Trash2, Users, Award, Medal, Loader2, ChevronRight, ChevronDown, FileText } from "lucide-react";
 import { Company } from "@prisma/client";
 import { useState } from "react";
+import * as React from "react";
+import { CompanyOverview } from "./company-overview";
 
 interface CompanyTableProps {
   data: (Company & {
@@ -32,6 +34,7 @@ interface CompanyTableProps {
   isStaff: boolean;
   isAsociado: boolean;
   expandedId: number | null;
+  selectedCompanyProfile?: any;
 }
 
 export function CompanyTable({
@@ -47,6 +50,7 @@ export function CompanyTable({
   isStaff,
   isAsociado,
   expandedId,
+  selectedCompanyProfile,
 }: CompanyTableProps) {
   // Determinar si el usuario puede editar y eliminar
   const canEdit = !isStaff;
@@ -86,98 +90,109 @@ export function CompanyTable({
             </TableRow>
           ) : (
             data.map((item) => (
-              <TableRow key={item.id}>
-                <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onRowClick?.(item)}
-                    title={expandedId === item.id ? "Contraer detalles" : "Expandir detalles"}
-                    className="hover:bg-muted flex items-center gap-1 h-8 px-2"
-                  >
-                    <FileText className="h-4 w-4" />
-                    {expandedId === item.id ? (
-                      <ChevronDown className="h-4 w-4" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4" />
-                    )}
-                  </Button>
-                </TableCell>
-                <TableCell>{item.comercialName}</TableCell>
-                <TableCell>{item.contactName}</TableCell>
-                <TableCell>{item.email}</TableCell>
-                <TableCell>{item.phone}</TableCell>
-                <TableCell>
-                  {item.locationState?.name || "No especificado"}
-                </TableCell>
-                {showActiveColumn && (
+              <React.Fragment key={item.id}>
+                <TableRow>
                   <TableCell>
-                    {onToggleStatus && (
-                      <Switch
-                        checked={item.isActive}
-                        onCheckedChange={() =>
-                          onToggleStatus(item.id, item.isActive)
-                        }
-                      />
-                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onRowClick?.(item)}
+                      title={expandedId === item.id ? "Contraer detalles" : "Expandir detalles"}
+                      className="hover:bg-muted flex items-center gap-1 h-8 px-2"
+                    >
+                      <FileText className="h-4 w-4" />
+                      {expandedId === item.id ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                    </Button>
                   </TableCell>
+                  <TableCell>{item.comercialName}</TableCell>
+                  <TableCell>{item.contactName}</TableCell>
+                  <TableCell>{item.email}</TableCell>
+                  <TableCell>{item.phone}</TableCell>
+                  <TableCell>
+                    {item.locationState?.name || "No especificado"}
+                  </TableCell>
+                  {showActiveColumn && (
+                    <TableCell>
+                      {onToggleStatus && (
+                        <Switch
+                          checked={item.isActive}
+                          onCheckedChange={() =>
+                            onToggleStatus(item.id, item.isActive)
+                          }
+                        />
+                      )}
+                    </TableCell>
+                  )}
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      {canEdit && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => onEdit(item)}
+                          title="Editar perfil"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {onManageCertificates && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => onManageCertificates(item)}
+                          title="Certificados"
+                        >
+                          <Award className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {onManageSpecialties && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => onManageSpecialties(item)}
+                          title="Especialidades"
+                        >
+                          <Medal className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {onManageUsers && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => onManageUsers(item)}
+                          title="Usuarios"
+                        >
+                          <Users className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {canDelete && onDelete && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-red-500 hover:text-red-600"
+                          onClick={() => onDelete(item)}
+                          title="Eliminar"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+                {expandedId === item.id && selectedCompanyProfile && (
+                  <TableRow>
+                    <TableCell colSpan={showActiveColumn ? 8 : 7} className="p-0 border-t-0">
+                      <div className="px-4 pb-4">
+                        <CompanyOverview data={selectedCompanyProfile} />
+                      </div>
+                    </TableCell>
+                  </TableRow>
                 )}
-                <TableCell className="text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    {canEdit && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => onEdit(item)}
-                        title="Editar perfil"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    )}
-                    {onManageCertificates && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => onManageCertificates(item)}
-                        title="Certificados"
-                      >
-                        <Award className="h-4 w-4" />
-                      </Button>
-                    )}
-                    {onManageSpecialties && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => onManageSpecialties(item)}
-                        title="Especialidades"
-                      >
-                        <Medal className="h-4 w-4" />
-                      </Button>
-                    )}
-                    {onManageUsers && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => onManageUsers(item)}
-                        title="Usuarios"
-                      >
-                        <Users className="h-4 w-4" />
-                      </Button>
-                    )}
-                    {canDelete && onDelete && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-red-500 hover:text-red-600"
-                        onClick={() => onDelete(item)}
-                        title="Eliminar"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
+              </React.Fragment>
             ))
           )}
         </TableBody>

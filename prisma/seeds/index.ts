@@ -8,6 +8,7 @@ import { seedSubscopes } from "./subscopes.js";
 import { seedCertifications } from "./certifications.js";
 import { seedLocationStates } from "./locationStates.js";
 import { seedProjectTypes } from "./projectTypes.js";
+import { seedProjectStatus } from "./statusProjectRequest.js";
 
 export async function seedAll() {
   try {
@@ -32,13 +33,15 @@ export async function seedAll() {
     console.log("Certificaciones sembradas.");
     await seedProjectTypes();
     console.log("Tipos de proyecto sembrados correctamente.");
+    await seedProjectStatus();
+    console.log("Status de proyecto sembrados correctamente.");
 
     console.log("Semillas completadas.");
   } catch (error) {
     console.error("Error al ejecutar semillas:", error);
   }
 }
-// npx prisma migrate dev --name update_models
+// npx prisma migrate dev --name update_models || npx prisma db push
 // npx prisma generate
 // npm run prisma:seed
 // seedAll();
