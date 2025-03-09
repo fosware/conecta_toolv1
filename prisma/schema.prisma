@@ -29,23 +29,9 @@ model User {
   CompanySpecialties                 CompanySpecialties[]
   CompanyUser                        CompanyUser[]
   Clients                            Clients[]
-  //Projects                      Project[]
-  //projectQuotes                 ProjectQuote[]
-  //ProjectRequest                ProjectRequest[]
-  //ProjectRequestDetails         ProjectRequestDetails[]
-  //RequirementCertification      RequirementCertification[]
-  //RequirementSpecialty          RequirementSpecialty[]
-  //ProjectRequestDetailCompanies ProjectRequestDetailCompanies[]
-  //ProjectRequestDetailNDA       ProjectRequestDetailNDA[]
-  //ProjectRequestDetailDocuments ProjectRequestDetailDocuments[]
-  //ProjectRequestDetailQuotation ProjectRequestDetailQuotation[]
   ProjectRequest                     ProjectRequest[]
   RequirementCertification           RequirementCertification[]
   RequirementSpecialty               RequirementSpecialty[]
-  //ProjectRequestCompany              ProjectRequestCompany[]
-  //ProjectRequestRequirementNDA       ProjectRequestRequirementNDA[]
-  //ProjectRequestRequirementDocuments ProjectRequestRequirementDocuments[]
-  //ProjectRequestRequirementQuotation ProjectRequestRequirementQuotation[]
   ProjectRequestCompany              ProjectRequestCompany[]
   ProjectRequestRequirementDocuments ProjectRequestRequirementDocuments[]
   ProjectRequestRequirementQuotation ProjectRequestRequirementQuotation[]
@@ -231,9 +217,6 @@ model Company {
   CompanyCertifications  CompanyCertifications[]
   CompanySpecialties     CompanySpecialties[]
   CompanyUser            CompanyUser[]
-  //projectQuotes                 ProjectQuote[]
-  //ProjectRequestDetailCompanies ProjectRequestDetailCompanies[]
-  //ProjectRequestCompany  ProjectRequestCompany[]
   ProjectRequestCompany  ProjectRequestCompany[]
 
   @@index([isDeleted, isActive])
@@ -384,7 +367,6 @@ model ClientAreas {
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
   client         Clients          @relation(fields: [clientId], references: [id])
-  // Project        Project[]
   ProjectRequest ProjectRequest[]
 
   @@map("c_client_areas")
@@ -443,16 +425,17 @@ model ClientAreas {
 
 // Modelo de status de solicitud de proyectos
 model StatusProjectRequest {
-  id             Int              @id @default(autoincrement())
-  name           String           @unique
-  isActive       Boolean          @default(true)
-  isDeleted      Boolean          @default(false)
-  dateDeleted    DateTime?
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-  userId         Int
-  user           User             @relation(fields: [userId], references: [id])
-  ProjectRequest ProjectRequest[]
+  id                    Int                     @id @default(autoincrement())
+  name                  String                  @unique
+  isActive              Boolean                 @default(true)
+  isDeleted             Boolean                 @default(false)
+  dateDeleted           DateTime?
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+  userId                Int
+  user                  User                    @relation(fields: [userId], references: [id])
+  ProjectRequest        ProjectRequest[]
+  ProjectRequestCompany ProjectRequestCompany[]
 
   @@index([isDeleted, isActive])
   @@map("c_status_project_requests")
@@ -477,7 +460,6 @@ model ProjectRequest {
   clientArea            ClientAreas                @relation(fields: [clientAreaId], references: [id])
   certifications        RequirementCertification[]
   specialties           RequirementSpecialty[]
-  // ProjectRequestCompany ProjectRequestCompany[]
   ProjectRequestCompany ProjectRequestCompany[]
 
   @@index([isDeleted, isActive])
@@ -611,15 +593,16 @@ model RequirementSpecialty {
 
 // Asociados que cumplen los requisitos
 model ProjectRequestCompany {
-  id               Int            @id @default(autoincrement())
-  projectRequestId Int
-  companyId        Int
-  ProjectRequest   ProjectRequest @relation(fields: [projectRequestId], references: [id])
-
+  id                Int                  @id @default(autoincrement())
+  projectRequestId  Int
+  companyId         Int
+  ProjectRequest    ProjectRequest       @relation(fields: [projectRequestId], references: [id])
+  statusId          Int                  @default(1)
+  status            StatusProjectRequest @relation(fields: [statusId], references: [id])
   // NDA original y firmado
-  ndaFile           String?
+  ndaFile           Bytes?
   ndaFileName       String?
-  ndaSignedFile     String?
+  ndaSignedFile     Bytes?
   ndaSignedFileName String?
   ndaSignedAt       DateTime?
 

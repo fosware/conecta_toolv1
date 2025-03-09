@@ -16,6 +16,7 @@ import { ProjectRequestsTable } from "./components/project-requests-table";
 import { ProjectRequestModal } from "./components/project-request-modal";
 import { ProjectRequestCertificationsModal } from "./components/project-request-certifications-modal";
 import { ProjectRequestSpecialtiesModal } from "./components/project-request-specialties-modal";
+import { ProjectRequestParticipantsModal } from "./components/project-request-participants-modal";
 import { ProjectRequestOverview } from "./components/project-request-overview";
 import { Plus, Search } from "lucide-react";
 import { useUserRole } from "@/hooks/use-user-role";
@@ -50,6 +51,9 @@ export default function ProjectRequestsPage() {
     useState<ProjectRequestWithRelations | null>(null);
   const [specialtiesModalOpen, setSpecialtiesModalOpen] = useState(false);
   const [selectedItemForSpecialties, setSelectedItemForSpecialties] =
+    useState<ProjectRequestWithRelations | null>(null);
+  const [participantsModalOpen, setParticipantsModalOpen] = useState(false);
+  const [selectedItemForParticipants, setSelectedItemForParticipants] =
     useState<ProjectRequestWithRelations | null>(null);
 
   // Función para cargar las solicitudes de proyectos
@@ -160,6 +164,11 @@ export default function ProjectRequestsPage() {
     setSpecialtiesModalOpen(true);
   };
 
+  const handleManageParticipants = (item: ProjectRequestWithRelations) => {
+    setSelectedItemForParticipants(item);
+    setParticipantsModalOpen(true);
+  };
+
   const handleCreateNew = () => {
     setSelectedItem(null);
     setModalOpen(true);
@@ -204,6 +213,7 @@ export default function ProjectRequestsPage() {
             onEdit={handleEdit}
             onManageCertifications={handleManageCertifications}
             onManageSpecialties={handleManageSpecialties}
+            onManageParticipants={handleManageParticipants}
             expandedId={expandedRequestId}
             isStaff={isStaff}
             selectedRequestDetails={selectedRequestDetails}
@@ -231,6 +241,19 @@ export default function ProjectRequestsPage() {
         projectRequest={selectedItemForSpecialties}
         onSuccess={handleModalSuccess}
       />
+
+      {selectedItemForParticipants && (
+        <ProjectRequestParticipantsModal
+          open={participantsModalOpen}
+          onClose={() => {
+            setParticipantsModalOpen(false);
+            setSelectedItemForParticipants(null);
+            handleModalSuccess();
+          }}
+          projectRequestId={selectedItemForParticipants.id}
+          projectRequestTitle={selectedItemForParticipants.title}
+        />
+      )}
     </div>
   );
 }

@@ -30,6 +30,7 @@ import {
   Loader2,
   Users,
   ClipboardList,
+  Building2,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
@@ -66,6 +67,7 @@ interface ProjectRequestsTableProps {
   onViewDetails?: (item: ProjectRequest) => void;
   onManageSpecialties?: (item: ProjectRequest) => void;
   onManageCertifications?: (item: ProjectRequest) => void;
+  onManageParticipants?: (item: ProjectRequest) => void;
   onRowClick?: (item: ProjectRequest) => void;
   expandedId?: number | null;
   isStaff?: boolean;
@@ -81,6 +83,7 @@ export function ProjectRequestsTable({
   onViewDetails,
   onManageSpecialties,
   onManageCertifications,
+  onManageParticipants,
   onRowClick,
   expandedId = null,
   isStaff = false,
@@ -326,6 +329,16 @@ export function ProjectRequestsTable({
                             title="Especialidades requeridas"
                           >
                             <Medal className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {onManageParticipants && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => onManageParticipants(item)}
+                            title="Gestionar asociados participantes"
+                          >
+                            <Building2 className="h-4 w-4" />
                           </Button>
                         )}
                         {onDelete && (

@@ -3,7 +3,8 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 const projectSatatusValues = [
-  { name: "Creado", userId: 1 },
+  { name: "Procesando", userId: 1 },
+  { name: "Asociado seleccionado", userId: 1 },
   { name: "En espera de firma NDA", userId: 1 },
   { name: "Firmado por Asociado", userId: 1 },
   { name: "Espera de Documentos Técnicos", userId: 1 },
@@ -18,5 +19,5 @@ export async function seedProjectStatus() {
       create: projectStatus,
     });
   }
-  console.log("Tipos de proyecto sembrados correctamente.");
+  console.log("Status de proyectos sembrados correctamente.");
 }
