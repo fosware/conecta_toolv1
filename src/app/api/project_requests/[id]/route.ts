@@ -64,12 +64,22 @@ export async function GET(
         user: {
           select: {
             id: true,
-            name: true,
+            username: true,
             email: true,
           },
         },
-        specialties: true,
-        certifications: true,
+        specialties: {
+          include: {
+            specialty: true,
+            scope: true,
+            subscope: true,
+          }
+        },
+        certifications: {
+          include: {
+            certification: true,
+          }
+        },
       },
     };
 

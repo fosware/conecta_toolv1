@@ -212,7 +212,7 @@ export function ProjectRequestCertificationsModal({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               Certificaciones Requeridas
@@ -225,7 +225,7 @@ export function ProjectRequestCertificationsModal({
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {/* Formulario para agregar nueva certificación */}
             <div className="space-y-4 border p-4 rounded-md">
               <h3 className="text-lg font-medium">Agregar Certificación</h3>
@@ -286,7 +286,7 @@ export function ProjectRequestCertificationsModal({
             </div>
 
             {/* Lista de certificaciones requeridas */}
-            <div className="space-y-4">
+            <div className="space-y-2">
               <h3 className="text-lg font-medium">Certificaciones Requeridas</h3>
               
               {requirementCertifications.length === 0 ? (
@@ -294,7 +294,7 @@ export function ProjectRequestCertificationsModal({
                   No hay certificaciones requeridas para esta solicitud de proyecto.
                 </p>
               ) : (
-                <ScrollArea className="h-[300px]">
+                <ScrollArea className="max-h-[200px]">
                   <div className="space-y-3">
                     {requirementCertifications.map((req) => (
                       <Card key={req.id} className="overflow-hidden">

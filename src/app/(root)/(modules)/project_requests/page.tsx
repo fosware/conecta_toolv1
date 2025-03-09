@@ -16,6 +16,7 @@ import { ProjectRequestsTable } from "./components/project-requests-table";
 import { ProjectRequestModal } from "./components/project-request-modal";
 import { ProjectRequestCertificationsModal } from "./components/project-request-certifications-modal";
 import { ProjectRequestSpecialtiesModal } from "./components/project-request-specialties-modal";
+import { ProjectRequestOverview } from "./components/project-request-overview";
 import { Plus, Search } from "lucide-react";
 import { useUserRole } from "@/hooks/use-user-role";
 import { getToken } from "@/lib/auth";
@@ -30,36 +31,47 @@ export default function ProjectRequestsPage() {
     isAsociado,
     refresh: refreshUserRole,
   } = useUserRole();
-  
-  const [projectRequests, setProjectRequests] = useState<ProjectRequestWithRelations[]>([]);
+
+  const [projectRequests, setProjectRequests] = useState<
+    ProjectRequestWithRelations[]
+  >([]);
   const [loading, setLoading] = useState(false);
   const [showActive, setShowActive] = useState(true);
-  const [expandedRequestId, setExpandedRequestId] = useState<number | null>(null);
+  const [expandedRequestId, setExpandedRequestId] = useState<number | null>(
+    null
+  );
+  const [selectedRequestDetails, setSelectedRequestDetails] =
+    useState<ProjectRequestWithRelations | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<ProjectRequestWithRelations | null>(null);
+  const [selectedItem, setSelectedItem] =
+    useState<ProjectRequestWithRelations | null>(null);
   const [certificationsModalOpen, setCertificationsModalOpen] = useState(false);
-  const [selectedItemForCertifications, setSelectedItemForCertifications] = useState<ProjectRequestWithRelations | null>(null);
+  const [selectedItemForCertifications, setSelectedItemForCertifications] =
+    useState<ProjectRequestWithRelations | null>(null);
   const [specialtiesModalOpen, setSpecialtiesModalOpen] = useState(false);
-  const [selectedItemForSpecialties, setSelectedItemForSpecialties] = useState<ProjectRequestWithRelations | null>(null);
-  
+  const [selectedItemForSpecialties, setSelectedItemForSpecialties] =
+    useState<ProjectRequestWithRelations | null>(null);
+
   // Función para cargar las solicitudes de proyectos
   const loadProjectRequests = useCallback(async () => {
     try {
       setLoading(true);
-      
-      const response = await fetch(`/api/project_requests?onlyActive=${showActive}`, {
-        headers: {
-          Authorization: `Bearer ${getToken()}`,
-        },
-      });
-      
+
+      const response = await fetch(
+        `/api/project_requests?onlyActive=${showActive}`,
+        {
+          headers: {
+            Authorization: `Bearer ${getToken()}`,
+          },
+        }
+      );
+
       if (!response.ok) {
         throw new Error("Error al cargar las solicitudes de proyectos");
       }
-      
+
       const data = await response.json();
       setProjectRequests(data.items || []);
-      
     } catch (error) {
       console.error("Error loading project requests:", error);
       toast.error("Error al cargar las solicitudes de proyectos");
@@ -82,11 +94,11 @@ export default function ProjectRequestsPage() {
         },
         body: JSON.stringify({ isActive: !currentStatus }),
       });
-      
+
       if (!response.ok) {
         throw new Error("Error al cambiar el estado de la solicitud");
       }
-      
+
       toast.success("Estado de la solicitud actualizado correctamente");
       await loadProjectRequests();
     } catch (error) {
@@ -95,12 +107,41 @@ export default function ProjectRequestsPage() {
     }
   };
 
-  const handleRowClick = (item: ProjectRequestWithRelations) => {
+  const handleRowClick = async (item: ProjectRequestWithRelations) => {
     if (expandedRequestId === item.id) {
       setExpandedRequestId(null);
+      setSelectedRequestDetails(null);
     } else {
       setExpandedRequestId(item.id);
-      // Aquí se podría cargar información adicional si es necesario
+
+      try {
+        // Cargar información detallada de la solicitud si es necesario
+        const response = await fetch(`/api/project_requests/${item.id}`, {
+          headers: {
+            Authorization: `Bearer ${getToken()}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Error al cargar los detalles de la solicitud");
+        }
+
+        const data = await response.json();
+        // Verificar la estructura de la respuesta
+        if (data.data) {
+          setSelectedRequestDetails(data.data);
+        } else if (data.item) {
+          setSelectedRequestDetails(data.item);
+        } else {
+          // Si no encontramos los datos en la estructura esperada, usamos los datos básicos
+          console.warn("Estructura de respuesta inesperada:", data);
+          setSelectedRequestDetails(item);
+        }
+      } catch (error) {
+        console.error("Error loading project request details:", error);
+        // Si falla la carga de detalles, usamos los datos básicos que ya tenemos
+        setSelectedRequestDetails(item);
+      }
     }
   };
 
@@ -132,10 +173,7 @@ export default function ProjectRequestsPage() {
     <div className="container mx-auto py-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Solicitud de Proyectos</h1>
-        <Button
-          onClick={handleCreateNew}
-          className="gap-2"
-        >
+        <Button onClick={handleCreateNew} className="gap-2">
           <Plus className="h-4 w-4" /> Nueva Solicitud
         </Button>
       </div>
@@ -145,9 +183,7 @@ export default function ProjectRequestsPage() {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Solicitud de Proyectos</CardTitle>
-              <CardDescription>
-                Gestiona las solicitudes de proyectos de tus clientes
-              </CardDescription>
+              <CardDescription></CardDescription>
             </div>
             <div className="flex items-center space-x-2">
               <Switch
@@ -160,7 +196,7 @@ export default function ProjectRequestsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <ProjectRequestsTable 
+          <ProjectRequestsTable
             data={projectRequests}
             loading={loading}
             onToggleStatus={handleToggleStatus}
@@ -170,6 +206,7 @@ export default function ProjectRequestsPage() {
             onManageSpecialties={handleManageSpecialties}
             expandedId={expandedRequestId}
             isStaff={isStaff}
+            selectedRequestDetails={selectedRequestDetails}
           />
         </CardContent>
       </Card>

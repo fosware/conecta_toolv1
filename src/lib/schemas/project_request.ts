@@ -47,6 +47,9 @@ export interface ProjectRequestWithRelations extends Omit<ProjectRequest, "reque
     id: number;
     areaName: string;
     clientId: number;
+    contactName?: string;
+    contactEmail?: string;
+    contactPhone?: string;
     client: {
       id: number;
       name: string;
@@ -57,4 +60,34 @@ export interface ProjectRequestWithRelations extends Omit<ProjectRequest, "reque
     username: string;
     email: string;
   };
+  specialties?: Array<{
+    id: number;
+    projectRequestId: number;
+    specialtyId: number;
+    scopeId?: number | null;
+    subscopeId?: number | null;
+    isDeleted?: boolean;
+    specialty?: {
+      id: number;
+      name: string;
+    } | null;
+    scope?: {
+      id: number;
+      name: string;
+    } | null;
+    subscope?: {
+      id: number;
+      name: string;
+    } | null;
+  }>;
+  certifications?: Array<{
+    id: number;
+    projectRequestId: number;
+    certificationId: number;
+    isDeleted?: boolean;
+    certification?: {
+      id: number;
+      name: string;
+    } | null;
+  }>;
 }

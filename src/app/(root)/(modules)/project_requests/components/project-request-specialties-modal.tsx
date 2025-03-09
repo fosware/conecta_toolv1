@@ -99,13 +99,17 @@ export function ProjectRequestSpecialtiesModal({
   const [observation, setObservation] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [specialtyToDelete, setSpecialtyToDelete] = useState<number | null>(null);
+  const [specialtyToDelete, setSpecialtyToDelete] = useState<number | null>(
+    null
+  );
 
   // Estados para los datos
   const [specialties, setSpecialties] = useState<Specialty[]>([]);
   const [scopes, setScopes] = useState<Scope[]>([]);
   const [subscopes, setSubscopes] = useState<Subscope[]>([]);
-  const [requirementSpecialties, setRequirementSpecialties] = useState<RequirementSpecialty[]>([]);
+  const [requirementSpecialties, setRequirementSpecialties] = useState<
+    RequirementSpecialty[]
+  >([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Estados para filtrar scopes y subscopes basados en selecciones
@@ -178,14 +182,17 @@ export function ProjectRequestSpecialtiesModal({
   // Cargar especialidades requeridas para el proyecto
   const loadRequirementSpecialties = async (showLoading = true) => {
     if (!projectRequest) return;
-    
+
     try {
       if (showLoading) setIsLoading(true);
-      const response = await fetch(`/api/project_requests/${projectRequest.id}/specialties`, {
-        headers: {
-          Authorization: `Bearer ${getToken()}`,
-        },
-      });
+      const response = await fetch(
+        `/api/project_requests/${projectRequest.id}/specialties`,
+        {
+          headers: {
+            Authorization: `Bearer ${getToken()}`,
+          },
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Error al cargar las especialidades requeridas");
@@ -215,9 +222,11 @@ export function ProjectRequestSpecialtiesModal({
   useEffect(() => {
     if (selectedSpecialtyId) {
       const specialtyId = parseInt(selectedSpecialtyId);
-      const filtered = scopes.filter(scope => scope.specialtyId === specialtyId);
+      const filtered = scopes.filter(
+        (scope) => scope.specialtyId === specialtyId
+      );
       setFilteredScopes(filtered);
-      
+
       // Resetear el alcance seleccionado si no hay alcances disponibles para esta especialidad
       if (filtered.length === 0) {
         setSelectedScopeId("");
@@ -234,9 +243,11 @@ export function ProjectRequestSpecialtiesModal({
   useEffect(() => {
     if (selectedScopeId) {
       const scopeId = parseInt(selectedScopeId);
-      const filtered = subscopes.filter(subscope => subscope.scopeId === scopeId);
+      const filtered = subscopes.filter(
+        (subscope) => subscope.scopeId === scopeId
+      );
       setFilteredSubscopes(filtered);
-      
+
       // Resetear el subalcance seleccionado si no hay subalcances disponibles para este alcance
       if (filtered.length === 0) {
         setSelectedSubscopeId("");
@@ -250,7 +261,7 @@ export function ProjectRequestSpecialtiesModal({
   // Agregar una nueva especialidad requerida
   const handleAddSpecialty = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!projectRequest) return;
     if (!selectedSpecialtyId) {
       toast.error("Debes seleccionar una especialidad");
@@ -259,41 +270,52 @@ export function ProjectRequestSpecialtiesModal({
 
     try {
       setIsSubmitting(true);
-      
+
       const payload = {
         specialtyId: parseInt(selectedSpecialtyId),
         scopeId: selectedScopeId ? parseInt(selectedScopeId) : undefined,
-        subscopeId: selectedSubscopeId ? parseInt(selectedSubscopeId) : undefined,
+        subscopeId: selectedSubscopeId
+          ? parseInt(selectedSubscopeId)
+          : undefined,
         observation: observation || undefined,
       };
 
-      const response = await fetch(`/api/project_requests/${projectRequest.id}/specialties`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${getToken()}`,
-        },
-        body: JSON.stringify(payload),
-      });
+      const response = await fetch(
+        `/api/project_requests/${projectRequest.id}/specialties`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${getToken()}`,
+          },
+          body: JSON.stringify(payload),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Error al agregar la especialidad requerida");
+        throw new Error(
+          errorData.error || "Error al agregar la especialidad requerida"
+        );
       }
 
       toast.success("Especialidad requerida agregada exitosamente");
-      
+
       // Limpiar el formulario
       setSelectedSpecialtyId("");
       setSelectedScopeId("");
       setSelectedSubscopeId("");
       setObservation("");
-      
+
       // Recargar las especialidades requeridas sin mostrar el indicador de carga
       await loadRequirementSpecialties(false);
     } catch (error) {
       console.error("Error adding requirement specialty:", error);
-      toast.error(error instanceof Error ? error.message : "Error al agregar la especialidad requerida");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Error al agregar la especialidad requerida"
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -308,32 +330,41 @@ export function ProjectRequestSpecialtiesModal({
   // Eliminar una especialidad requerida
   const handleDeleteSpecialty = async () => {
     if (!projectRequest || !specialtyToDelete) return;
-    
+
     try {
-      const response = await fetch(`/api/project_requests/${projectRequest.id}/specialties/${specialtyToDelete}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${getToken()}`,
-        },
-      });
+      const response = await fetch(
+        `/api/project_requests/${projectRequest.id}/specialties/${specialtyToDelete}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${getToken()}`,
+          },
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Error al eliminar la especialidad requerida");
+        throw new Error(
+          errorData.error || "Error al eliminar la especialidad requerida"
+        );
       }
 
       toast.success("Especialidad requerida eliminada exitosamente");
-      
+
       // Recargar las especialidades requeridas sin mostrar el indicador de carga
       await loadRequirementSpecialties(false);
-      
+
       // Notificar al componente padre si es necesario
       if (onSuccess) {
         onSuccess();
       }
     } catch (error) {
       console.error("Error deleting requirement specialty:", error);
-      toast.error(error instanceof Error ? error.message : "Error al eliminar la especialidad requerida");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Error al eliminar la especialidad requerida"
+      );
     }
   };
 
@@ -348,9 +379,7 @@ export function ProjectRequestSpecialtiesModal({
                 {projectRequest?.title}
               </div>
             </DialogTitle>
-            <DialogDescription>
-              Administra las especialidades requeridas para esta solicitud de proyecto
-            </DialogDescription>
+            <DialogDescription></DialogDescription>
           </DialogHeader>
 
           {isLoading ? (
@@ -362,7 +391,7 @@ export function ProjectRequestSpecialtiesModal({
               {/* Formulario para agregar nueva especialidad */}
               <div className="space-y-4 border p-4 rounded-md">
                 <h3 className="text-lg font-medium">Agregar Especialidad</h3>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="specialty">Especialidad *</Label>
                   <Select
@@ -374,7 +403,10 @@ export function ProjectRequestSpecialtiesModal({
                     </SelectTrigger>
                     <SelectContent>
                       {specialties.map((specialty) => (
-                        <SelectItem key={specialty.id} value={specialty.id.toString()}>
+                        <SelectItem
+                          key={specialty.id}
+                          value={specialty.id.toString()}
+                        >
                           {specialty.name}
                         </SelectItem>
                       ))}
@@ -387,7 +419,9 @@ export function ProjectRequestSpecialtiesModal({
                   <Select
                     value={selectedScopeId}
                     onValueChange={setSelectedScopeId}
-                    disabled={!selectedSpecialtyId || filteredScopes.length === 0}
+                    disabled={
+                      !selectedSpecialtyId || filteredScopes.length === 0
+                    }
                   >
                     <SelectTrigger id="scope">
                       <SelectValue placeholder="Selecciona un alcance" />
@@ -407,14 +441,19 @@ export function ProjectRequestSpecialtiesModal({
                   <Select
                     value={selectedSubscopeId}
                     onValueChange={setSelectedSubscopeId}
-                    disabled={!selectedScopeId || filteredSubscopes.length === 0}
+                    disabled={
+                      !selectedScopeId || filteredSubscopes.length === 0
+                    }
                   >
                     <SelectTrigger id="subscope">
                       <SelectValue placeholder="Selecciona un subalcance" />
                     </SelectTrigger>
                     <SelectContent>
                       {filteredSubscopes.map((subscope) => (
-                        <SelectItem key={subscope.id} value={subscope.id.toString()}>
+                        <SelectItem
+                          key={subscope.id}
+                          value={subscope.id.toString()}
+                        >
                           {subscope.name}
                         </SelectItem>
                       ))}
@@ -434,7 +473,7 @@ export function ProjectRequestSpecialtiesModal({
                   />
                 </div>
 
-                <Button 
+                <Button
                   onClick={handleAddSpecialty}
                   disabled={isSubmitting || !selectedSpecialtyId}
                   className="w-full mt-2"
@@ -450,11 +489,14 @@ export function ProjectRequestSpecialtiesModal({
 
               {/* Lista de especialidades requeridas */}
               <div className="space-y-4">
-                <h3 className="text-lg font-medium">Especialidades Requeridas</h3>
-                
+                <h3 className="text-lg font-medium">
+                  Especialidades Requeridas
+                </h3>
+
                 {requirementSpecialties.length === 0 ? (
                   <div className="text-center py-4 text-muted-foreground">
-                    No hay especialidades requeridas para esta solicitud de proyecto
+                    No hay especialidades requeridas para esta solicitud de
+                    proyecto
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -463,23 +505,36 @@ export function ProjectRequestSpecialtiesModal({
                         <div className="flex justify-between items-start">
                           <div className="space-y-2">
                             <div className="flex items-center gap-2">
-                              <h4 className="font-medium">{req.specialty.name}</h4>
+                              <h4 className="font-medium">
+                                {req.specialty.name}
+                              </h4>
                             </div>
                             {req.scope && (
                               <div className="flex items-center gap-1">
-                                <span className="text-sm text-muted-foreground">Alcance:</span>
-                                <Badge variant="outline">{req.scope.name}</Badge>
+                                <span className="text-sm text-muted-foreground">
+                                  Alcance:
+                                </span>
+                                <Badge variant="outline">
+                                  {req.scope.name}
+                                </Badge>
                               </div>
                             )}
                             {req.subscope && (
                               <div className="flex items-center gap-1">
-                                <span className="text-sm text-muted-foreground">Subalcance:</span>
-                                <Badge variant="outline">{req.subscope.name}</Badge>
+                                <span className="text-sm text-muted-foreground">
+                                  Subalcance:
+                                </span>
+                                <Badge variant="outline">
+                                  {req.subscope.name}
+                                </Badge>
                               </div>
                             )}
                             {req.observation && (
                               <p className="text-sm text-muted-foreground">
-                                <span className="font-medium">Observaciones:</span> {req.observation}
+                                <span className="font-medium">
+                                  Observaciones:
+                                </span>{" "}
+                                {req.observation}
                               </p>
                             )}
                           </div>
@@ -508,8 +563,8 @@ export function ProjectRequestSpecialtiesModal({
         </DialogContent>
       </Dialog>
 
-      <AlertDialog 
-        open={deleteDialogOpen} 
+      <AlertDialog
+        open={deleteDialogOpen}
         onOpenChange={(open) => {
           if (!open) {
             setDeleteDialogOpen(false);
@@ -521,12 +576,15 @@ export function ProjectRequestSpecialtiesModal({
           <AlertDialogHeader>
             <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción eliminará la especialidad requerida y no se puede deshacer.
+              Esta acción eliminará la especialidad requerida y no se puede
+              deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteSpecialty}>Eliminar</AlertDialogAction>
+            <AlertDialogAction onClick={handleDeleteSpecialty}>
+              Eliminar
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

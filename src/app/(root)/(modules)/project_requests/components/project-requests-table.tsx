@@ -9,6 +9,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import * as React from "react";
+import { ProjectRequestOverview } from "./project-request-overview";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -67,6 +69,7 @@ interface ProjectRequestsTableProps {
   onRowClick?: (item: ProjectRequest) => void;
   expandedId?: number | null;
   isStaff?: boolean;
+  selectedRequestDetails?: ProjectRequest | null;
 }
 
 export function ProjectRequestsTable({
@@ -81,6 +84,7 @@ export function ProjectRequestsTable({
   onRowClick,
   expandedId = null,
   isStaff = false,
+  selectedRequestDetails = null,
 }: ProjectRequestsTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -143,8 +147,42 @@ export function ProjectRequestsTable({
   ];
 
   // Usar los datos proporcionados o los datos de ejemplo
-  const tableData = data || mockData;
+  const baseData = data || mockData;
   const showActiveColumn = !isStaff;
+
+  // Filtrar los datos según el término de búsqueda
+  const tableData = baseData.filter((item) => {
+    if (!searchTerm.trim()) return true;
+
+    const searchTermLower = searchTerm.toLowerCase().trim();
+
+    // Buscar en título
+    if (item.title && item.title.toLowerCase().includes(searchTermLower))
+      return true;
+
+    // Buscar en nombre del cliente
+    if (
+      item.clientArea?.client?.name &&
+      item.clientArea.client.name.toLowerCase().includes(searchTermLower)
+    )
+      return true;
+
+    // Buscar en área del cliente
+    if (
+      item.clientArea?.areaName &&
+      item.clientArea.areaName.toLowerCase().includes(searchTermLower)
+    )
+      return true;
+
+    // Buscar en observaciones
+    if (
+      item.observation &&
+      item.observation.toLowerCase().includes(searchTermLower)
+    )
+      return true;
+
+    return false;
+  });
 
   // Función para manejar la visualización de detalles (si no se proporciona)
   const handleViewDetails = (item: ProjectRequest) => {
@@ -163,29 +201,19 @@ export function ProjectRequestsTable({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <div className="relative flex-1">
+      <div className="flex items-center w-full">
+        <div className="relative w-full">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
             placeholder="Buscar solicitudes..."
-            className="pl-8"
+            className="pl-8 w-full"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            aria-label="Buscar por título, cliente, área o observaciones"
+            title="Buscar por título, cliente, área o observaciones"
           />
         </div>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() =>
-            toast.info("Filtros", {
-              description: "Funcionalidad en desarrollo",
-            })
-          }
-          title="Filtrar solicitudes"
-        >
-          <Filter className="h-4 w-4" />
-        </Button>
       </div>
 
       <div className="rounded-md border">
@@ -218,101 +246,117 @@ export function ProjectRequestsTable({
               </TableRow>
             ) : (
               tableData.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onRowClick?.(item)}
-                      title={
-                        expandedId === item.id
-                          ? "Contraer detalles"
-                          : "Expandir detalles"
-                      }
-                      className="hover:bg-muted flex items-center gap-1 h-8 px-2"
-                    >
-                      <FileText className="h-4 w-4" />
-                      {expandedId === item.id ? (
-                        <ChevronDown className="h-4 w-4" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </TableCell>
-                  <TableCell>{item.title}</TableCell>
-                  <TableCell>{item.clientArea.client.name}</TableCell>
-                  <TableCell>{item.clientArea.areaName}</TableCell>
-                  <TableCell>
-                    {formatDateForDisplay(item.requestDate || item.createdAt)}
-                  </TableCell>
-                  {showActiveColumn && (
+                <React.Fragment key={item.id}>
+                  <TableRow>
                     <TableCell>
-                      {onToggleStatus && (
-                        <Switch
-                          checked={item.isActive}
-                          onCheckedChange={() =>
-                            onToggleStatus(item.id, item.isActive)
-                          }
-                        />
-                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onRowClick?.(item)}
+                        title={
+                          expandedId === item.id
+                            ? "Contraer detalles"
+                            : "Expandir detalles"
+                        }
+                        className="hover:bg-muted flex items-center gap-1 h-8 px-2"
+                      >
+                        <FileText className="h-4 w-4" />
+                        {expandedId === item.id ? (
+                          <ChevronDown className="h-4 w-4" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4" />
+                        )}
+                      </Button>
                     </TableCell>
+                    <TableCell>{item.title}</TableCell>
+                    <TableCell>{item.clientArea.client.name}</TableCell>
+                    <TableCell>{item.clientArea.areaName}</TableCell>
+                    <TableCell>
+                      {formatDateForDisplay(item.requestDate || item.createdAt)}
+                    </TableCell>
+                    {showActiveColumn && (
+                      <TableCell>
+                        {onToggleStatus && (
+                          <Switch
+                            checked={item.isActive}
+                            onCheckedChange={() =>
+                              onToggleStatus(item.id, item.isActive)
+                            }
+                          />
+                        )}
+                      </TableCell>
+                    )}
+                    <TableCell>
+                      <div className="flex items-center justify-end gap-2">
+                        {onEdit && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => onEdit(item)}
+                            title="Editar solicitud"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {onViewDetails && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleViewDetails(item)}
+                            title="Ver detalles"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {onManageCertifications && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => onManageCertifications(item)}
+                            title="Certificaciones requeridas"
+                          >
+                            <Award className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {onManageSpecialties && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => onManageSpecialties(item)}
+                            title="Especialidades requeridas"
+                          >
+                            <Medal className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {onDelete && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-red-500 hover:text-red-600"
+                            onClick={() => onDelete(item)}
+                            title="Eliminar"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                  {expandedId === item.id && selectedRequestDetails && (
+                    <TableRow>
+                      <TableCell
+                        colSpan={showActiveColumn ? 7 : 6}
+                        className="p-0 border-t-0"
+                      >
+                        <div className="px-4">
+                          <ProjectRequestOverview
+                            data={selectedRequestDetails}
+                          />
+                        </div>
+                      </TableCell>
+                    </TableRow>
                   )}
-                  <TableCell>
-                    <div className="flex items-center justify-end gap-2">
-                      {onEdit && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => onEdit(item)}
-                          title="Editar solicitud"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {onViewDetails && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleViewDetails(item)}
-                          title="Ver detalles"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {onManageCertifications && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => onManageCertifications(item)}
-                          title="Certificaciones requeridas"
-                        >
-                          <Award className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {onManageSpecialties && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => onManageSpecialties(item)}
-                          title="Especialidades requeridas"
-                        >
-                          <Medal className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {onDelete && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-red-500 hover:text-red-600"
-                          onClick={() => onDelete(item)}
-                          title="Eliminar"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
+                </React.Fragment>
               ))
             )}
           </TableBody>
