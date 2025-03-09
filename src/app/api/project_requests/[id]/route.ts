@@ -80,6 +80,27 @@ export async function GET(
             certification: true,
           }
         },
+        // Incluir los participantes con su información de empresa y estatus
+        ProjectRequestCompany: {
+          where: {
+            isDeleted: false,
+          },
+          include: {
+            Company: {
+              select: {
+                id: true,
+                comercialName: true,
+                contactName: true,
+                email: true,
+                phone: true,
+              },
+            },
+            status: true,
+          },
+          orderBy: {
+            createdAt: 'desc',
+          } as any,
+        },
       },
     };
 

@@ -90,4 +90,29 @@ export interface ProjectRequestWithRelations extends Omit<ProjectRequest, "reque
       name: string;
     } | null;
   }>;
+  ProjectRequestCompany?: Array<{
+    id: number;
+    projectRequestId: number;
+    companyId: number;
+    statusId: number;
+    ndaFile?: string | null;
+    ndaFileName?: string | null;
+    ndaSignedFile?: string | null;
+    ndaSignedFileName?: string | null;
+    ndaSignedAt?: string | null;
+    isDeleted?: boolean;
+    createdAt?: string;
+    updatedAt?: string;
+    Company?: {
+      id: number;
+      comercialName: string;
+      contactName?: string;
+      email?: string;
+      phone?: string;
+    } | null;
+    status?: {
+      id: number;
+      name: string;
+    } | null;
+  }>;
 }

@@ -12,6 +12,11 @@ import {
   Medal,
   Users,
   Clock,
+  CheckCircle2,
+  FileSignature,
+  HourglassIcon,
+  CheckSquare,
+  AlertCircle,
 } from "lucide-react";
 import { ProjectRequestWithRelations } from "@/lib/schemas/project_request";
 
@@ -216,6 +221,122 @@ export function ProjectRequestOverview({ data }: ProjectRequestOverviewProps) {
 
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Divisor */}
+        <div className="border-t border-gray-200 my-2"></div>
+
+        {/* Fila 5: Asociados seleccionados */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-medium flex items-center space-x-2">
+            <Users className="w-5 h-5" />
+            <span>Asociados Seleccionados</span>
+          </h3>
+          
+          {/* Contenedor para Asociados */}
+          <div className="border rounded-lg p-4 space-y-4">
+            {data.ProjectRequestCompany && data.ProjectRequestCompany.length > 0 ? (
+              <div className="space-y-4">
+                {data.ProjectRequestCompany.map((participant: any, index: number) => {
+                  // Determinar el icono y colores según el estatus
+                  let StatusIcon = CheckCircle2;
+                  let badgeVariant = "";
+                  let iconColor = "";
+                  
+                  if (participant.status) {
+                    switch (participant.status.id) {
+                      case 1: // Procesando
+                        StatusIcon = HourglassIcon;
+                        badgeVariant = "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300";
+                        iconColor = "text-blue-500 dark:text-blue-400";
+                        break;
+                      case 2: // Asociado seleccionado
+                        StatusIcon = Users;
+                        badgeVariant = "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300";
+                        iconColor = "text-blue-500 dark:text-blue-400";
+                        break;
+                      case 3: // En espera de firma NDA
+                        StatusIcon = FileSignature;
+                        badgeVariant = "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300";
+                        iconColor = "text-amber-500 dark:text-amber-400";
+                        break;
+                      case 4: // Firmado por Asociado
+                        StatusIcon = CheckSquare;
+                        badgeVariant = "bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300";
+                        iconColor = "text-purple-500 dark:text-purple-400";
+                        break;
+                      case 5: // Espera de Documentos Técnicos
+                        StatusIcon = AlertCircle;
+                        badgeVariant = "bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300";
+                        iconColor = "text-orange-500 dark:text-orange-400";
+                        break;
+                      case 6: // Finalizado
+                        StatusIcon = CheckSquare;
+                        badgeVariant = "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300";
+                        iconColor = "text-green-500 dark:text-green-400";
+                        break;
+                      default:
+                        StatusIcon = CheckCircle2;
+                        badgeVariant = "bg-gray-50 text-gray-700 dark:bg-gray-800/50 dark:text-gray-300";
+                        iconColor = "text-gray-500 dark:text-gray-400";
+                    }
+                  }
+                  
+                  return (
+                    <div key={index} className="border-b pb-3 last:border-b-0 last:pb-0">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <Building className="w-5 h-5 text-primary" />
+                          <span className="font-medium">{participant.Company?.comercialName || "Empresa"}</span>
+                        </div>
+                        <Badge className={`flex items-center space-x-1 border-0 pointer-events-none ${badgeVariant}`}>
+                          <StatusIcon className={`w-3 h-3 ${iconColor}`} />
+                          <span>{participant.status?.name || "Sin estatus"}</span>
+                        </Badge>
+                      </div>
+                      <div className="mt-2 pl-7 grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                        {participant.Company?.contactName && (
+                          <div className="flex items-center space-x-2">
+                            <User className="w-4 h-4 text-gray-500" />
+                            <span>Contacto: {participant.Company.contactName}</span>
+                          </div>
+                        )}
+                        {participant.Company?.email && (
+                          <div className="flex items-center space-x-2">
+                            <span className="text-gray-500">Email:</span>
+                            <span>{participant.Company.email}</span>
+                          </div>
+                        )}
+                        {participant.Company?.phone && (
+                          <div className="flex items-center space-x-2">
+                            <span className="text-gray-500">Teléfono:</span>
+                            <span>{participant.Company.phone}</span>
+                          </div>
+                        )}
+                        {participant.ndaFile && (
+                          <div className="flex items-center space-x-2">
+                            <FileText className="w-4 h-4 text-green-600" />
+                            <span className="text-green-600">NDA cargado</span>
+                          </div>
+                        )}
+                        {participant.ndaSignedFile && (
+                          <div className="flex items-center space-x-2">
+                            <FileSignature className="w-4 h-4 text-green-600" />
+                            <span className="text-green-600">NDA firmado</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-4 text-muted-foreground">
+                <Users className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                <p>No hay asociados seleccionados</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
