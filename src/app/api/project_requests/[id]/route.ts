@@ -50,9 +50,27 @@ export async function GET(
         // Si el usuario es asociado, solo puede ver sus propias solicitudes
         ...(userRole === "asociado" ? { userId } : {}),
       },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        requestDate: true,
+        observation: true,
+        statusId: true,
+        isActive: true,
+        isDeleted: true,
+        dateDeleted: true,
+        createdAt: true,
+        updatedAt: true,
+        userId: true,
+        clientAreaId: true,
         clientArea: {
-          include: {
+          select: {
+            id: true,
+            areaName: true,
+            contactName: true,
+            contactEmail: true,
+            contactPhone: true,
+            clientId: true,
             client: {
               select: {
                 id: true,
@@ -68,34 +86,57 @@ export async function GET(
             email: true,
           },
         },
-        specialties: {
-          include: {
-            specialty: true,
-            scope: true,
-            subscope: true,
-          }
-        },
-        certifications: {
-          include: {
-            certification: true,
-          }
-        },
-        // Incluir los participantes con su información de empresa y estatus
-        ProjectRequestCompany: {
+        // Incluir los requerimientos con su nombre, especialidades, certificaciones y participantes
+        ProjectRequirements: {
           where: {
             isDeleted: false,
           },
-          include: {
-            Company: {
-              select: {
-                id: true,
-                comercialName: true,
-                contactName: true,
-                email: true,
-                phone: true,
+          select: {
+            id: true,
+            requirementName: true,
+            statusId: true,
+            status: true,
+            isActive: true,
+            createdAt: true,
+            updatedAt: true,
+            // Incluir especialidades asociadas al requerimiento
+            RequirementSpecialty: {
+              where: {
+                isDeleted: false,
+              },
+              include: {
+                specialty: true,
+                scope: true,
+                subscope: true,
               },
             },
-            status: true,
+            // Incluir certificaciones asociadas al requerimiento
+            RequirementCertification: {
+              where: {
+                isDeleted: false,
+              },
+              include: {
+                certification: true,
+              },
+            },
+            // Incluir participantes (empresas) asociados al requerimiento
+            ProjectRequestCompany: {
+              where: {
+                isDeleted: false,
+              },
+              include: {
+                Company: {
+                  select: {
+                    id: true,
+                    comercialName: true,
+                    contactName: true,
+                    email: true,
+                    phone: true,
+                  },
+                },
+                status: true,
+              },
+            },
           },
           orderBy: {
             createdAt: 'desc',

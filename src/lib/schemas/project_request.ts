@@ -60,35 +60,67 @@ export interface ProjectRequestWithRelations extends Omit<ProjectRequest, "reque
     username: string;
     email: string;
   };
-  specialties?: Array<{
+  ProjectRequirements?: Array<{
     id: number;
     projectRequestId: number;
-    specialtyId: number;
-    scopeId?: number | null;
-    subscopeId?: number | null;
+    requirementName: string;
+    statusId: number;
+    status: {
+      id: number;
+      name: string;
+    };
+    isActive: boolean;
     isDeleted?: boolean;
-    specialty?: {
+    createdAt: string;
+    updatedAt: string;
+    RequirementSpecialty?: Array<{
       id: number;
-      name: string;
-    } | null;
-    scope?: {
+      projectRequirementsId: number;
+      specialtyId: number;
+      scopeId?: number | null;
+      subscopeId?: number | null;
+      isDeleted?: boolean;
+      specialty?: {
+        id: number;
+        name: string;
+      } | null;
+      scope?: {
+        id: number;
+        name: string;
+      } | null;
+      subscope?: {
+        id: number;
+        name: string;
+      } | null;
+    }>;
+    RequirementCertification?: Array<{
       id: number;
-      name: string;
-    } | null;
-    subscope?: {
+      projectRequirementsId: number;
+      certificationId: number;
+      isDeleted?: boolean;
+      certification?: {
+        id: number;
+        name: string;
+      } | null;
+    }>;
+    ProjectRequestCompany?: Array<{
       id: number;
-      name: string;
-    } | null;
-  }>;
-  certifications?: Array<{
-    id: number;
-    projectRequestId: number;
-    certificationId: number;
-    isDeleted?: boolean;
-    certification?: {
-      id: number;
-      name: string;
-    } | null;
+      projectRequirementsId: number;
+      companyId: number;
+      statusId: number;
+      isDeleted?: boolean;
+      Company?: {
+        id: number;
+        comercialName: string;
+        contactName?: string;
+        email?: string;
+        phone?: string;
+      } | null;
+      status?: {
+        id: number;
+        name: string;
+      } | null;
+    }>;
   }>;
   ProjectRequestCompany?: Array<{
     id: number;

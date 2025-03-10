@@ -114,6 +114,16 @@ export async function GET(request: NextRequest) {
               username: true,
             },
           },
+          ProjectRequirements: {
+            where: {
+              isDeleted: false,
+            },
+            select: {
+              id: true,
+              requirementName: true,
+              isActive: true,
+            },
+          },
         },
       }),
       prisma.projectRequest.count({
@@ -232,6 +242,16 @@ export async function POST(request: NextRequest) {
               id: true,
               email: true,
               username: true,
+            },
+          },
+          ProjectRequirements: {
+            where: {
+              isDeleted: false,
+            },
+            select: {
+              id: true,
+              requirementName: true,
+              isActive: true,
             },
           },
         },

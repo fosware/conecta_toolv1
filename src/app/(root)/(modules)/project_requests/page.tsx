@@ -14,9 +14,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { ProjectRequestsTable } from "./components/project-requests-table";
 import { ProjectRequestModal } from "./components/project-request-modal";
-import { ProjectRequestCertificationsModal } from "./components/project-request-certifications-modal";
-import { ProjectRequestSpecialtiesModal } from "./components/project-request-specialties-modal";
-import { ProjectRequestParticipantsModal } from "./components/project-request-participants-modal";
+import { ProjectRequestRequirementsModal } from "./components/project-request-requirements-modal";
 import { ProjectRequestOverview } from "./components/project-request-overview";
 import { Plus, Search } from "lucide-react";
 import { useUserRole } from "@/hooks/use-user-role";
@@ -46,14 +44,10 @@ export default function ProjectRequestsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] =
     useState<ProjectRequestWithRelations | null>(null);
-  const [certificationsModalOpen, setCertificationsModalOpen] = useState(false);
-  const [selectedItemForCertifications, setSelectedItemForCertifications] =
-    useState<ProjectRequestWithRelations | null>(null);
-  const [specialtiesModalOpen, setSpecialtiesModalOpen] = useState(false);
-  const [selectedItemForSpecialties, setSelectedItemForSpecialties] =
-    useState<ProjectRequestWithRelations | null>(null);
-  const [participantsModalOpen, setParticipantsModalOpen] = useState(false);
-  const [selectedItemForParticipants, setSelectedItemForParticipants] =
+
+
+  const [requirementsModalOpen, setRequirementsModalOpen] = useState(false);
+  const [selectedItemForRequirements, setSelectedItemForRequirements] =
     useState<ProjectRequestWithRelations | null>(null);
 
   // Función para cargar las solicitudes de proyectos
@@ -154,19 +148,13 @@ export default function ProjectRequestsPage() {
     setModalOpen(true);
   };
 
-  const handleManageCertifications = (item: ProjectRequestWithRelations) => {
-    setSelectedItemForCertifications(item);
-    setCertificationsModalOpen(true);
-  };
 
-  const handleManageSpecialties = (item: ProjectRequestWithRelations) => {
-    setSelectedItemForSpecialties(item);
-    setSpecialtiesModalOpen(true);
-  };
 
-  const handleManageParticipants = (item: ProjectRequestWithRelations) => {
-    setSelectedItemForParticipants(item);
-    setParticipantsModalOpen(true);
+
+
+  const handleManageRequirements = (item: ProjectRequestWithRelations) => {
+    setSelectedItemForRequirements(item);
+    setRequirementsModalOpen(true);
   };
 
   const handleCreateNew = () => {
@@ -211,9 +199,9 @@ export default function ProjectRequestsPage() {
             onToggleStatus={handleToggleStatus}
             onRowClick={handleRowClick}
             onEdit={handleEdit}
-            onManageCertifications={handleManageCertifications}
-            onManageSpecialties={handleManageSpecialties}
-            onManageParticipants={handleManageParticipants}
+
+
+            onManageRequirements={handleManageRequirements}
             expandedId={expandedRequestId}
             isStaff={isStaff}
             selectedRequestDetails={selectedRequestDetails}
@@ -228,32 +216,16 @@ export default function ProjectRequestsPage() {
         onSuccess={handleModalSuccess}
       />
 
-      <ProjectRequestCertificationsModal
-        open={certificationsModalOpen}
-        onOpenChange={setCertificationsModalOpen}
-        projectRequest={selectedItemForCertifications}
+
+
+
+
+      <ProjectRequestRequirementsModal
+        open={requirementsModalOpen}
+        onOpenChange={setRequirementsModalOpen}
+        projectRequest={selectedItemForRequirements}
         onSuccess={handleModalSuccess}
       />
-
-      <ProjectRequestSpecialtiesModal
-        open={specialtiesModalOpen}
-        onOpenChange={setSpecialtiesModalOpen}
-        projectRequest={selectedItemForSpecialties}
-        onSuccess={handleModalSuccess}
-      />
-
-      {selectedItemForParticipants && (
-        <ProjectRequestParticipantsModal
-          open={participantsModalOpen}
-          onClose={() => {
-            setParticipantsModalOpen(false);
-            setSelectedItemForParticipants(null);
-            handleModalSuccess();
-          }}
-          projectRequestId={selectedItemForParticipants.id}
-          projectRequestTitle={selectedItemForParticipants.title}
-        />
-      )}
     </div>
   );
 }

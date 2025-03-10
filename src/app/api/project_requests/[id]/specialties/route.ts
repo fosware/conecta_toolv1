@@ -5,6 +5,7 @@ import { z } from "zod";
 
 // Esquema para validar la creación de una especialidad requerida
 const requirementSpecialtySchema = z.object({
+  projectRequirementsId: z.number().int().positive(),
   specialtyId: z.number().int().positive(),
   scopeId: z.number().int().positive().optional(),
   subscopeId: z.number().int().positive().optional(),
@@ -47,10 +48,34 @@ export async function GET(
       );
     }
 
-    // Obtener las especialidades requeridas
-    const requirementSpecialties = await prisma.requirementSpecialty.findMany({
+    // Primero obtenemos todos los requerimientos de la solicitud
+    const projectRequirements = await prisma.projectRequirements.findMany({
       where: {
         projectRequestId: parsedId,
+        isDeleted: false,
+      },
+      select: {
+        id: true,
+        requirementName: true,
+      },
+    });
+
+    if (!projectRequirements.length) {
+      return NextResponse.json({
+        success: true,
+        data: [],
+      });
+    }
+
+    // Obtenemos los IDs de los requerimientos
+    const requirementIds = projectRequirements.map(req => req.id);
+
+    // Ahora obtenemos todas las especialidades asociadas a estos requerimientos
+    const requirementSpecialties = await prisma.requirementSpecialty.findMany({
+      where: {
+        projectRequirementsId: {
+          in: requirementIds,
+        },
         isDeleted: false,
       },
       include: {
@@ -58,6 +83,12 @@ export async function GET(
         scope: true,
         subscope: true,
         user: true,
+        ProjectRequirements: {
+          select: {
+            id: true,
+            requirementName: true,
+          },
+        },
       },
       orderBy: {
         id: "asc",
@@ -184,10 +215,26 @@ export async function POST(
       }
     }
 
+    // Verificar que el requerimiento existe y pertenece a esta solicitud
+    const requirement = await prisma.projectRequirements.findFirst({
+      where: {
+        id: validatedData.projectRequirementsId,
+        projectRequestId: parsedId,
+        isDeleted: false,
+      },
+    });
+
+    if (!requirement) {
+      return NextResponse.json(
+        { error: "Requerimiento no encontrado o no pertenece a esta solicitud" },
+        { status: 404 }
+      );
+    }
+
     // Verificar si ya existe una especialidad requerida con los mismos datos
     const existingRequirement = await prisma.requirementSpecialty.findFirst({
       where: {
-        projectRequestId: parsedId,
+        projectRequirementsId: validatedData.projectRequirementsId,
         specialtyId: validatedData.specialtyId,
         scopeId: validatedData.scopeId || null,
         subscopeId: validatedData.subscopeId || null,
@@ -205,7 +252,7 @@ export async function POST(
     // Crear la especialidad requerida
     const newRequirementSpecialty = await prisma.requirementSpecialty.create({
       data: {
-        projectRequestId: parsedId,
+        projectRequirementsId: validatedData.projectRequirementsId,
         specialtyId: validatedData.specialtyId,
         scopeId: validatedData.scopeId || null,
         subscopeId: validatedData.subscopeId || null,

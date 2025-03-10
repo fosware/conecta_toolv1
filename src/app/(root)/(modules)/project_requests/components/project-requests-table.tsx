@@ -25,12 +25,12 @@ import {
   ChevronRight,
   ChevronDown,
   FileText,
-  Award,
   Medal,
   Loader2,
   Users,
   ClipboardList,
   Building2,
+  ListChecks,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
@@ -65,9 +65,7 @@ interface ProjectRequestsTableProps {
   onDelete?: (item: ProjectRequest) => void;
   onToggleStatus?: (id: number, currentStatus: boolean) => void;
   onViewDetails?: (item: ProjectRequest) => void;
-  onManageSpecialties?: (item: ProjectRequest) => void;
-  onManageCertifications?: (item: ProjectRequest) => void;
-  onManageParticipants?: (item: ProjectRequest) => void;
+  onManageRequirements?: (item: ProjectRequest) => void;
   onRowClick?: (item: ProjectRequest) => void;
   expandedId?: number | null;
   isStaff?: boolean;
@@ -81,9 +79,7 @@ export function ProjectRequestsTable({
   onDelete,
   onToggleStatus,
   onViewDetails,
-  onManageSpecialties,
-  onManageCertifications,
-  onManageParticipants,
+  onManageRequirements,
   onRowClick,
   expandedId = null,
   isStaff = false,
@@ -311,36 +307,19 @@ export function ProjectRequestsTable({
                             <Eye className="h-4 w-4" />
                           </Button>
                         )}
-                        {onManageCertifications && (
+
+
+                        {onManageRequirements && (
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => onManageCertifications(item)}
-                            title="Certificaciones requeridas"
+                            onClick={() => onManageRequirements(item)}
+                            title="Gestionar requerimientos"
                           >
-                            <Award className="h-4 w-4" />
+                            <ListChecks className="h-4 w-4" />
                           </Button>
                         )}
-                        {onManageSpecialties && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => onManageSpecialties(item)}
-                            title="Especialidades requeridas"
-                          >
-                            <Medal className="h-4 w-4" />
-                          </Button>
-                        )}
-                        {onManageParticipants && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => onManageParticipants(item)}
-                            title="Gestionar asociados participantes"
-                          >
-                            <Building2 className="h-4 w-4" />
-                          </Button>
-                        )}
+
                         {onDelete && (
                           <Button
                             variant="ghost"

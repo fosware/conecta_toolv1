@@ -36,6 +36,7 @@ model User {
   ProjectRequestRequirementDocuments ProjectRequestRequirementDocuments[]
   ProjectRequestRequirementQuotation ProjectRequestRequirementQuotation[]
   StatusProjectRequest               StatusProjectRequest[]
+  ProjectRequirements                ProjectRequirements[]
 
   @@unique([email, isDeleted])
   @@unique([username, isDeleted])
@@ -436,6 +437,7 @@ model StatusProjectRequest {
   user                  User                    @relation(fields: [userId], references: [id])
   ProjectRequest        ProjectRequest[]
   ProjectRequestCompany ProjectRequestCompany[]
+  ProjectRequirements   ProjectRequirements[]
 
   @@index([isDeleted, isActive])
   @@map("c_status_project_requests")
@@ -443,46 +445,67 @@ model StatusProjectRequest {
 
 // Modelo de solicitud de proyectos
 model ProjectRequest {
-  id                    Int                        @id @default(autoincrement())
-  title                 String
-  requestDate           DateTime                   @default(now())
-  observation           String?
-  statusId              Int                        @default(1)
-  status                StatusProjectRequest       @relation(fields: [statusId], references: [id])
-  isActive              Boolean                    @default(true)
-  isDeleted             Boolean                    @default(false)
-  dateDeleted           DateTime?
-  createdAt             DateTime                   @default(now())
-  updatedAt             DateTime                   @updatedAt
-  userId                Int
-  user                  User                       @relation(fields: [userId], references: [id])
-  clientAreaId          Int
-  clientArea            ClientAreas                @relation(fields: [clientAreaId], references: [id])
-  certifications        RequirementCertification[]
-  specialties           RequirementSpecialty[]
-  ProjectRequestCompany ProjectRequestCompany[]
+  id           Int                  @id @default(autoincrement())
+  title        String
+  requestDate  DateTime             @default(now())
+  observation  String?
+  statusId     Int                  @default(1)
+  status       StatusProjectRequest @relation(fields: [statusId], references: [id])
+  isActive     Boolean              @default(true)
+  isDeleted    Boolean              @default(false)
+  dateDeleted  DateTime?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  userId       Int
+  user         User                 @relation(fields: [userId], references: [id])
+  clientAreaId Int
+  clientArea   ClientAreas          @relation(fields: [clientAreaId], references: [id])
+
+  ProjectRequirements ProjectRequirements[]
 
   @@index([isDeleted, isActive])
   @@map("d_project_requests")
 }
 
+// Requisitos de cada solicitud de proyecto
+model ProjectRequirements {
+  id                       Int                        @id @default(autoincrement())
+  projectRequestId         Int
+  requirementName          String
+  statusId                 Int                        @default(1)
+  status                   StatusProjectRequest       @relation(fields: [statusId], references: [id])
+  isActive                 Boolean                    @default(true)
+  isDeleted                Boolean                    @default(false)
+  dateDeleted              DateTime?
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime                   @updatedAt
+  userId                   Int
+  user                     User                       @relation(fields: [userId], references: [id])
+  ProjectRequest           ProjectRequest             @relation(fields: [projectRequestId], references: [id])
+  RequirementCertification RequirementCertification[]
+  RequirementSpecialty     RequirementSpecialty[]
+  ProjectRequestCompany    ProjectRequestCompany[]
+
+  @@index([isDeleted, isActive])
+  @@map("d_project_requirements")
+}
+
 // Certificaciones requeridas por el proyecto
 model RequirementCertification {
-  id               Int            @id @default(autoincrement())
-  projectRequestId Int
-  certificationId  Int
-  observation      String?
-  isActive         Boolean        @default(true)
-  isDeleted        Boolean        @default(false)
-  dateDeleted      DateTime?
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-  userId           Int
-  user             User           @relation(fields: [userId], references: [id])
-  ProjectRequest   ProjectRequest @relation(fields: [projectRequestId], references: [id])
-  certification    Certifications @relation(fields: [certificationId], references: [id])
-
-  // ndas ProjectRequestRequirementNDA[]
+  id                    Int                 @id @default(autoincrement())
+  projectRequirementsId Int
+  certificationId       Int
+  observation           String?
+  isActive              Boolean             @default(true)
+  isDeleted             Boolean             @default(false)
+  dateDeleted           DateTime?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  userId                Int
+  user                  User                @relation(fields: [userId], references: [id])
+  ProjectRequirements   ProjectRequirements @relation(fields: [projectRequirementsId], references: [id])
+  certification         Certifications      @relation(fields: [certificationId], references: [id])
+  projectRequestId      Int?
 
   @@index([isDeleted, isActive])
   @@map("d_project_request_certifications")
@@ -490,25 +513,25 @@ model RequirementCertification {
 
 // Especialidades requeridas por el proyecto
 model RequirementSpecialty {
-  id               Int            @id @default(autoincrement())
-  projectRequestId Int
-  specialtyId      Int
-  scopeId          Int?
-  subscopeId       Int?
-  observation      String?
-  isActive         Boolean        @default(true)
-  isDeleted        Boolean        @default(false)
-  dateDeleted      DateTime?
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-  userId           Int
-  user             User           @relation(fields: [userId], references: [id])
-  ProjectRequest   ProjectRequest @relation(fields: [projectRequestId], references: [id])
-  specialty        Specialties    @relation(fields: [specialtyId], references: [id])
-  scope            Scopes?        @relation(fields: [scopeId], references: [id])
-  subscope         Subscopes?     @relation(fields: [subscopeId], references: [id])
+  id                    Int       @id @default(autoincrement())
+  projectRequirementsId Int
+  specialtyId           Int
+  scopeId               Int?
+  subscopeId            Int?
+  observation           String?
+  isActive              Boolean   @default(true)
+  isDeleted             Boolean   @default(false)
+  dateDeleted           DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  userId                Int
+  user                  User      @relation(fields: [userId], references: [id])
 
-  // ndas ProjectRequestRequirementNDA[]
+  specialty Specialties @relation(fields: [specialtyId], references: [id])
+  scope     Scopes?     @relation(fields: [scopeId], references: [id])
+  subscope  Subscopes?  @relation(fields: [subscopeId], references: [id])
+
+  ProjectRequirements ProjectRequirements @relation(fields: [projectRequirementsId], references: [id])
 
   @@index([isDeleted, isActive])
   @@map("d_project_request_specialties")
@@ -593,29 +616,30 @@ model RequirementSpecialty {
 
 // Asociados que cumplen los requisitos
 model ProjectRequestCompany {
-  id                Int                  @id @default(autoincrement())
-  projectRequestId  Int
-  companyId         Int
-  ProjectRequest    ProjectRequest       @relation(fields: [projectRequestId], references: [id])
-  statusId          Int                  @default(1)
-  status            StatusProjectRequest @relation(fields: [statusId], references: [id])
+  id                    Int                  @id @default(autoincrement())
+  companyId             Int
+  projectRequirementsId Int
+  statusId              Int                  @default(1)
+  status                StatusProjectRequest @relation(fields: [statusId], references: [id])
   // NDA original y firmado
-  ndaFile           Bytes?
-  ndaFileName       String?
-  ndaSignedFile     Bytes?
-  ndaSignedFileName String?
-  ndaSignedAt       DateTime?
+  ndaFile               Bytes?
+  ndaFileName           String?
+  ndaSignedFile         Bytes?
+  ndaSignedFileName     String?
+  ndaSignedAt           DateTime?
 
-  isActive    Boolean                             @default(true)
-  isDeleted   Boolean                             @default(false)
-  dateDeleted DateTime?
-  createdAt   DateTime                            @default(now())
-  updatedAt   DateTime                            @updatedAt
-  userId      Int
-  user        User                                @relation(fields: [userId], references: [id])
-  Company     Company                             @relation(fields: [companyId], references: [id])
-  Quotation   ProjectRequestRequirementQuotation?
-  Documents   ProjectRequestRequirementDocuments?
+  isActive            Boolean                             @default(true)
+  isDeleted           Boolean                             @default(false)
+  dateDeleted         DateTime?
+  createdAt           DateTime                            @default(now())
+  updatedAt           DateTime                            @updatedAt
+  userId              Int
+  user                User                                @relation(fields: [userId], references: [id])
+  Company             Company                             @relation(fields: [companyId], references: [id])
+  ProjectRequirements ProjectRequirements                 @relation(fields: [projectRequirementsId], references: [id])
+  Quotation           ProjectRequestRequirementQuotation?
+  Documents           ProjectRequestRequirementDocuments?
+  projectRequestId    Int?
 
   @@index([isDeleted, isActive])
   @@map("d_project_request_companies")
