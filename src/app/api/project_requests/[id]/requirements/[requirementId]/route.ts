@@ -5,7 +5,9 @@ import { z } from "zod";
 
 // Esquema de validación para la actualización de un requerimiento
 const updateRequirementSchema = z.object({
-  requirementName: z.string().min(1, "El nombre del requerimiento es obligatorio"),
+  requirementName: z
+    .string()
+    .min(1, "El nombre del requerimiento es obligatorio"),
 });
 
 // PUT: Actualizar un requerimiento específico
@@ -14,12 +16,11 @@ export async function PUT(
   { params }: { params: { id: string; requirementId: string } }
 ) {
   try {
-    // Extraer los IDs correctamente
-    const id = params.id;
-    const requirementId = params.requirementId;
+    // Extraer los IDs correctamente siguiendo las mejores prácticas de Next.js 15
+    const { id, requirementId } = await params;
     const parsedProjectId = parseInt(id);
     const parsedRequirementId = parseInt(requirementId);
-    
+
     if (isNaN(parsedProjectId) || isNaN(parsedRequirementId)) {
       return NextResponse.json(
         { error: "ID de solicitud o requerimiento inválido" },
@@ -89,12 +90,11 @@ export async function DELETE(
   { params }: { params: { id: string; requirementId: string } }
 ) {
   try {
-    // Extraer los IDs correctamente
-    const id = params.id;
-    const requirementId = params.requirementId;
+    // Extraer los IDs correctamente siguiendo las mejores prácticas de Next.js 15
+    const { id, requirementId } = await params;
     const parsedProjectId = parseInt(id);
     const parsedRequirementId = parseInt(requirementId);
-    
+
     if (isNaN(parsedProjectId) || isNaN(parsedRequirementId)) {
       return NextResponse.json(
         { error: "ID de solicitud o requerimiento inválido" },

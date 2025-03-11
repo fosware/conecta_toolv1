@@ -118,7 +118,8 @@ export function ProjectRequestParticipantsModal({
     
     // Filtro por coincidencias si está activado
     if (showOnlyMatching) {
-      return company.matchingSpecialties > 0 || company.matchingCertifications > 0;
+      // Mostrar solo asociados que cumplen con AMBOS requisitos (especialidades Y certificaciones)
+      return company.matchingSpecialties > 0 && company.matchingCertifications > 0;
     }
     
     return true;
@@ -321,7 +322,7 @@ export function ProjectRequestParticipantsModal({
                 checked={showOnlyMatching}
                 onCheckedChange={setShowOnlyMatching}
               />
-              <Label htmlFor="only-matching">Sólo asociados que cumplen</Label>
+              <Label htmlFor="only-matching">Mostrar solo asociados que cumplen requisitos</Label>
             </div>
           </div>
 

@@ -5,7 +5,9 @@ import { z } from "zod";
 
 // Esquema de validación para la creación de un requerimiento
 const createRequirementSchema = z.object({
-  requirementName: z.string().min(1, "El nombre del requerimiento es obligatorio"),
+  requirementName: z
+    .string()
+    .min(1, "El nombre del requerimiento es obligatorio"),
   projectRequestId: z.number().int().positive(),
 });
 
@@ -16,9 +18,9 @@ export async function GET(
 ) {
   try {
     // Extraer el ID correctamente
-    const id = params.id;
+    const { id } = await params;
     const parsedId = parseInt(id);
-    
+
     if (isNaN(parsedId)) {
       return NextResponse.json(
         { error: "ID de solicitud inválido" },
@@ -79,7 +81,7 @@ export async function POST(
     // Extraer el ID correctamente
     const id = params.id;
     const parsedId = parseInt(id);
-    
+
     if (isNaN(parsedId)) {
       return NextResponse.json(
         { error: "ID de solicitud inválido" },

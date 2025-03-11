@@ -10,22 +10,16 @@ export async function POST(
     // Verificar autenticación
     const userId = await getUserFromToken();
     if (!userId) {
-      return NextResponse.json(
-        { error: "No autorizado" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
-    
+
     // Obtener los IDs de la URL
-    const { id, requirementId } = params;
+    const { id, requirementId } = await params;
     const projectRequestId = parseInt(id);
     const projectRequirementId = parseInt(requirementId);
-    
+
     if (isNaN(projectRequestId) || isNaN(projectRequirementId)) {
-      return NextResponse.json(
-        { error: "IDs inválidos" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "IDs inválidos" }, { status: 400 });
     }
 
     // Verificar que exista el requerimiento y pertenezca a la solicitud
@@ -46,18 +40,18 @@ export async function POST(
 
     // Procesar el formulario multipart
     const formData = await request.formData();
-    
+
     // Obtener las empresas seleccionadas
-    const selectedCompaniesStr = formData.get('selectedCompanies');
-    if (!selectedCompaniesStr || typeof selectedCompaniesStr !== 'string') {
+    const selectedCompaniesStr = formData.get("selectedCompanies");
+    if (!selectedCompaniesStr || typeof selectedCompaniesStr !== "string") {
       return NextResponse.json(
         { error: "No se proporcionaron empresas seleccionadas" },
         { status: 400 }
       );
     }
-    
+
     const selectedCompanies = JSON.parse(selectedCompaniesStr) as number[];
-    
+
     // Obtener las empresas actuales para este requerimiento
     const currentCompanies = await prisma.projectRequestCompany.findMany({
       where: {
@@ -69,17 +63,18 @@ export async function POST(
         companyId: true,
       },
     });
-    
+
     // Empresas a eliminar (están en currentCompanies pero no en selectedCompanies)
     const companiesToRemove = currentCompanies.filter(
       (company) => !selectedCompanies.includes(company.companyId)
     );
-    
+
     // Empresas a agregar (están en selectedCompanies pero no en currentCompanies)
     const companiesToAdd = selectedCompanies.filter(
-      (companyId) => !currentCompanies.some((company) => company.companyId === companyId)
+      (companyId) =>
+        !currentCompanies.some((company) => company.companyId === companyId)
     );
-    
+
     // Transacción para asegurar consistencia
     await prisma.$transaction(async (tx) => {
       // Marcar como eliminadas las empresas que ya no están seleccionadas
@@ -96,7 +91,7 @@ export async function POST(
           },
         });
       }
-      
+
       // Agregar nuevas empresas seleccionadas
       for (const companyId of companiesToAdd) {
         await tx.projectRequestCompany.create({
@@ -108,17 +103,17 @@ export async function POST(
           },
         });
       }
-      
+
       // Procesar archivos NDA para las empresas seleccionadas
       for (const companyId of selectedCompanies) {
         const ndaFile = formData.get(`nda_${companyId}`) as File | null;
-        
+
         if (ndaFile) {
           // Buscar si ya existe un registro para esta empresa
           const existingCompany = currentCompanies.find(
             (company) => company.companyId === companyId
           );
-          
+
           if (existingCompany) {
             // Actualizar el registro existente
             await tx.projectRequestCompany.update({
@@ -140,7 +135,7 @@ export async function POST(
                 isDeleted: false,
               },
             });
-            
+
             if (newCompany) {
               await tx.projectRequestCompany.update({
                 where: {
@@ -156,7 +151,7 @@ export async function POST(
           }
         }
       }
-      
+
       // Actualizar el estado de cada asociado individualmente
       for (const companyId of selectedCompanies) {
         // Buscar el registro del asociado
@@ -167,17 +162,17 @@ export async function POST(
             isDeleted: false,
           },
         });
-        
+
         if (associateRecord) {
           // Determinar el estado basado en los archivos NDA
           let newStatusId = 2; // Por defecto "Asociado seleccionado"
-          
+
           if (associateRecord.ndaSignedFile) {
             newStatusId = 4; // "Firmado por Asociado"
           } else if (associateRecord.ndaFile) {
             newStatusId = 3; // "En espera de firma NDA"
           }
-          
+
           // Actualizar el estado del asociado
           await tx.projectRequestCompany.update({
             where: {
@@ -190,7 +185,7 @@ export async function POST(
         }
       }
     });
-    
+
     return NextResponse.json({
       message: "Participantes actualizados correctamente",
       added: companiesToAdd.length,
@@ -214,22 +209,16 @@ export async function GET(
     // Verificar autenticación
     const userId = await getUserFromToken();
     if (!userId) {
-      return NextResponse.json(
-        { error: "No autorizado" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
-    
-    // Obtener los IDs de la URL
-    const { id, requirementId } = params;
+
+    // Obtener los IDs de la URL siguiendo las mejores prácticas de Next.js 15
+    const { id, requirementId } = await params;
     const projectRequestId = parseInt(id);
     const projectRequirementId = parseInt(requirementId);
-    
+
     if (isNaN(projectRequestId) || isNaN(projectRequirementId)) {
-      return NextResponse.json(
-        { error: "IDs inválidos" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "IDs inválidos" }, { status: 400 });
     }
 
     // Obtener los participantes del requerimiento
@@ -251,7 +240,7 @@ export async function GET(
         status: true,
       },
     });
-    
+
     return NextResponse.json({
       participants: participants.map((participant) => ({
         id: participant.id,

@@ -6,7 +6,9 @@ export async function seedRolePrivileges() {
   // Obtén los roles desde la base de datos
   const adminRole = await prisma.role.findUnique({ where: { name: "Admin" } });
   const staffRole = await prisma.role.findUnique({ where: { name: "Staff" } });
-  const asociadoRole = await prisma.role.findUnique({ where: { name: "Asociado" } });
+  const asociadoRole = await prisma.role.findUnique({
+    where: { name: "Asociado" },
+  });
 
   // Validar que los roles existan
   if (!adminRole || !staffRole || !asociadoRole) {
@@ -33,18 +35,15 @@ export async function seedRolePrivileges() {
     "Assign Roles",
     "Update Clients",
     "Cat Certificaciones",
-    "Solicitud de Proyectos"
+    "Solicitud de Proyectos",
+    "Solicitudes Asignadas",
   ];
 
   // Mapear privilegios específicos para Staff
-  const staffPrivileges = [
-    "Asociados"
-  ];
+  const staffPrivileges = ["Asociados"];
 
   // Mapear privilegios específicos para Asociado
-  const asociadoPrivileges = [
-    "Asociados"
-  ];
+  const asociadoPrivileges = ["Asociados"];
 
   // Función para asociar privilegios a un rol
   const assignPrivileges = async (roleId, privilegeNames) => {
@@ -82,5 +81,7 @@ export async function seedRolePrivileges() {
   // Asignar privilegios a Asociado
   await assignPrivileges(asociadoRole.id, asociadoPrivileges);
 
-  console.log("Relaciones entre Roles y Privilegios actualizadas correctamente.");
+  console.log(
+    "Relaciones entre Roles y Privilegios actualizadas correctamente."
+  );
 }

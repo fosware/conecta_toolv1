@@ -3,8 +3,23 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Company } from "@prisma/client";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -18,7 +33,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, Loader2, Building2, FileText, CheckCircle2, XCircle, Trash2 } from "lucide-react";
+import {
+  Search,
+  Loader2,
+  Building2,
+  FileText,
+  CheckCircle2,
+  XCircle,
+  Trash2,
+} from "lucide-react";
 import { getToken } from "@/lib/auth";
 
 interface ProjectRequirement {
@@ -63,13 +86,21 @@ export function RequirementParticipantsModal({
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [eligibleCompanies, setEligibleCompanies] = useState<CompanyWithMatch[]>([]);
+  const [eligibleCompanies, setEligibleCompanies] = useState<
+    CompanyWithMatch[]
+  >([]);
   const [selectedCompanies, setSelectedCompanies] = useState<number[]>([]);
   const [ndaFiles, setNdaFiles] = useState<Record<number, File | null>>({});
-  const [ndaSignedFiles, setNdaSignedFiles] = useState<Record<number, File | null>>({});
+  const [ndaSignedFiles, setNdaSignedFiles] = useState<
+    Record<number, File | null>
+  >({});
   const [showOnlyMatching, setShowOnlyMatching] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [companyToDeleteNDA, setCompanyToDeleteNDA] = useState<{id: number, companyId: number, hasSignedNDA: boolean} | null>(null);
+  const [companyToDeleteNDA, setCompanyToDeleteNDA] = useState<{
+    id: number;
+    companyId: number;
+    hasSignedNDA: boolean;
+  } | null>(null);
   const [deletingNDA, setDeletingNDA] = useState(false);
 
   // Cargar empresas elegibles cuando se abre el modal
@@ -82,38 +113,41 @@ export function RequirementParticipantsModal({
   // Cargar empresas que cumplen con los requisitos
   const loadEligibleCompanies = async (showLoading = true) => {
     if (!requirement?.id) return;
-    
+
     try {
       if (showLoading) {
         setLoading(true);
       }
-      
+
       // Obtener las empresas elegibles para este requerimiento específico
-      const response = await fetch(`/api/project_requests/${requirement.projectRequestId}/requirements/${requirement.id}/eligible_companies`, {
-        headers: {
-          Authorization: `Bearer ${getToken()}`,
-        },
-      });
-      
+      const response = await fetch(
+        `/api/project_requests/${requirement.projectRequestId}/requirements/${requirement.id}/eligible_companies`,
+        {
+          headers: {
+            Authorization: `Bearer ${getToken()}`,
+          },
+        }
+      );
+
       if (!response.ok) {
         throw new Error("Error al cargar empresas elegibles");
       }
-      
+
       const data = await response.json();
-      
+
       // Transformar los datos y marcar las empresas ya seleccionadas
       const companiesWithSelection = data.companies.map((company: any) => ({
         ...company,
         isSelected: company.isParticipant || false,
       }));
-      
+
       setEligibleCompanies(companiesWithSelection);
-      
+
       // Inicializar el array de empresas seleccionadas
       const initialSelectedCompanies = companiesWithSelection
         .filter((company: CompanyWithMatch) => company.isSelected)
         .map((company: CompanyWithMatch) => company.id);
-      
+
       setSelectedCompanies(initialSelectedCompanies);
     } catch (error) {
       console.error("Error al cargar empresas elegibles:", error);
@@ -132,12 +166,15 @@ export function RequirementParticipantsModal({
         return false;
       }
     }
-    
+
     // Filtro por coincidencias si está activado
     if (showOnlyMatching) {
-      return company.matchingSpecialties > 0 || company.matchingCertifications > 0;
+      // Mostrar solo asociados que cumplen con AMBOS requisitos (especialidades Y certificaciones)
+      return (
+        company.matchingSpecialties > 0 && company.matchingCertifications > 0
+      );
     }
-    
+
     return true;
   });
 
@@ -169,50 +206,50 @@ export function RequirementParticipantsModal({
   // Subir NDA firmado
   const handleUploadSignedNDA = async (companyId: number) => {
     if (!requirement?.id) return;
-    
+
     try {
-      const company = eligibleCompanies.find(c => c.id === companyId);
+      const company = eligibleCompanies.find((c) => c.id === companyId);
       if (!company || !company.participantId) {
         toast.error("No se pudo identificar el registro del participante");
         return;
       }
-      
+
       const file = ndaSignedFiles[companyId];
       if (!file) {
         toast.error("No se ha seleccionado ningún archivo");
         return;
       }
-      
+
       const formData = new FormData();
-      formData.append('file', file);
-      
+      formData.append("file", file);
+
       const response = await fetch(
         `/api/project_requests/${requirement.projectRequestId}/requirements/${requirement.id}/participants/${company.participantId}/nda_signed`,
         {
-          method: 'POST',
+          method: "POST",
           headers: {
             Authorization: `Bearer ${getToken()}`,
           },
           body: formData,
         }
       );
-      
+
       if (!response.ok) {
         throw new Error("Error al subir el NDA firmado");
       }
-      
+
       toast.success("NDA firmado subido correctamente");
-      
+
       // Limpiar el archivo seleccionado
       setNdaSignedFiles((prev) => {
-        const newState = {...prev};
+        const newState = { ...prev };
         delete newState[companyId];
         return newState;
       });
-      
+
       // Recargar los datos
       loadEligibleCompanies(false);
-      
+
       // Llamar al callback de éxito si existe
       if (onSuccess) {
         onSuccess();
@@ -225,7 +262,7 @@ export function RequirementParticipantsModal({
 
   // Función para mostrar el diálogo de confirmación para eliminar NDA
   const handleDeleteNDAConfirm = (companyId: number) => {
-    const company = eligibleCompanies.find(c => c.id === companyId);
+    const company = eligibleCompanies.find((c) => c.id === companyId);
     if (!company) return;
 
     if (!company.participantId) {
@@ -236,7 +273,7 @@ export function RequirementParticipantsModal({
     setCompanyToDeleteNDA({
       id: company.participantId,
       companyId: companyId,
-      hasSignedNDA: !!company.ndaSignedFileName
+      hasSignedNDA: !!company.ndaSignedFileName,
     });
     setDeleteDialogOpen(true);
   };
@@ -244,26 +281,26 @@ export function RequirementParticipantsModal({
   // Función para eliminar un NDA
   const handleDeleteNDA = async () => {
     if (!companyToDeleteNDA || !requirement?.id) return;
-    
+
     try {
       setDeletingNDA(true);
-      
+
       // Determinar qué tipo de NDA eliminar (original o firmado)
-      const endpoint = companyToDeleteNDA.hasSignedNDA 
+      const endpoint = companyToDeleteNDA.hasSignedNDA
         ? `/api/project_requests/${requirement.projectRequestId}/requirements/${requirement.id}/participants/${companyToDeleteNDA.id}/nda_signed`
         : `/api/project_requests/${requirement.projectRequestId}/requirements/${requirement.id}/participants/${companyToDeleteNDA.id}/nda`;
-      
+
       const response = await fetch(endpoint, {
-        method: 'DELETE',
+        method: "DELETE",
         headers: {
           Authorization: `Bearer ${getToken()}`,
         },
       });
-      
+
       if (!response.ok) {
         throw new Error("Error al eliminar el NDA");
       }
-      
+
       toast.success("NDA eliminado correctamente");
       loadEligibleCompanies(false);
     } catch (error) {
@@ -279,41 +316,44 @@ export function RequirementParticipantsModal({
   // Guardar los cambios en las empresas participantes
   const handleSaveParticipants = async () => {
     if (!requirement?.id) return;
-    
+
     try {
       setSaving(true);
-      
+
       // Preparar los datos para enviar
       const formData = new FormData();
-      
+
       // Agregar las empresas seleccionadas
-      formData.append('selectedCompanies', JSON.stringify(selectedCompanies));
-      
+      formData.append("selectedCompanies", JSON.stringify(selectedCompanies));
+
       // Agregar los archivos NDA si existen
       Object.entries(ndaFiles).forEach(([companyId, file]) => {
         if (file) {
           formData.append(`nda_${companyId}`, file);
         }
       });
-      
+
       // Enviar los datos al servidor
-      const response = await fetch(`/api/project_requests/${requirement.projectRequestId}/requirements/${requirement.id}/participants`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${getToken()}`,
-        },
-        body: formData,
-      });
-      
+      const response = await fetch(
+        `/api/project_requests/${requirement.projectRequestId}/requirements/${requirement.id}/participants`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${getToken()}`,
+          },
+          body: formData,
+        }
+      );
+
       if (!response.ok) {
         throw new Error("Error al guardar los participantes");
       }
-      
+
       toast.success("Participantes guardados correctamente");
-      
+
       // Recargar los datos
       loadEligibleCompanies(false);
-      
+
       // Llamar al callback de éxito si existe
       if (onSuccess) {
         onSuccess();
@@ -329,20 +369,20 @@ export function RequirementParticipantsModal({
   // Descargar un archivo NDA
   const handleDownloadNDA = async (companyId: number, isSigned: boolean) => {
     if (!requirement?.id) return;
-    
+
     try {
-      const company = eligibleCompanies.find(c => c.id === companyId);
+      const company = eligibleCompanies.find((c) => c.id === companyId);
       if (!company || !company.participantId) {
         toast.error("No se pudo identificar el registro del participante");
         return;
       }
-      
-      const endpoint = isSigned 
+
+      const endpoint = isSigned
         ? `/api/project_requests/${requirement.projectRequestId}/requirements/${requirement.id}/participants/${company.participantId}/nda_signed/download`
         : `/api/project_requests/${requirement.projectRequestId}/requirements/${requirement.id}/participants/${company.participantId}/nda/download`;
-      
+
       // Abrir en una nueva pestaña para descargar
-      window.open(endpoint, '_blank');
+      window.open(endpoint, "_blank");
     } catch (error) {
       console.error("Error al descargar NDA:", error);
       toast.error("Error al descargar el archivo");
@@ -361,14 +401,14 @@ export function RequirementParticipantsModal({
           <DialogHeader>
             <DialogTitle>Gestionar Asociados Participantes</DialogTitle>
           </DialogHeader>
-          
+
           {requirement ? (
             <>
               <div className="flex items-center justify-between mb-4">
                 <div className="text-lg font-medium">
                   Requerimiento: {requirement.requirementName}
                 </div>
-                
+
                 <div className="flex items-center space-x-2">
                   <Switch
                     id="show-matching"
@@ -376,24 +416,24 @@ export function RequirementParticipantsModal({
                     onCheckedChange={setShowOnlyMatching}
                   />
                   <Label htmlFor="show-matching">
-                    Mostrar solo empresas con coincidencias
+                    Mostrar solo asociados que cumplen requisitos
                   </Label>
                 </div>
               </div>
-              
+
               <div className="flex items-center mb-4">
                 <div className="relative flex-1">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     type="search"
-                    placeholder="Buscar empresas..."
+                    placeholder="Buscar asociados..."
                     className="pl-8"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
               </div>
-              
+
               {loading ? (
                 <div className="flex justify-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin" />
@@ -408,11 +448,19 @@ export function RequirementParticipantsModal({
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-[50px]">Seleccionar</TableHead>
-                        <TableHead>Empresa</TableHead>
-                        <TableHead className="text-center">Especialidades</TableHead>
-                        <TableHead className="text-center">Certificaciones</TableHead>
-                        <TableHead className="text-center">NDA Original</TableHead>
-                        <TableHead className="text-center">NDA Firmado</TableHead>
+                        <TableHead>Asociado</TableHead>
+                        <TableHead className="text-center">
+                          Especialidades
+                        </TableHead>
+                        <TableHead className="text-center">
+                          Certificaciones
+                        </TableHead>
+                        <TableHead className="text-center">
+                          NDA Original
+                        </TableHead>
+                        <TableHead className="text-center">
+                          NDA Firmado
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -422,16 +470,23 @@ export function RequirementParticipantsModal({
                             <Checkbox
                               checked={selectedCompanies.includes(company.id)}
                               onCheckedChange={(checked) =>
-                                handleCompanySelection(company.id, checked === true)
+                                handleCompanySelection(
+                                  company.id,
+                                  checked === true
+                                )
                               }
                             />
                           </TableCell>
                           <TableCell>
-                            <div className="font-medium">{company.comercialName}</div>
+                            <div className="font-medium">
+                              {company.comercialName}
+                            </div>
                           </TableCell>
                           <TableCell className="text-center">
                             <div className="flex justify-center items-center">
-                              <span className="font-medium">{company.matchingSpecialties}</span>
+                              <span className="font-medium">
+                                {company.matchingSpecialties}
+                              </span>
                               {company.matchingSpecialties > 0 ? (
                                 <CheckCircle2 className="ml-1 h-4 w-4 text-green-500" />
                               ) : (
@@ -441,7 +496,9 @@ export function RequirementParticipantsModal({
                           </TableCell>
                           <TableCell className="text-center">
                             <div className="flex justify-center items-center">
-                              <span className="font-medium">{company.matchingCertifications}</span>
+                              <span className="font-medium">
+                                {company.matchingCertifications}
+                              </span>
                               {company.matchingCertifications > 0 ? (
                                 <CheckCircle2 className="ml-1 h-4 w-4 text-green-500" />
                               ) : (
@@ -458,7 +515,9 @@ export function RequirementParticipantsModal({
                                     variant="outline"
                                     size="sm"
                                     className="h-8 text-xs"
-                                    onClick={() => handleDownloadNDA(company.id, false)}
+                                    onClick={() =>
+                                      handleDownloadNDA(company.id, false)
+                                    }
                                   >
                                     <FileText className="mr-1 h-3 w-3" />
                                     Ver NDA
@@ -467,7 +526,9 @@ export function RequirementParticipantsModal({
                                     variant="ghost"
                                     size="sm"
                                     className="h-8 text-xs text-red-500 hover:text-red-600"
-                                    onClick={() => handleDeleteNDAConfirm(company.id)}
+                                    onClick={() =>
+                                      handleDeleteNDAConfirm(company.id)
+                                    }
                                   >
                                     <Trash2 className="h-3 w-3" />
                                   </Button>
@@ -504,7 +565,9 @@ export function RequirementParticipantsModal({
                                     variant="outline"
                                     size="sm"
                                     className="h-8 text-xs"
-                                    onClick={() => handleDownloadNDA(company.id, true)}
+                                    onClick={() =>
+                                      handleDownloadNDA(company.id, true)
+                                    }
                                   >
                                     <FileText className="mr-1 h-3 w-3" />
                                     Ver NDA Firmado
@@ -513,7 +576,9 @@ export function RequirementParticipantsModal({
                                     variant="ghost"
                                     size="sm"
                                     className="h-8 text-xs text-red-500 hover:text-red-600"
-                                    onClick={() => handleDeleteNDAConfirm(company.id)}
+                                    onClick={() =>
+                                      handleDeleteNDAConfirm(company.id)
+                                    }
                                   >
                                     <Trash2 className="h-3 w-3" />
                                   </Button>
@@ -525,7 +590,10 @@ export function RequirementParticipantsModal({
                                     accept=".pdf"
                                     onChange={(e) => {
                                       const file = e.target.files?.[0] || null;
-                                      handleNdaSignedFileChange(company.id, file);
+                                      handleNdaSignedFileChange(
+                                        company.id,
+                                        file
+                                      );
                                     }}
                                     className="text-xs"
                                   />
@@ -534,7 +602,9 @@ export function RequirementParticipantsModal({
                                       variant="outline"
                                       size="sm"
                                       className="h-8 text-xs"
-                                      onClick={() => handleUploadSignedNDA(company.id)}
+                                      onClick={() =>
+                                        handleUploadSignedNDA(company.id)
+                                      }
                                       disabled={!ndaSignedFiles[company.id]}
                                     >
                                       <FileText className="mr-1 h-3 w-3" />
@@ -558,18 +628,12 @@ export function RequirementParticipantsModal({
                   </Table>
                 </div>
               )}
-              
+
               <DialogFooter className="mt-6">
-                <Button
-                  variant="outline"
-                  onClick={handleClose}
-                >
+                <Button variant="outline" onClick={handleClose}>
                   Cancelar
                 </Button>
-                <Button
-                  onClick={handleSaveParticipants}
-                  disabled={saving}
-                >
+                <Button onClick={handleSaveParticipants} disabled={saving}>
                   {saving ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -588,22 +652,20 @@ export function RequirementParticipantsModal({
           )}
         </DialogContent>
       </Dialog>
-      
+
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar NDA?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción eliminará el archivo NDA {companyToDeleteNDA?.hasSignedNDA ? "firmado" : ""} asociado a esta empresa.
-              ¿Estás seguro de que deseas continuar?
+              Esta acción eliminará el archivo NDA{" "}
+              {companyToDeleteNDA?.hasSignedNDA ? "firmado" : ""} asociado a
+              esta empresa. ¿Estás seguro de que deseas continuar?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteNDA}
-              disabled={deletingNDA}
-            >
+            <AlertDialogAction onClick={handleDeleteNDA} disabled={deletingNDA}>
               {deletingNDA ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

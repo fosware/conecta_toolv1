@@ -16,8 +16,8 @@ export async function GET(
       );
     }
     
-    // Obtener los IDs de la URL
-    const { id, requirementId } = params;
+    // Obtener los IDs de la URL siguiendo las mejores prácticas de Next.js 15
+    const { id, requirementId } = await params;
     const projectRequestId = parseInt(id);
     const projectRequirementId = parseInt(requirementId);
     
