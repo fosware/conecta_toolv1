@@ -154,6 +154,7 @@ export function RequirementCertificationsModal({
         throw new Error(data.error || "Error al agregar la certificación requerida");
       }
 
+      // Mostrar toast de éxito
       toast.success("Certificación requerida agregada exitosamente");
       
       // Limpiar el formulario
@@ -162,6 +163,12 @@ export function RequirementCertificationsModal({
       
       // Recargar las certificaciones requeridas sin mostrar el indicador de carga
       await loadRequirementCertifications(false);
+      
+      // Llamar al callback de éxito si existe
+      if (onSuccess) {
+        // Llamamos a onSuccess sin mostrar toast adicional
+        onSuccess();
+      }
     } catch (error) {
       console.error("Error adding requirement certification:", error);
       toast.error(error instanceof Error ? error.message : "Error al agregar la certificación requerida");
@@ -193,6 +200,7 @@ export function RequirementCertificationsModal({
         throw new Error(data.error || "Error al eliminar la certificación requerida");
       }
 
+      // Mostrar toast de éxito
       toast.success("Certificación requerida eliminada exitosamente");
       
       // Cerrar el diálogo de confirmación
@@ -201,6 +209,12 @@ export function RequirementCertificationsModal({
       
       // Recargar las certificaciones requeridas sin mostrar el indicador de carga
       await loadRequirementCertifications(false);
+      
+      // Llamar al callback de éxito si existe
+      if (onSuccess) {
+        // Llamamos a onSuccess sin mostrar toast adicional
+        onSuccess();
+      }
     } catch (error) {
       console.error("Error deleting requirement certification:", error);
       toast.error(error instanceof Error ? error.message : "Error al eliminar la certificación requerida");

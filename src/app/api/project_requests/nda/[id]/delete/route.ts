@@ -32,8 +32,9 @@ export async function DELETE(
       );
     }
 
-    // Determinar si hay que eliminar solo el NDA original o también el firmado
-    const deleteSignedNDA = request.nextUrl.searchParams.get("deleteSignedNDA") === "true";
+    // Determinar si se está eliminando solo el NDA firmado o el NDA original
+    const deleteOnlySignedNDA = request.nextUrl.searchParams.get("deleteOnlySignedNDA") === "true";
+    const deleteOriginalNDA = !deleteOnlySignedNDA;
 
     // Actualizar el registro
     await prisma.projectRequestCompany.update({
@@ -41,18 +42,24 @@ export async function DELETE(
         id: parsedId,
       },
       data: {
-        ndaFile: null,
-        ndaFileName: null,
-        // Si se solicita eliminar el NDA firmado, también lo eliminamos
-        ...(deleteSignedNDA
-          ? {
-              ndaSignedFile: null,
-              ndaSignedFileName: null,
-              ndaSignedAt: null,
-            }
-          : {}),
-        // Cambiar el estatus a "Asociado seleccionado" (2)
-        statusId: 2,
+        // Si se está eliminando el NDA original, eliminar tanto el original como el firmado
+        // Si se está eliminando solo el NDA firmado, mantener el NDA original
+        ...(deleteOriginalNDA ? {
+          ndaFile: null,
+          ndaFileName: null,
+          // Cuando se elimina el NDA original, también eliminar el NDA firmado
+          ndaSignedFile: null,
+          ndaSignedFileName: null,
+          ndaSignedAt: null,
+        } : {
+          // Cuando se elimina solo el NDA firmado, solo eliminar el NDA firmado
+          ndaSignedFile: null,
+          ndaSignedFileName: null,
+          ndaSignedAt: null,
+        }),
+        // Cambiar el estatus a "Asociado seleccionado" (2) si se elimina el original
+        // o a "En espera de firma NDA" (3) si solo se elimina el firmado
+        statusId: deleteOriginalNDA ? 2 : 3,
         updatedAt: new Date(),
       },
     });

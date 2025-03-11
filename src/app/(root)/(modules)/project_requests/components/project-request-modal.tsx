@@ -66,12 +66,15 @@ export function ProjectRequestModal({
         return;
       }
 
+      // Mostrar toast de éxito
       toast.success(
         item 
           ? "Solicitud de proyecto actualizada exitosamente" 
           : "Solicitud de proyecto creada exitosamente"
       );
       setValidationErrors([]);
+      
+      // Llamar al callback de éxito sin mostrar toast adicional
       onSuccess();
       onOpenChange(false);
     } catch (error) {

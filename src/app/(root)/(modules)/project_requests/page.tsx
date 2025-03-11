@@ -16,6 +16,9 @@ import { ProjectRequestsTable } from "./components/project-requests-table";
 import { ProjectRequestModal } from "./components/project-request-modal";
 import { ProjectRequestRequirementsModal } from "./components/project-request-requirements-modal";
 import { ProjectRequestOverview } from "./components/project-request-overview";
+import { RequirementSpecialtiesModal } from "./components/requirement-specialties-modal";
+import { RequirementCertificationsModal } from "./components/requirement-certifications-modal";
+import { RequirementParticipantsModal } from "./components/requirement-participants-modal";
 import { Plus, Search } from "lucide-react";
 import { useUserRole } from "@/hooks/use-user-role";
 import { getToken } from "@/lib/auth";
@@ -49,11 +52,19 @@ export default function ProjectRequestsPage() {
   const [requirementsModalOpen, setRequirementsModalOpen] = useState(false);
   const [selectedItemForRequirements, setSelectedItemForRequirements] =
     useState<ProjectRequestWithRelations | null>(null);
+    
+  // Estados para modales de especialidades y certificaciones
+  const [specialtiesModalOpen, setSpecialtiesModalOpen] = useState(false);
+  const [certificationsModalOpen, setCertificationsModalOpen] = useState(false);
+  const [participantsModalOpen, setParticipantsModalOpen] = useState(false);
+  const [selectedRequirement, setSelectedRequirement] = useState<any>(null);
 
   // Función para cargar las solicitudes de proyectos
-  const loadProjectRequests = useCallback(async () => {
+  const loadProjectRequests = useCallback(async (showLoadingIndicator = true) => {
     try {
-      setLoading(true);
+      if (showLoadingIndicator) {
+        setLoading(true);
+      }
 
       const response = await fetch(
         `/api/project_requests?onlyActive=${showActive}`,
@@ -157,13 +168,79 @@ export default function ProjectRequestsPage() {
     setRequirementsModalOpen(true);
   };
 
+  const handleManageSpecialties = (requirement: any) => {
+    // Utilizamos el modal de requerimientos para gestionar especialidades
+    setSelectedRequirement(requirement);
+    setSpecialtiesModalOpen(true);
+  };
+
+  const handleManageCertifications = (requirement: any) => {
+    // Utilizamos el modal de requerimientos para gestionar certificaciones
+    setSelectedRequirement(requirement);
+    setCertificationsModalOpen(true);
+  };
+
+  const handleManageParticipants = (requirement: any) => {
+    // Utilizamos el modal de requerimientos para gestionar participantes
+    setSelectedRequirement(requirement);
+    setParticipantsModalOpen(true);
+  };
+
   const handleCreateNew = () => {
     setSelectedItem(null);
     setModalOpen(true);
   };
 
+  // Función para recargar los detalles de la solicitud seleccionada
+  const reloadSelectedRequestDetails = async (showLoadingToast = false) => {
+    if (expandedRequestId && selectedRequestDetails) {
+      try {
+        // Mostrar un indicador de carga sutil solo si se solicita explícitamente
+        let toastId;
+        if (showLoadingToast) {
+          toastId = toast.loading("Actualizando datos...");
+        }
+        
+        // Cargar información detallada de la solicitud
+        const response = await fetch(`/api/project_requests/${expandedRequestId}`, {
+          headers: {
+            Authorization: `Bearer ${getToken()}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Error al cargar los detalles de la solicitud");
+        }
+
+        const data = await response.json();
+        
+        // Verificar la estructura de la respuesta
+        if (data.data) {
+          setSelectedRequestDetails(data.data);
+        } else if (data.item) {
+          setSelectedRequestDetails(data.item);
+        }
+        
+        // Cerrar el toast de carga si se mostró
+        if (showLoadingToast && toastId) {
+          toast.dismiss(toastId);
+        }
+      } catch (error) {
+        console.error("Error reloading project request details:", error);
+        // Solo mostrar el error si se solicitó explícitamente mostrar el toast
+        if (showLoadingToast) {
+          toast.error("Error al actualizar los detalles");
+        }
+      }
+    }
+  };
+
   const handleModalSuccess = () => {
-    loadProjectRequests();
+    // Recargar la lista de solicitudes sin mostrar indicador de carga
+    loadProjectRequests(false);
+    
+    // Recargar los detalles de la solicitud seleccionada sin mostrar toast
+    reloadSelectedRequestDetails(false);
   };
 
   return (
@@ -199,9 +276,10 @@ export default function ProjectRequestsPage() {
             onToggleStatus={handleToggleStatus}
             onRowClick={handleRowClick}
             onEdit={handleEdit}
-
-
             onManageRequirements={handleManageRequirements}
+            onManageSpecialties={handleManageSpecialties}
+            onManageCertifications={handleManageCertifications}
+            onManageParticipants={handleManageParticipants}
             expandedId={expandedRequestId}
             isStaff={isStaff}
             selectedRequestDetails={selectedRequestDetails}
@@ -225,6 +303,30 @@ export default function ProjectRequestsPage() {
         onOpenChange={setRequirementsModalOpen}
         projectRequest={selectedItemForRequirements}
         onSuccess={handleModalSuccess}
+      />
+
+      {/* Modal para gestionar especialidades del requerimiento */}
+      <RequirementSpecialtiesModal
+        open={specialtiesModalOpen}
+        onOpenChange={setSpecialtiesModalOpen}
+        requirement={selectedRequirement}
+        onSuccess={() => handleModalSuccess()}
+      />
+
+      {/* Modal para gestionar certificaciones del requerimiento */}
+      <RequirementCertificationsModal
+        open={certificationsModalOpen}
+        onOpenChange={setCertificationsModalOpen}
+        requirement={selectedRequirement}
+        onSuccess={() => handleModalSuccess()}
+      />
+
+      {/* Modal para gestionar participantes del requerimiento */}
+      <RequirementParticipantsModal
+        open={participantsModalOpen}
+        onOpenChange={setParticipantsModalOpen}
+        requirement={selectedRequirement}
+        onSuccess={() => handleModalSuccess()}
       />
     </div>
   );

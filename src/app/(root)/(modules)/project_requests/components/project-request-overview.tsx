@@ -17,11 +17,17 @@ import {
   HourglassIcon,
   CheckSquare,
   AlertCircle,
+  ListChecks,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { ProjectRequestWithRelations } from "@/lib/schemas/project_request";
 
 interface ProjectRequestOverviewProps {
   data: ProjectRequestWithRelations;
+  onManageRequirements?: (item: ProjectRequestWithRelations) => void;
+  onManageSpecialties?: (requirement: any) => void;
+  onManageCertifications?: (requirement: any) => void;
+  onManageParticipants?: (requirement: any) => void;
 }
 
 // Función para formatear fecha para mostrar
@@ -97,11 +103,20 @@ const getStatusIcon = (statusId: number) => {
   }
 };
 
-export function ProjectRequestOverview({ data }: ProjectRequestOverviewProps) {
-  // Obtener los requerimientos si existen, filtrando los eliminados
-  const requirements = (data.ProjectRequirements || []).filter(
-    (r: { isDeleted?: boolean }) => r.isDeleted !== true
-  );
+export function ProjectRequestOverview({ 
+  data, 
+  onManageRequirements,
+  onManageSpecialties,
+  onManageCertifications,
+  onManageParticipants
+}: ProjectRequestOverviewProps) {
+  // Obtener los requerimientos si existen, filtrando los eliminados y asegurando que tengan projectRequestId
+  const requirements = (data.ProjectRequirements || [])
+    .filter((r: { isDeleted?: boolean }) => r.isDeleted !== true)
+    .map((r: any) => ({
+      ...r,
+      projectRequestId: data.id // Aseguramos que cada requerimiento tenga el ID de la solicitud
+    }));
 
   // Debug para ver la estructura de datos
   console.log("Requerimientos:", requirements);
@@ -178,10 +193,23 @@ export function ProjectRequestOverview({ data }: ProjectRequestOverviewProps) {
 
         {/* Fila 4: Requerimientos */}
         <div className="space-y-4">
-          <h3 className="text-lg font-medium flex items-center space-x-2">
-            <ClipboardList className="w-5 h-5" />
-            <span>Requerimientos</span>
-          </h3>
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-medium flex items-center space-x-2">
+              <ClipboardList className="w-5 h-5" />
+              <span>Requerimientos</span>
+            </h3>
+            {onManageRequirements && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+                onClick={() => onManageRequirements(data)}
+              >
+                <ListChecks className="h-4 w-4" />
+                <span>Gestionar Requerimientos</span>
+              </Button>
+            )}
+          </div>
 
           {/* Contenedor para Requerimientos con sus especialidades, certificaciones y asociados */}
           <div className="border rounded-lg p-4 space-y-6">
@@ -198,7 +226,30 @@ export function ProjectRequestOverview({ data }: ProjectRequestOverviewProps) {
                         {requirement.requirementName}
                       </h4>
                     </div>
-                    {/* No se muestra el estado a nivel de requerimiento */}
+                    <div className="flex space-x-1">
+                      {onManageSpecialties && (
+                        <Button
+                          variant="ghost"
+                          onClick={() => onManageSpecialties(requirement)}
+                          title="Gestionar especialidades"
+                          className="h-8 px-2 flex items-center gap-1"
+                        >
+                          <Medal className="h-4 w-4" />
+                          <span className="text-xs">Especialidades</span>
+                        </Button>
+                      )}
+                      {onManageCertifications && (
+                        <Button
+                          variant="ghost"
+                          onClick={() => onManageCertifications(requirement)}
+                          title="Gestionar certificaciones"
+                          className="h-8 px-2 flex items-center gap-1"
+                        >
+                          <Award className="h-4 w-4" />
+                          <span className="text-xs">Certificaciones</span>
+                        </Button>
+                      )}
+                    </div>
                   </div>
 
                   {/* Especialidades del requerimiento */}
@@ -267,10 +318,25 @@ export function ProjectRequestOverview({ data }: ProjectRequestOverviewProps) {
 
                   {/* Asociados seleccionados para este requerimiento */}
                   <div className="ml-7">
-                    <h5 className="text-sm font-medium mb-2 flex items-center">
-                      <Users className="h-4 w-4 mr-1 text-green-500" />
-                      Asociados seleccionados
-                    </h5>
+                    <div className="flex justify-between items-center mb-2">
+                      <h5 className="text-sm font-medium flex items-center">
+                        <Users className="h-4 w-4 mr-1 text-green-500" />
+                        Asociados seleccionados
+                      </h5>
+                      {onManageParticipants && 
+                       ((requirement.RequirementSpecialty && requirement.RequirementSpecialty.length > 0) || 
+                        (requirement.RequirementCertification && requirement.RequirementCertification.length > 0)) && (
+                        <Button
+                          variant="ghost"
+                          onClick={() => onManageParticipants(requirement)}
+                          title="Gestionar asociados"
+                          className="h-6 px-2 flex items-center gap-1"
+                        >
+                          <Users className="h-3 w-3" />
+                          <span className="text-xs">Asociados</span>
+                        </Button>
+                      )}
+                    </div>
                     {requirement.ProjectRequestCompany &&
                     requirement.ProjectRequestCompany.length > 0 ? (
                       <div className="grid grid-cols-1 gap-2">

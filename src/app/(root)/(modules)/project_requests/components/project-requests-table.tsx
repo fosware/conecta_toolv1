@@ -66,6 +66,9 @@ interface ProjectRequestsTableProps {
   onToggleStatus?: (id: number, currentStatus: boolean) => void;
   onViewDetails?: (item: ProjectRequest) => void;
   onManageRequirements?: (item: ProjectRequest) => void;
+  onManageSpecialties?: (requirement: any) => void;
+  onManageCertifications?: (requirement: any) => void;
+  onManageParticipants?: (requirement: any) => void;
   onRowClick?: (item: ProjectRequest) => void;
   expandedId?: number | null;
   isStaff?: boolean;
@@ -80,6 +83,9 @@ export function ProjectRequestsTable({
   onToggleStatus,
   onViewDetails,
   onManageRequirements,
+  onManageSpecialties,
+  onManageCertifications,
+  onManageParticipants,
   onRowClick,
   expandedId = null,
   isStaff = false,
@@ -343,6 +349,10 @@ export function ProjectRequestsTable({
                         <div className="px-4">
                           <ProjectRequestOverview
                             data={selectedRequestDetails}
+                            onManageRequirements={onManageRequirements}
+                            onManageSpecialties={onManageSpecialties}
+                            onManageCertifications={onManageCertifications}
+                            onManageParticipants={onManageParticipants}
                           />
                         </div>
                       </TableCell>

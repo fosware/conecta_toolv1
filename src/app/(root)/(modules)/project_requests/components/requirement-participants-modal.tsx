@@ -89,6 +89,8 @@ export function RequirementParticipantsModal({
   const [eligibleCompanies, setEligibleCompanies] = useState<
     CompanyWithMatch[]
   >([]);
+  const [totalSpecialties, setTotalSpecialties] = useState(0);
+  const [totalCertifications, setTotalCertifications] = useState(0);
   const [selectedCompanies, setSelectedCompanies] = useState<number[]>([]);
   const [ndaFiles, setNdaFiles] = useState<Record<number, File | null>>({});
   const [ndaSignedFiles, setNdaSignedFiles] = useState<
@@ -96,11 +98,15 @@ export function RequirementParticipantsModal({
   >({});
   const [showOnlyMatching, setShowOnlyMatching] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [companyToDeleteNDA, setCompanyToDeleteNDA] = useState<{
+  // Interfaz para el objeto de eliminación de NDA
+  interface CompanyToDeleteNDA {
     id: number;
     companyId: number;
     hasSignedNDA: boolean;
-  } | null>(null);
+    isSignedNDA?: boolean; // Indica si estamos eliminando el NDA firmado
+  }
+
+  const [companyToDeleteNDA, setCompanyToDeleteNDA] = useState<CompanyToDeleteNDA | null>(null);
   const [deletingNDA, setDeletingNDA] = useState(false);
 
   // Cargar empresas elegibles cuando se abre el modal
@@ -135,6 +141,10 @@ export function RequirementParticipantsModal({
 
       const data = await response.json();
 
+      // Guardar los totales de especialidades y certificaciones requeridas
+      setTotalSpecialties(data.totalSpecialties || 0);
+      setTotalCertifications(data.totalCertifications || 0);
+      
       // Transformar los datos y marcar las empresas ya seleccionadas
       const companiesWithSelection = data.companies.map((company: any) => ({
         ...company,
@@ -169,10 +179,25 @@ export function RequirementParticipantsModal({
 
     // Filtro por coincidencias si está activado
     if (showOnlyMatching) {
-      // Mostrar solo asociados que cumplen con AMBOS requisitos (especialidades Y certificaciones)
-      return (
-        company.matchingSpecialties > 0 && company.matchingCertifications > 0
-      );
+      // Si hay especialidades definidas, verificar si la empresa cumple
+      const matchesSpecialties = totalSpecialties > 0 ? company.matchingSpecialties > 0 : true;
+      
+      // Si hay certificaciones definidas, verificar si la empresa cumple
+      const matchesCertifications = totalCertifications > 0 ? company.matchingCertifications > 0 : true;
+      
+      // Mostrar empresas que cumplen con los requisitos definidos
+      // Si hay ambos requisitos, debe cumplir ambos
+      // Si solo hay un tipo de requisito, debe cumplir ese tipo
+      if (totalSpecialties > 0 && totalCertifications > 0) {
+        return matchesSpecialties && matchesCertifications;
+      } else if (totalSpecialties > 0) {
+        return matchesSpecialties;
+      } else if (totalCertifications > 0) {
+        return matchesCertifications;
+      } else {
+        // Si no hay requisitos definidos, mostrar todas las empresas
+        return true;
+      }
     }
 
     return true;
@@ -238,6 +263,7 @@ export function RequirementParticipantsModal({
         throw new Error("Error al subir el NDA firmado");
       }
 
+      // Mostrar toast de éxito
       toast.success("NDA firmado subido correctamente");
 
       // Limpiar el archivo seleccionado
@@ -252,6 +278,7 @@ export function RequirementParticipantsModal({
 
       // Llamar al callback de éxito si existe
       if (onSuccess) {
+        // Llamamos a onSuccess sin mostrar toast adicional
         onSuccess();
       }
     } catch (error) {
@@ -260,8 +287,16 @@ export function RequirementParticipantsModal({
     }
   };
 
+  // Interfaz para el objeto de eliminación de NDA
+  interface CompanyToDeleteNDA {
+    id: number;
+    companyId: number;
+    hasSignedNDA: boolean;
+    isSignedNDA?: boolean; // Indica si estamos eliminando el NDA firmado
+  }
+
   // Función para mostrar el diálogo de confirmación para eliminar NDA
-  const handleDeleteNDAConfirm = (companyId: number) => {
+  const handleDeleteNDAConfirm = (companyId: number, isSignedNDA: boolean = false) => {
     const company = eligibleCompanies.find((c) => c.id === companyId);
     if (!company) return;
 
@@ -274,6 +309,7 @@ export function RequirementParticipantsModal({
       id: company.participantId,
       companyId: companyId,
       hasSignedNDA: !!company.ndaSignedFileName,
+      isSignedNDA: isSignedNDA // Indica si estamos eliminando el NDA firmado
     });
     setDeleteDialogOpen(true);
   };
@@ -286,7 +322,13 @@ export function RequirementParticipantsModal({
       setDeletingNDA(true);
 
       // Determinar qué tipo de NDA eliminar (original o firmado)
-      const endpoint = companyToDeleteNDA.hasSignedNDA
+      // Si isSignedNDA es true, significa que estamos eliminando el NDA firmado
+      // Si isSignedNDA es false o undefined, significa que estamos eliminando el NDA original
+      const isSignedNDA = companyToDeleteNDA.isSignedNDA === true;
+      
+      // Si estamos eliminando el NDA firmado, usar el endpoint nda_signed
+      // Si estamos eliminando el NDA original, usar el endpoint nda (que eliminará también el firmado si existe)
+      const endpoint = isSignedNDA
         ? `/api/project_requests/${requirement.projectRequestId}/requirements/${requirement.id}/participants/${companyToDeleteNDA.id}/nda_signed`
         : `/api/project_requests/${requirement.projectRequestId}/requirements/${requirement.id}/participants/${companyToDeleteNDA.id}/nda`;
 
@@ -301,8 +343,15 @@ export function RequirementParticipantsModal({
         throw new Error("Error al eliminar el NDA");
       }
 
+      // Mostrar toast de éxito
       toast.success("NDA eliminado correctamente");
       loadEligibleCompanies(false);
+      
+      // Llamar al callback de éxito si existe
+      if (onSuccess) {
+        // Llamamos a onSuccess sin mostrar toast adicional
+        onSuccess();
+      }
     } catch (error) {
       console.error("Error al eliminar NDA:", error);
       toast.error("Error al eliminar el NDA");
@@ -349,6 +398,7 @@ export function RequirementParticipantsModal({
         throw new Error("Error al guardar los participantes");
       }
 
+      // Mostrar toast de éxito
       toast.success("Participantes guardados correctamente");
 
       // Recargar los datos
@@ -356,6 +406,7 @@ export function RequirementParticipantsModal({
 
       // Llamar al callback de éxito si existe
       if (onSuccess) {
+        // Llamamos a onSuccess sin mostrar toast adicional
         onSuccess();
       }
     } catch (error) {
@@ -485,25 +536,29 @@ export function RequirementParticipantsModal({
                           <TableCell className="text-center">
                             <div className="flex justify-center items-center">
                               <span className="font-medium">
-                                {company.matchingSpecialties}
+                                {totalSpecialties > 0 ? company.matchingSpecialties : "N/A"}
                               </span>
-                              {company.matchingSpecialties > 0 ? (
-                                <CheckCircle2 className="ml-1 h-4 w-4 text-green-500" />
-                              ) : (
-                                <XCircle className="ml-1 h-4 w-4 text-red-500" />
-                              )}
+                              {totalSpecialties > 0 ? (
+                                company.matchingSpecialties > 0 ? (
+                                  <CheckCircle2 className="ml-1 h-4 w-4 text-green-500" />
+                                ) : (
+                                  <XCircle className="ml-1 h-4 w-4 text-red-500" />
+                                )
+                              ) : null}
                             </div>
                           </TableCell>
                           <TableCell className="text-center">
                             <div className="flex justify-center items-center">
                               <span className="font-medium">
-                                {company.matchingCertifications}
+                                {totalCertifications > 0 ? company.matchingCertifications : "N/A"}
                               </span>
-                              {company.matchingCertifications > 0 ? (
-                                <CheckCircle2 className="ml-1 h-4 w-4 text-green-500" />
-                              ) : (
-                                <XCircle className="ml-1 h-4 w-4 text-red-500" />
-                              )}
+                              {totalCertifications > 0 ? (
+                                company.matchingCertifications > 0 ? (
+                                  <CheckCircle2 className="ml-1 h-4 w-4 text-green-500" />
+                                ) : (
+                                  <XCircle className="ml-1 h-4 w-4 text-red-500" />
+                                )
+                              ) : null}
                             </div>
                           </TableCell>
                           {/* NDA Original */}
@@ -527,7 +582,7 @@ export function RequirementParticipantsModal({
                                     size="sm"
                                     className="h-8 text-xs text-red-500 hover:text-red-600"
                                     onClick={() =>
-                                      handleDeleteNDAConfirm(company.id)
+                                      handleDeleteNDAConfirm(company.id, false)
                                     }
                                   >
                                     <Trash2 className="h-3 w-3" />
@@ -577,7 +632,7 @@ export function RequirementParticipantsModal({
                                     size="sm"
                                     className="h-8 text-xs text-red-500 hover:text-red-600"
                                     onClick={() =>
-                                      handleDeleteNDAConfirm(company.id)
+                                      handleDeleteNDAConfirm(company.id, true)
                                     }
                                   >
                                     <Trash2 className="h-3 w-3" />
@@ -658,9 +713,11 @@ export function RequirementParticipantsModal({
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar NDA?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción eliminará el archivo NDA{" "}
-              {companyToDeleteNDA?.hasSignedNDA ? "firmado" : ""} asociado a
-              esta empresa. ¿Estás seguro de que deseas continuar?
+              {companyToDeleteNDA?.isSignedNDA
+                ? "¿Está seguro de que desea eliminar el archivo NDA firmado?"
+                : companyToDeleteNDA?.hasSignedNDA
+                  ? "ADVERTENCIA: Al eliminar este archivo NDA, también se eliminará el archivo NDA firmado asociado. ¿Desea continuar?"
+                  : "¿Está seguro de que desea eliminar este archivo NDA?"}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

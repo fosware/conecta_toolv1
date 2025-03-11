@@ -311,7 +311,14 @@ export function RequirementSpecialtiesModal({
       // Recargar las especialidades requeridas
       await loadRequirementSpecialties(false);
       
+      // Mostrar toast de éxito
       toast.success("Especialidad requerida agregada correctamente");
+      
+      // Llamar al callback de éxito si existe
+      if (onSuccess) {
+        // Llamamos a onSuccess sin mostrar toast adicional
+        onSuccess();
+      }
     } catch (error) {
       console.error("Error adding requirement specialty:", error);
       toast.error(
@@ -359,7 +366,14 @@ export function RequirementSpecialtiesModal({
         requirementSpecialties.filter((spec) => spec.id !== specialtyToDelete)
       );
       
+      // Mostrar toast de éxito
       toast.success("Especialidad requerida eliminada correctamente");
+      
+      // Llamar al callback de éxito si existe
+      if (onSuccess) {
+        // Llamamos a onSuccess sin mostrar toast adicional
+        onSuccess();
+      }
     } catch (error) {
       console.error("Error deleting requirement specialty:", error);
       toast.error("Error al eliminar la especialidad requerida");

@@ -184,6 +184,11 @@ export function ProjectRequestRequirementsModal({
       toast.success("Requerimiento agregado correctamente");
       form.reset();
       await loadRequirements();
+      
+      // Llamar al callback de éxito para actualizar la vista principal sin necesidad de colapsar/expandir
+      if (onSuccess) {
+        onSuccess();
+      }
     } catch (error) {
       console.error("Error adding requirement:", error);
       toast.error("Error al agregar el requerimiento");
@@ -226,6 +231,11 @@ export function ProjectRequestRequirementsModal({
       setEditMode(false);
       setRequirementToEdit(null);
       form.reset({ requirementName: "" });
+      
+      // Llamar al callback de éxito para actualizar la vista principal sin necesidad de colapsar/expandir
+      if (onSuccess) {
+        onSuccess();
+      }
     } catch (error) {
       console.error("Error updating requirement:", error);
       toast.error("Error al actualizar el requerimiento");
@@ -280,6 +290,11 @@ export function ProjectRequestRequirementsModal({
       );
       
       toast.success("Requerimiento eliminado correctamente");
+      
+      // Llamar al callback de éxito para actualizar la vista principal sin necesidad de colapsar/expandir
+      if (onSuccess) {
+        onSuccess();
+      }
     } catch (error) {
       console.error("Error deleting requirement:", error);
       toast.error("Error al eliminar el requerimiento");
@@ -396,30 +411,8 @@ export function ProjectRequestRequirementsModal({
                           <TableCell>{req.requirementName}</TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleManageCertifications(req)}
-                                title="Gestionar certificaciones"
-                              >
-                                <Award className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleManageSpecialties(req)}
-                                title="Gestionar especialidades"
-                              >
-                                <Medal className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleManageParticipants(req)}
-                                title="Gestionar asociados participantes"
-                              >
-                                <Building2 className="h-4 w-4" />
-                              </Button>
+                              {/* Se eliminaron los botones de Certificaciones, Especialidades y Asociados participantes
+                                 ya que ahora están disponibles en el overview */}
                               <Button
                                 variant="ghost"
                                 size="icon"

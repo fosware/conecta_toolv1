@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { cookies } from "next/headers";
 
 export async function GET(
   request: NextRequest,
@@ -14,8 +13,10 @@ export async function GET(
     const parsedDocumentId = parseInt(documentId);
 
     // Verificar autenticación
-    const session = await getServerSession(authOptions);
-    if (!session || !session.user) {
+    const cookieStore = cookies();
+    const token = cookieStore.get('token');
+    
+    if (!token || !token.value) {
       return NextResponse.json(
         { error: "No autorizado" },
         { status: 401 }

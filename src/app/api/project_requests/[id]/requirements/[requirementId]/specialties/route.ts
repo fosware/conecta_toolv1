@@ -26,9 +26,10 @@ export async function GET(
       );
     }
 
-    // Validar parámetros
-    const parsedId = parseInt(params.id);
-    const parsedRequirementId = parseInt(params.requirementId);
+    // Extraer y validar parámetros correctamente
+    const { id, requirementId } = await params;
+    const parsedId = parseInt(id);
+    const parsedRequirementId = parseInt(requirementId);
 
     if (isNaN(parsedId) || isNaN(parsedRequirementId)) {
       return NextResponse.json(
@@ -108,9 +109,10 @@ export async function POST(
       );
     }
 
-    // Validar parámetros
-    const parsedId = parseInt(params.id);
-    const parsedRequirementId = parseInt(params.requirementId);
+    // Extraer y validar parámetros correctamente
+    const { id, requirementId } = await params;
+    const parsedId = parseInt(id);
+    const parsedRequirementId = parseInt(requirementId);
 
     if (isNaN(parsedId) || isNaN(parsedRequirementId)) {
       return NextResponse.json(

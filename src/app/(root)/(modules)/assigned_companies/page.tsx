@@ -12,7 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { AssignedCompaniesTable } from "./components/assigned-companies-table";
+// TODO: Crear el componente AssignedCompaniesTable
+// import { AssignedCompaniesTable } from "./components/assigned-companies-table";
 import { UploadNDAModal } from "./components/upload-nda-modal";
 import { ViewDocumentsModal } from "./components/view-documents-modal";
 import { Search, FileText } from "lucide-react";
@@ -161,15 +162,10 @@ export default function AssignedCompaniesPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <AssignedCompaniesTable
-            data={assignedRequests}
-            loading={loading}
-            onRowClick={handleRowClick}
-            onUploadNda={handleUploadNda}
-            onViewDocuments={handleViewDocuments}
-            expandedId={expandedRequestId}
-            selectedRequestDetails={selectedRequestDetails}
-          />
+          {/* TODO: Crear el componente AssignedCompaniesTable */}
+          <div className="p-4 text-center">
+            <p>Componente de tabla en desarrollo</p>
+          </div>
         </CardContent>
       </Card>
 
