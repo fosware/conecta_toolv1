@@ -49,11 +49,40 @@ export async function GET(
       );
     }
 
-    // Obtener los requerimientos de la solicitud
+    // Obtener los requerimientos de la solicitud con sus participantes
     const requirements = await prisma.projectRequirements.findMany({
       where: {
         projectRequestId: parsedId,
         isDeleted: false,
+      },
+      include: {
+        ProjectRequestCompany: {
+          where: {
+            isDeleted: false,
+          },
+          include: {
+            Company: true,
+            status: true,
+          },
+        },
+        RequirementSpecialty: {
+          where: {
+            isDeleted: false,
+          },
+          include: {
+            specialty: true,
+            scope: true,
+            subscope: true,
+          },
+        },
+        RequirementCertification: {
+          where: {
+            isDeleted: false,
+          },
+          include: {
+            certification: true,
+          },
+        },
       },
       orderBy: {
         createdAt: "desc",
@@ -78,8 +107,8 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    // Extraer el ID correctamente
-    const id = params.id;
+    // Extraer el ID correctamente según las prácticas de Next.js 15
+    const { id } = await params;
     const parsedId = parseInt(id);
 
     if (isNaN(parsedId)) {

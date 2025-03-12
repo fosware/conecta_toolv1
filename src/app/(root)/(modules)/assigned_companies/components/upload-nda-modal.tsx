@@ -16,17 +16,20 @@ import { toast } from "sonner";
 import { getToken } from "@/lib/auth";
 import { Loader2, FileText, Upload } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { AssignedCompany } from "../types";
 
 interface UploadNDAModalProps {
   open: boolean;
   onClose: () => void;
-  projectRequestCompany: any;
+  item: AssignedCompany;
+  onSuccess: () => void;
 }
 
 export function UploadNDAModal({
   open,
   onClose,
-  projectRequestCompany,
+  item,
+  onSuccess,
 }: UploadNDAModalProps) {
   const [loading, setLoading] = useState(false);
   const [ndaFile, setNdaFile] = useState<File | null>(null);
@@ -41,16 +44,16 @@ export function UploadNDAModal({
   };
 
   const handleDownloadNda = async () => {
-    if (!projectRequestCompany.ndaFile) {
+    if (!item.ndaFile) {
       toast.error("No hay un NDA disponible para descargar");
       return;
     }
 
     try {
       setDownloadingNda(true);
-      const response = await fetch(`/api/assigned_companies/${projectRequestCompany.id}/download-nda`, {
+      const response = await fetch(`/api/assigned_companies/${item.id}/download-nda`, {
         headers: {
-          Authorization: `Bearer ${getToken()}`,
+          Authorization: `Bearer ${await getToken()}`,
         },
       });
 
@@ -62,7 +65,7 @@ export function UploadNDAModal({
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = projectRequestCompany.ndaFileName || "nda.pdf";
+      a.download = item.ndaFileName || "nda.pdf";
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -75,144 +78,185 @@ export function UploadNDAModal({
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
     if (!ndaFile) {
-      toast.error("Por favor, seleccione un archivo");
+      toast.error("Por favor, selecciona un archivo");
       return;
     }
 
     try {
       setLoading(true);
+
       const formData = new FormData();
       formData.append("ndaSignedFile", ndaFile);
 
-      const response = await fetch(`/api/assigned_companies/${projectRequestCompany.id}/upload-nda`, {
+      const response = await fetch(`/api/assigned_companies/${item.id}/upload-nda`, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${getToken()}`,
+          Authorization: `Bearer ${await getToken()}`,
         },
         body: formData,
       });
 
       if (!response.ok) {
-        throw new Error("Error al subir el NDA firmado");
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Error al subir el NDA");
       }
 
-      toast.success("NDA firmado subido correctamente");
-      onClose();
+      toast.success("NDA subido correctamente");
+      onSuccess();
     } catch (error) {
-      console.error("Error uploading signed NDA:", error);
-      toast.error("Error al subir el NDA firmado");
+      console.error("Error uploading NDA:", error);
+      toast.error("Error al subir el NDA");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDeleteFile = () => {
-    setNdaFile(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+  const handleDeleteNda = async () => {
+    if (!item.ndaSignedFile) {
+      toast.error("No hay un NDA firmado para eliminar");
+      return;
     }
-    setDeleteDialogOpen(false);
+
+    try {
+      setLoading(true);
+
+      const response = await fetch(`/api/assigned_companies/${item.id}/delete-signed-nda`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${await getToken()}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Error al eliminar el NDA firmado");
+      }
+
+      toast.success("NDA firmado eliminado correctamente");
+      setDeleteDialogOpen(false);
+      onSuccess();
+    } catch (error) {
+      console.error("Error deleting signed NDA:", error);
+      toast.error("Error al eliminar el NDA firmado");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <>
-      <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-        <DialogContent className="sm:max-w-md">
+      <Dialog open={open} onOpenChange={(open) => !open && onClose()}>
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Subir NDA Firmado</DialogTitle>
             <DialogDescription>
-              Descargue el NDA, fírmelo y súbalo para continuar con el proceso.
+              Sube el NDA firmado para la solicitud de{" "}
+              {item.ProjectRequest?.name || item.ProjectRequest?.title || "N/A"}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>NDA Original</Label>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  onClick={handleDownloadNda}
-                  disabled={downloadingNda || !projectRequestCompany.ndaFile}
-                  className="w-full"
-                >
-                  {downloadingNda ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <FileText className="h-4 w-4 mr-2" />
-                  )}
-                  Descargar NDA
-                </Button>
-              </div>
-            </div>
+          <form onSubmit={handleSubmit}>
+            <div className="grid gap-4 py-4">
+              {item.ndaFile && (
+                <div>
+                  <Label>NDA Original</Label>
+                  <div className="flex items-center mt-1">
+                    <span className="text-sm text-muted-foreground mr-2">
+                      {item.ndaFileName || "nda.pdf"}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleDownloadNda}
+                      disabled={downloadingNda}
+                    >
+                      {downloadingNda ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <FileText className="h-4 w-4 mr-2" />
+                      )}
+                      Descargar
+                    </Button>
+                  </div>
+                </div>
+              )}
 
-            <div className="space-y-2">
-              <Label htmlFor="nda-file">NDA Firmado</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  id="nda-file"
-                  type="file"
-                  accept=".pdf"
-                  onChange={handleFileChange}
-                  ref={fileInputRef}
-                  disabled={loading}
-                />
-                {ndaFile && (
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setDeleteDialogOpen(true)}
-                    className="flex-shrink-0"
-                  >
-                    ×
-                  </Button>
+              <div>
+                <Label htmlFor="nda-file">NDA Firmado</Label>
+                <div className="flex items-center mt-1">
+                  <Input
+                    id="nda-file"
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept=".pdf,.doc,.docx"
+                    className="flex-1"
+                  />
+                </div>
+                {item.ndaSignedFile && (
+                  <div className="flex items-center mt-2">
+                    <span className="text-sm text-muted-foreground mr-2">
+                      Archivo actual: {item.ndaSignedFileName || "nda-firmado.pdf"}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => setDeleteDialogOpen(true)}
+                    >
+                      Eliminar
+                    </Button>
+                  </div>
                 )}
               </div>
-              {ndaFile && (
-                <p className="text-sm text-muted-foreground">
-                  Archivo seleccionado: {ndaFile.name}
-                </p>
-              )}
             </div>
-          </div>
 
-          <DialogFooter className="flex justify-between sm:justify-between">
-            <Button
-              variant="outline"
-              onClick={onClose}
-              disabled={loading}
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={loading || !ndaFile}
-              className="gap-2"
-            >
-              {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Upload className="h-4 w-4" />
-              )}
-              Subir NDA Firmado
-            </Button>
-          </DialogFooter>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={onClose}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={loading || !ndaFile}>
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Subiendo...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Subir NDA
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Eliminar archivo?</AlertDialogTitle>
+            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
             <AlertDialogDescription>
-              ¿Está seguro de que desea eliminar el archivo seleccionado?
+              Esta acción eliminará el NDA firmado y no se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteFile}>
-              Eliminar
+            <AlertDialogAction onClick={handleDeleteNda} disabled={loading}>
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Eliminando...
+                </>
+              ) : (
+                "Eliminar"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
