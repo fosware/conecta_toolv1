@@ -31,16 +31,16 @@ export async function POST(
     } catch (error) {
       console.error("[AUTH_ERROR]", error);
       return NextResponse.json(
-        { error: "No autorizado", details: error instanceof Error ? error.message : "Error desconocido" },
+        {
+          error: "No autorizado",
+          details: error instanceof Error ? error.message : "Error desconocido",
+        },
         { status: 401 }
       );
     }
-    
+
     if (!userId) {
-      return NextResponse.json(
-        { error: "No autorizado" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
     // Extraer los IDs correctamente
@@ -79,11 +79,11 @@ export async function POST(
     }
 
     // Verificar que la compañía está asociada al requerimiento
-    console.log("[TECHNICAL_DOCUMENT_UPLOAD] Buscando asociación entre compañía y requerimiento:", {
-      companyId: parsedCompanyId,
-      requirementId: parsedRequirementId
-    });
-    
+    //console.log("[TECHNICAL_DOCUMENT_UPLOAD] Buscando asociación entre compañía y requerimiento:", {
+    //  companyId: parsedCompanyId,
+    //  requirementId: parsedRequirementId
+    //});
+
     const association = await prisma.projectRequestCompany.findFirst({
       where: {
         companyId: parsedCompanyId,
@@ -91,11 +91,16 @@ export async function POST(
         isDeleted: false,
       },
     });
-    
-    console.log("[TECHNICAL_DOCUMENT_UPLOAD] Resultado de búsqueda de asociación:", association);
+
+    //console.log(
+    //  "[TECHNICAL_DOCUMENT_UPLOAD] Resultado de búsqueda de asociación:",
+    //  association
+    //);
 
     if (!association) {
-      console.log("[TECHNICAL_DOCUMENT_UPLOAD] No se encontró asociación entre la compañía y el requerimiento");
+      //console.log(
+      //  "[TECHNICAL_DOCUMENT_UPLOAD] No se encontró asociación entre la compañía y el requerimiento"
+      //);
       return NextResponse.json(
         { error: "La compañía no está asociada a este requerimiento" },
         { status: 403 }
@@ -103,9 +108,11 @@ export async function POST(
     }
 
     // Procesar el formulario
-    console.log("[TECHNICAL_DOCUMENT_UPLOAD] Procesando formData");
+    //console.log("[TECHNICAL_DOCUMENT_UPLOAD] Procesando formData");
     const formData = await request.formData();
-    console.log("[TECHNICAL_DOCUMENT_UPLOAD] FormData recibido:", 
+    /*
+    console.log(
+      "[TECHNICAL_DOCUMENT_UPLOAD] FormData recibido:",
       Array.from(formData.entries()).map(([key, value]) => {
         if (value instanceof File) {
           return `${key}: File (${value.name}, ${value.type}, ${value.size} bytes)`;
@@ -113,22 +120,24 @@ export async function POST(
         return `${key}: ${value}`;
       })
     );
-    
+   */
     const file = formData.get("file") as File | null;
 
     if (!file) {
-      console.log("[TECHNICAL_DOCUMENT_UPLOAD] No se proporcionó ningún archivo");
+      //console.log(
+      //  "[TECHNICAL_DOCUMENT_UPLOAD] No se proporcionó ningún archivo"
+      //);
       return NextResponse.json(
         { error: "No se ha proporcionado ningún archivo" },
         { status: 400 }
       );
     }
 
-    console.log("[TECHNICAL_DOCUMENT_UPLOAD] Archivo recibido:", {
-      name: file.name,
-      type: file.type,
-      size: file.size
-    });
+    //console.log("[TECHNICAL_DOCUMENT_UPLOAD] Archivo recibido:", {
+    //  name: file.name,
+    //  type: file.type,
+    //  size: file.size,
+    //});
 
     // Validar tamaño del archivo
     if (file.size > MAX_FILE_SIZE) {
@@ -162,7 +171,10 @@ export async function POST(
     });
 
     // Actualizar el estado de la asociación a "Documentos técnicos enviados" (ID 6)
-    console.log("[TECHNICAL_DOCUMENT_UPLOAD] Actualizando estado a 'Documentos técnicos enviados' (ID 6) para la asociación:", association.id);
+    //console.log(
+    //  "[TECHNICAL_DOCUMENT_UPLOAD] Actualizando estado a 'Documentos técnicos enviados' (ID 6) para la asociación:",
+    //  association.id
+    //);
     const updatedAssociation = await prisma.projectRequestCompany.update({
       where: {
         id: association.id,
@@ -171,8 +183,11 @@ export async function POST(
         statusId: 6, // ID 6 corresponde a "Documentos técnicos enviados"
       },
     });
-    
-    console.log("[TECHNICAL_DOCUMENT_UPLOAD] Asociación actualizada:", updatedAssociation);
+
+    //console.log(
+    //  "[TECHNICAL_DOCUMENT_UPLOAD] Asociación actualizada:",
+    //  updatedAssociation
+    //);
 
     return NextResponse.json({
       success: true,

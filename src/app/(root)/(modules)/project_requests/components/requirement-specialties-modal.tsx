@@ -269,24 +269,39 @@ export function RequirementSpecialtiesModal({
   }, [selectedScopeId, subscopes]);
 
   // Agregar una nueva especialidad requerida
-  const handleAddSpecialty = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!requirement || !requirement.id) return;
+    
+    // Validar que al menos se haya seleccionado una especialidad
     if (!selectedSpecialtyId) {
-      toast.error("Debes seleccionar una especialidad");
+      toast.error("Por favor, seleccione al menos una especialidad");
       return;
     }
 
-    try {
-      setIsSubmitting(true);
+    // Si hay alcances disponibles pero no se ha seleccionado uno, mostrar error
+    if (filteredScopes.length > 0 && !selectedScopeId) {
+      toast.error("Por favor, seleccione un alcance");
+      return;
+    }
 
+    // Si hay subalcances disponibles pero no se ha seleccionado uno, mostrar error
+    if (filteredSubscopes.length > 0 && !selectedSubscopeId) {
+      toast.error("Por favor, seleccione un subalcance");
+      return;
+    }
+
+    if (!requirement || !requirement.id) {
+      toast.error("Error: ID de requerimiento no disponible");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
       const payload = {
         specialtyId: parseInt(selectedSpecialtyId),
         scopeId: selectedScopeId ? parseInt(selectedScopeId) : undefined,
-        subscopeId: selectedSubscopeId
-          ? parseInt(selectedSubscopeId)
-          : undefined,
+        subscopeId: selectedSubscopeId ? parseInt(selectedSubscopeId) : undefined,
         observation: observation || undefined,
       };
 
@@ -295,8 +310,8 @@ export function RequirementSpecialtiesModal({
         {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
             Authorization: `Bearer ${getToken()}`,
+            "Content-Type": "application/json",
           },
           body: JSON.stringify(payload),
         }
@@ -323,7 +338,7 @@ export function RequirementSpecialtiesModal({
       
       // Llamar al callback de éxito si existe
       if (onSuccess) {
-        // Llamamos a onSuccess sin mostrar toast adicional
+        // Llamamos a onSuccess para actualizar los datos en el componente padre
         onSuccess();
       }
     } catch (error) {
@@ -421,7 +436,7 @@ export function RequirementSpecialtiesModal({
 
           {requirement ? (
             <>
-              <form onSubmit={handleAddSpecialty} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="specialty">Especialidad</Label>

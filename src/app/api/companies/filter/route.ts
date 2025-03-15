@@ -15,6 +15,7 @@ export async function GET(request: Request) {
     const scopeId = searchParams.get("scopeId");
     const subscopeId = searchParams.get("subscopeId");
     const certificationIds = searchParams.getAll("certificationIds[]");
+
     /*
     console.log("Filtros recibidos:", {
       specialtyId,

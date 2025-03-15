@@ -70,44 +70,14 @@ export async function POST(
       data: updateData,
     });
 
-    // Verificar si ya existe un documento para esta asignación
-    const existingDocument = await prisma.projectRequestRequirementDocuments.findFirst({
-      where: {
-        projectRequestCompanyId: parsedId,
-      },
-    });
-
-    if (existingDocument) {
-      // Actualizar el documento existente
-      await prisma.projectRequestRequirementDocuments.update({
-        where: {
-          id: existingDocument.id,
-        },
-        data: {
-          documentFileName: file.name,
-          updatedAt: new Date(),
-          userId: userId,
-        },
-      });
-    } else {
-      // Crear un nuevo registro de documento
-      await prisma.projectRequestRequirementDocuments.create({
-        data: {
-          projectRequestCompanyId: parsedId,
-          documentFileName: file.name,
-          userId: userId,
-        },
-      });
-    }
-
     return NextResponse.json({
       success: true,
       message: "NDA firmado subido correctamente",
     });
   } catch (error) {
-    console.error("Error en POST /api/assigned_companies/[id]/upload-signed-nda:", error);
+    console.error("Error al subir NDA firmado:", error);
     return NextResponse.json(
-      { error: "Error al subir el NDA firmado" },
+      { error: "Error al procesar la solicitud" },
       { status: 500 }
     );
   }

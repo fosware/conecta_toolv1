@@ -45,6 +45,7 @@ interface CertificatesModalProps {
   onClose: () => void;
   companyId: number;
   companyName: string;
+  onSuccess?: () => void;
 }
 
 type Certification = {
@@ -69,6 +70,7 @@ export function CertificatesModal({
   onClose,
   companyId,
   companyName,
+  onSuccess,
 }: CertificatesModalProps) {
   const [certificates, setCertificates] = useState<CompanyCertificate[]>([]);
   const [certifications, setCertifications] = useState<Certification[]>([]);
@@ -85,6 +87,7 @@ export function CertificatesModal({
     isCommitment: false,
     commitmentDate: "",
   });
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -110,9 +113,11 @@ export function CertificatesModal({
   };
 
   // Cargar certificados de la empresa
-  const loadCertificates = async () => {
+  const loadCertificates = async (showLoadingIndicator = true) => {
     try {
-      setLoading(true);
+      if (showLoadingIndicator) {
+        setLoading(true);
+      }
       const response = await fetch(`/api/companies/${companyId}/certificates`, {
         headers: {
           Authorization: `Bearer ${getToken()}`,
@@ -125,7 +130,7 @@ export function CertificatesModal({
 
       const data = await response.json();
 
-      setCertificates(data.items || []);
+      setCertificates(data.data || []);
     } catch (error) {
       console.error("Error:", error);
       toast.error("Error al cargar los certificados");
@@ -189,9 +194,28 @@ export function CertificatesModal({
         }
       );
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Error al agregar el certificado");
+        // Verificar si el error es por certificación duplicada
+        if (data.error && data.error.includes("Ya existe un certificado activo")) {
+          toast.warning("Esta certificación ya existe para esta empresa");
+        } else {
+          toast.error(data.error || "Error al agregar el certificado");
+        }
+        setSubmitting(false);
+        return;
+      }
+
+      if (!data.success) {
+        // Verificar si el error es por certificación duplicada
+        if (data.error && data.error.includes("Ya existe un certificado activo")) {
+          toast.warning("Esta certificación ya existe para esta empresa");
+        } else {
+          toast.error(data.error || "Error al agregar el certificado");
+        }
+        setSubmitting(false);
+        return;
       }
 
       toast.success(
@@ -205,6 +229,9 @@ export function CertificatesModal({
 
       // Recargar la lista de certificados
       loadCertificates();
+
+      // Llamar al callback de éxito
+      onSuccess?.();
     } catch (error) {
       console.error("Error:", error);
       toast.error(
@@ -278,6 +305,9 @@ export function CertificatesModal({
       }
 
       toast.success("Certificado eliminado correctamente");
+
+      // Llamar al callback de éxito
+      onSuccess?.();
     } catch (error) {
       console.error("Error:", error);
       toast.error("Error al eliminar el certificado");
@@ -365,6 +395,17 @@ export function CertificatesModal({
       loadCertificates();
     }
   }, [open]);
+
+  // Función para verificar si un certificado está vencido
+  const isCertificateExpired = (cert: CompanyCertificate) => {
+    const today = new Date();
+    if (cert.isCommitment && cert.commitmentDate) {
+      return new Date(cert.commitmentDate) < today;
+    } else if (!cert.isCommitment && cert.expirationDate) {
+      return new Date(cert.expirationDate) < today;
+    }
+    return false;
+  };
 
   return (
     <>

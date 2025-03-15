@@ -11,19 +11,18 @@ import {
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Plus } from "lucide-react";
+import { getToken } from "@/lib/auth";
 import { toast } from "sonner";
-import { ProjectRequestsTable } from "./components/project-requests-table";
+import { ProjectRequestWithRelations } from "@/lib/schemas/project_request";
 import { ProjectRequestModal } from "./components/project-request-modal";
+import { ProjectRequestsTable } from "./components/project-requests-table";
 import { ProjectRequestRequirementsModal } from "./components/project-request-requirements-modal";
-import { ProjectRequestOverview } from "./components/project-request-overview";
 import { RequirementSpecialtiesModal } from "./components/requirement-specialties-modal";
 import { RequirementCertificationsModal } from "./components/requirement-certifications-modal";
 import { RequirementParticipantsModal } from "./components/requirement-participants-modal";
-import { Plus, Search } from "lucide-react";
+import ProjectRequestOverview from "./components/project-request-overview";
 import { useUserRole } from "@/hooks/use-user-role";
-import { getToken } from "@/lib/auth";
-
-import { ProjectRequestWithRelations } from "@/lib/schemas/project_request";
 
 export default function ProjectRequestsPage() {
   const {
@@ -48,11 +47,11 @@ export default function ProjectRequestsPage() {
   const [selectedItem, setSelectedItem] =
     useState<ProjectRequestWithRelations | null>(null);
 
-
+  // Estados para modales de requerimientos
   const [requirementsModalOpen, setRequirementsModalOpen] = useState(false);
   const [selectedItemForRequirements, setSelectedItemForRequirements] =
     useState<ProjectRequestWithRelations | null>(null);
-    
+
   // Estados para modales de especialidades y certificaciones
   const [specialtiesModalOpen, setSpecialtiesModalOpen] = useState(false);
   const [certificationsModalOpen, setCertificationsModalOpen] = useState(false);
@@ -159,10 +158,6 @@ export default function ProjectRequestsPage() {
     setModalOpen(true);
   };
 
-
-
-
-
   const handleManageRequirements = (item: ProjectRequestWithRelations) => {
     setSelectedItemForRequirements(item);
     setRequirementsModalOpen(true);
@@ -200,7 +195,7 @@ export default function ProjectRequestsPage() {
         if (showLoadingToast) {
           toastId = toast.loading("Actualizando datos...");
         }
-        
+
         // Cargar información detallada de la solicitud
         const response = await fetch(`/api/project_requests/${expandedRequestId}`, {
           headers: {
@@ -213,14 +208,14 @@ export default function ProjectRequestsPage() {
         }
 
         const data = await response.json();
-        
+
         // Verificar la estructura de la respuesta
         if (data.data) {
           setSelectedRequestDetails(data.data);
         } else if (data.item) {
           setSelectedRequestDetails(data.item);
         }
-        
+
         // Cerrar el toast de carga si se mostró
         if (showLoadingToast && toastId) {
           toast.dismiss(toastId);
@@ -239,7 +234,7 @@ export default function ProjectRequestsPage() {
   const refreshAfterDocumentChange = useCallback(() => {
     // Recargar la lista completa de solicitudes sin mostrar indicador de carga
     loadProjectRequests(false);
-    
+
     // Si hay una solicitud expandida, recargar sus detalles
     if (expandedRequestId) {
       reloadSelectedRequestDetails(false);
@@ -249,7 +244,7 @@ export default function ProjectRequestsPage() {
   const handleModalSuccess = () => {
     // Recargar la lista de solicitudes sin mostrar indicador de carga
     loadProjectRequests(false);
-    
+
     // Recargar los detalles de la solicitud seleccionada sin mostrar toast
     reloadSelectedRequestDetails(false);
   };
@@ -305,10 +300,6 @@ export default function ProjectRequestsPage() {
         item={selectedItem}
         onSuccess={handleModalSuccess}
       />
-
-
-
-
 
       <ProjectRequestRequirementsModal
         open={requirementsModalOpen}

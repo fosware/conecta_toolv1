@@ -138,12 +138,22 @@ export function RequirementCertificationsModal({
     }
   }, [open, requirement]);
 
-  // Agregar una nueva certificación requerida
+  // Agregar una certificación requerida
   const handleAddCertification = async () => {
-    if (!requirement || !requirement.id || !selectedCertificationId) return;
+    // Validar que se haya seleccionado una certificación
+    if (!selectedCertificationId) {
+      toast.error("Por favor, seleccione una certificación");
+      return;
+    }
+
+    if (!requirement || !requirement.id) {
+      toast.error("Error: ID de requerimiento no disponible");
+      return;
+    }
+
+    setIsSubmitting(true);
 
     try {
-      setIsSubmitting(true);
       const response = await fetch(`/api/project_requests/${requirement.projectRequestId}/requirements/${requirement.id}/certifications`, {
         method: "POST",
         headers: {
@@ -173,7 +183,7 @@ export function RequirementCertificationsModal({
       
       // Llamar al callback de éxito si existe
       if (onSuccess) {
-        // Llamamos a onSuccess sin mostrar toast adicional
+        // Llamamos a onSuccess para actualizar los datos en el componente padre
         onSuccess();
       }
     } catch (error) {
@@ -240,7 +250,10 @@ export function RequirementCertificationsModal({
 
           <div className="flex-1 overflow-hidden flex flex-col">
             {/* Formulario para agregar certificación */}
-            <div className="space-y-4 mb-4">
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              handleAddCertification();
+            }} className="space-y-4 mb-4">
               <div className="grid grid-cols-1 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="certification">Certificación</Label>
@@ -275,7 +288,7 @@ export function RequirementCertificationsModal({
               </div>
 
               <Button
-                onClick={handleAddCertification}
+                type="submit"
                 disabled={!selectedCertificationId || isLoading || isSubmitting}
                 className="w-full"
               >
@@ -291,7 +304,7 @@ export function RequirementCertificationsModal({
                   </>
                 )}
               </Button>
-            </div>
+            </form>
 
             {/* Lista de certificaciones requeridas */}
             <div className="flex-1 overflow-hidden">

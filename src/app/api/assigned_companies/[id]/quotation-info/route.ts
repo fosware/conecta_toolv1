@@ -53,14 +53,17 @@ export async function GET(
     );
 
     if (!quotation) {
-      return NextResponse.json(
-        { error: "Cotización no encontrada" },
-        { status: 404 }
-      );
+      // En lugar de devolver un error 404, devolvemos una respuesta exitosa
+      // indicando que no hay cotización disponible
+      return NextResponse.json({
+        available: false,
+        message: "No hay cotización disponible"
+      });
     }
 
     // Devolver la información de la cotización
     return NextResponse.json({
+      available: true,
       id: quotation.id,
       quotationFileName: quotation.quotationFileName,
       createdAt: quotation.createdAt,

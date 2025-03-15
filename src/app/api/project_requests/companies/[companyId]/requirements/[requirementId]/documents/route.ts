@@ -4,10 +4,10 @@ import { getUserFromToken } from "@/lib/get-user-from-token";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { companyId: string, requirementId: string } }
+  { params }: { params: { companyId: string; requirementId: string } }
 ) {
   try {
-    console.log("[TECHNICAL_DOCUMENTS_LIST] Iniciando carga de documentos");
+    //console.log("[TECHNICAL_DOCUMENTS_LIST] Iniciando carga de documentos");
     // Validar token
     let userId: number;
     try {
@@ -15,25 +15,25 @@ export async function GET(
     } catch (error) {
       console.error("[AUTH_ERROR]", error);
       return NextResponse.json(
-        { error: "No autorizado", details: error instanceof Error ? error.message : "Error desconocido" },
-        { status: 401 }
-      );
-    }
-    
-    if (!userId) {
-      console.log("[TECHNICAL_DOCUMENTS_LIST] No se encontró un token válido");
-      return NextResponse.json(
-        { error: "No autorizado" },
+        {
+          error: "No autorizado",
+          details: error instanceof Error ? error.message : "Error desconocido",
+        },
         { status: 401 }
       );
     }
 
+    if (!userId) {
+      //console.log("[TECHNICAL_DOCUMENTS_LIST] No se encontró un token válido");
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+
     // Extraer los IDs correctamente
     const { companyId, requirementId } = await params;
-    console.log("[TECHNICAL_DOCUMENTS_LIST] IDs recibidos:", { companyId, requirementId });
+    //console.log("[TECHNICAL_DOCUMENTS_LIST] IDs recibidos:", { companyId, requirementId });
     const parsedCompanyId = parseInt(companyId);
     const parsedRequirementId = parseInt(requirementId);
-    console.log("[TECHNICAL_DOCUMENTS_LIST] IDs parseados:", { parsedCompanyId, parsedRequirementId });
+    //console.log("[TECHNICAL_DOCUMENTS_LIST] IDs parseados:", { parsedCompanyId, parsedRequirementId });
 
     if (isNaN(parsedCompanyId) || isNaN(parsedRequirementId)) {
       return NextResponse.json(
@@ -43,16 +43,16 @@ export async function GET(
     }
 
     // Verificar que la compañía y el requerimiento existen
-    console.log("[TECHNICAL_DOCUMENTS_LIST] Buscando compañía con ID:", parsedCompanyId);
+    //console.log("[TECHNICAL_DOCUMENTS_LIST] Buscando compañía con ID:", parsedCompanyId);
     const companyExists = await prisma.company.findUnique({
-      where: { 
+      where: {
         id: parsedCompanyId,
       },
     });
-    console.log("[TECHNICAL_DOCUMENTS_LIST] Resultado de búsqueda de compañía:", companyExists);
+    //console.log("[TECHNICAL_DOCUMENTS_LIST] Resultado de búsqueda de compañía:", companyExists);
 
     if (!companyExists) {
-      console.log("[TECHNICAL_DOCUMENTS_LIST] Compañía no encontrada");
+      //console.log("[TECHNICAL_DOCUMENTS_LIST] Compañía no encontrada");
       return NextResponse.json(
         { error: "Compañía no encontrada" },
         { status: 404 }
@@ -61,7 +61,7 @@ export async function GET(
 
     // Verificar si la compañía está activa y no eliminada
     if (!companyExists.isActive || companyExists.isDeleted) {
-      console.log("[TECHNICAL_DOCUMENTS_LIST] Compañía inactiva o eliminada");
+      //console.log("[TECHNICAL_DOCUMENTS_LIST] Compañía inactiva o eliminada");
       return NextResponse.json(
         { error: "Compañía inactiva o eliminada" },
         { status: 404 }
@@ -87,7 +87,7 @@ export async function GET(
         isDeleted: false,
       },
     });
-    console.log("[TECHNICAL_DOCUMENTS_LIST] Asociación encontrada:", association);
+    //console.log("[TECHNICAL_DOCUMENTS_LIST] Asociación encontrada:", association);
 
     if (!association) {
       return NextResponse.json(
@@ -109,10 +109,10 @@ export async function GET(
         updatedAt: true,
       },
       orderBy: {
-        createdAt: 'desc',
+        createdAt: "desc",
       },
     });
-    console.log("[TECHNICAL_DOCUMENTS_LIST] Documentos encontrados:", documents.length);
+    //console.log("[TECHNICAL_DOCUMENTS_LIST] Documentos encontrados:", documents.length);
 
     return NextResponse.json({
       success: true,

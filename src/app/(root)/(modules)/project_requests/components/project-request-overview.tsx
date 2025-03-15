@@ -121,7 +121,7 @@ export default function ProjectRequestOverview({
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{
     participantId: number;
-    action: 'approve' | 'reject';
+    action: "approve" | "reject";
     title: string;
     description: string;
   } | null>(null);
@@ -130,18 +130,20 @@ export default function ProjectRequestOverview({
   const [technicalDocsOpen, setTechnicalDocsOpen] = useState(false);
 
   // Depuración: Imprimir los datos recibidos para verificar su estructura
+
   useEffect(() => {
-    console.log("ProjectRequestOverview - Datos recibidos:", data);
-    console.log("ProjectRequirements:", data.ProjectRequirements);
+    // console.log("ProjectRequestOverview - Datos recibidos:", data);
+    // console.log("ProjectRequirements:", data.ProjectRequirements);
   }, [data]);
 
   // Obtener los requerimientos si existen, filtrando solo los eliminados
-  const requirements = (data.ProjectRequirements || [])
-    .filter((r: { isDeleted?: boolean }) => r.isDeleted !== true);
+  const requirements = (data.ProjectRequirements || []).filter(
+    (r: { isDeleted?: boolean }) => r.isDeleted !== true
+  );
 
   // Depuración: Verificar los requerimientos filtrados
   useEffect(() => {
-    console.log("Requerimientos filtrados:", requirements);
+    //console.log("Requerimientos filtrados:", requirements);
   }, [requirements]);
 
   // Ya no necesitamos cargar especialidades desde un endpoint separado
@@ -149,18 +151,18 @@ export default function ProjectRequestOverview({
 
   // Función para abrir el modal de documentos técnicos
   const handleOpenTechnicalDocs = (participant: any, requirementId: number) => {
-    console.log("Abriendo documentos técnicos para:", participant);
-    
+    //console.log("Abriendo documentos técnicos para:", participant);
+
     // Verificar que participant.Company existe y tiene un ID
     if (!participant.Company || !participant.Company.id) {
       console.error("Error: No se encontró el ID de la compañía", participant);
       return;
     }
-    
+
     setSelectedCompany({
       id: participant.Company.id, // Usar el ID de la compañía, no el ID del participante
       requirementId,
-      name: participant.Company?.comercialName || "Empresa sin nombre"
+      name: participant.Company?.comercialName || "Empresa sin nombre",
     });
     setTechnicalDocsOpen(true);
   };
@@ -186,7 +188,8 @@ export default function ProjectRequestOverview({
       }
 
       const quoteInfo = await quoteInfoResponse.json();
-      const fileName = quoteInfo.quotationFileName || `cotizacion-${participant.id}.xlsx`;
+      const fileName =
+        quoteInfo.quotationFileName || `cotizacion-${participant.id}.xlsx`;
 
       // Luego, descargar el archivo
       const response = await fetch(
@@ -215,62 +218,74 @@ export default function ProjectRequestOverview({
     }
   };
 
-  const handleConfirmAction = (participant: any, action: 'approve' | 'reject') => {
+  const handleConfirmAction = (
+    participant: any,
+    action: "approve" | "reject"
+  ) => {
     // Preparar el diálogo de confirmación según la acción
-    if (action === 'approve') {
+    if (action === "approve") {
       setConfirmAction({
         participantId: participant.id,
-        action: 'approve',
+        action: "approve",
         title: "Aprobar cotización",
-        description: `¿Está seguro que desea aprobar la cotización de ${participant.Company?.comercialName || "la empresa seleccionada"}?`
+        description: `¿Está seguro que desea aprobar la cotización de ${participant.Company?.comercialName || "la empresa seleccionada"}?`,
       });
     } else {
       setConfirmAction({
         participantId: participant.id,
-        action: 'reject',
+        action: "reject",
         title: "Rechazar cotización",
-        description: `¿Está seguro que desea rechazar la cotización de ${participant.Company?.comercialName || "la empresa seleccionada"}?`
+        description: `¿Está seguro que desea rechazar la cotización de ${participant.Company?.comercialName || "la empresa seleccionada"}?`,
       });
     }
-    
+
     // Abrir el diálogo de confirmación
     setConfirmDialogOpen(true);
   };
 
   const handleUpdateQuotationStatus = async () => {
     if (!confirmAction) return;
-    
+
     try {
       setUpdatingStatus(confirmAction.participantId);
-      
+
       // Determinar el nuevo estado según la acción
-      const newStatusId = confirmAction.action === 'approve' ? 9 : 8; // 9: Cotización aprobada, 8: Cotización rechazada
-      
+      const newStatusId = confirmAction.action === "approve" ? 9 : 8; // 9: Cotización aprobada, 8: Cotización rechazada
+
       // Llamar a la API para actualizar el estado
-      const response = await fetch(`/api/assigned_companies/${confirmAction.participantId}/update-status`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          statusId: newStatusId
-        }),
-      });
-      
+      const response = await fetch(
+        `/api/assigned_companies/${confirmAction.participantId}/update-status`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            statusId: newStatusId,
+          }),
+        }
+      );
+
       if (!response.ok) {
-        throw new Error(`Error al ${confirmAction.action === 'approve' ? 'aprobar' : 'rechazar'} la cotización`);
+        throw new Error(
+          `Error al ${confirmAction.action === "approve" ? "aprobar" : "rechazar"} la cotización`
+        );
       }
-      
+
       // Mostrar mensaje de éxito
-      toast.success(`Cotización ${confirmAction.action === 'approve' ? 'aprobada' : 'rechazada'} correctamente`);
-      
+      toast.success(
+        `Cotización ${confirmAction.action === "approve" ? "aprobada" : "rechazada"} correctamente`
+      );
+
       // Refrescar los datos sin mostrar el indicador de carga
       if (onRefreshData) {
         onRefreshData();
       }
     } catch (error) {
       console.error("Error updating quotation status:", error);
-      toast.error(`Error al ${confirmAction.action === 'approve' ? 'aprobar' : 'rechazar'} la cotización`);
+      toast.error(
+        `Error al ${confirmAction.action === "approve" ? "aprobar" : "rechazar"} la cotización`
+      );
     } finally {
       setUpdatingStatus(null);
       setConfirmDialogOpen(false);
@@ -302,7 +317,9 @@ export default function ProjectRequestOverview({
               </span>
             </div>
             <div className="flex items-center space-x-2 text-sm pl-7">
-              <span>Área: {data.clientArea?.areaName || "No especificada"}</span>
+              <span>
+                Área: {data.clientArea?.areaName || "No especificada"}
+              </span>
               {data.clientArea?.contactName && (
                 <>
                   <span className="mx-1">|</span>
@@ -334,7 +351,9 @@ export default function ProjectRequestOverview({
               {data.observation ? (
                 <p className="whitespace-pre-line">{data.observation}</p>
               ) : (
-                <p className="text-muted-foreground italic">Sin observaciones</p>
+                <p className="text-muted-foreground italic">
+                  Sin observaciones
+                </p>
               )}
             </div>
           </div>
@@ -385,7 +404,7 @@ export default function ProjectRequestOverview({
                               // Asegurarse de que el objeto requirement incluya el projectRequestId
                               const requirementWithProjectId = {
                                 ...requirement,
-                                projectRequestId: data.id
+                                projectRequestId: data.id,
                               };
                               onManageSpecialties(requirementWithProjectId);
                             }}
@@ -403,7 +422,7 @@ export default function ProjectRequestOverview({
                               // Asegurarse de que el objeto requirement incluya el projectRequestId
                               const requirementWithProjectId = {
                                 ...requirement,
-                                projectRequestId: data.id
+                                projectRequestId: data.id,
                               };
                               onManageCertifications(requirementWithProjectId);
                             }}
@@ -439,7 +458,10 @@ export default function ProjectRequestOverview({
                                   <span>Alcance: {spec.scope.name}</span>
                                 )}
                                 {spec.subscope?.name && (
-                                  <span> | Subalcance: {spec.subscope.name}</span>
+                                  <span>
+                                    {" "}
+                                    | Subalcance: {spec.subscope.name}
+                                  </span>
                                 )}
                               </div>
                             </div>
@@ -494,23 +516,23 @@ export default function ProjectRequestOverview({
                             (requirement.RequirementCertification &&
                               requirement.RequirementCertification.length >
                                 0)) && (
-                          <Button
-                            variant="ghost"
-                            onClick={() => {
-                              // Asegurarse de que el objeto requirement incluya el projectRequestId
-                              const requirementWithProjectId = {
-                                ...requirement,
-                                projectRequestId: data.id
-                              };
-                              onManageParticipants(requirementWithProjectId);
-                            }}
-                            title="Gestionar asociados"
-                            className="h-8 px-2 flex items-center gap-1"
-                          >
-                            <Users className="h-4 w-4" />
-                            <span className="text-xs">Asociados</span>
-                          </Button>
-                        )}
+                            <Button
+                              variant="ghost"
+                              onClick={() => {
+                                // Asegurarse de que el objeto requirement incluya el projectRequestId
+                                const requirementWithProjectId = {
+                                  ...requirement,
+                                  projectRequestId: data.id,
+                                };
+                                onManageParticipants(requirementWithProjectId);
+                              }}
+                              title="Gestionar asociados"
+                              className="h-8 px-2 flex items-center gap-1"
+                            >
+                              <Users className="h-4 w-4" />
+                              <span className="text-xs">Asociados</span>
+                            </Button>
+                          )}
                       </div>
                       {requirement.ProjectRequestCompany &&
                       requirement.ProjectRequestCompany.length > 0 ? (
@@ -549,7 +571,9 @@ export default function ProjectRequestOverview({
                                     )}
                                     {/* Botón de Documentos Técnicos para asociados que han firmado el NDA o están en espera/con documentos técnicos */}
                                     {participant.status &&
-                                      (participant.status.id === 4 || participant.status.id === 5 || participant.status.id === 6) && (
+                                      (participant.status.id === 4 ||
+                                        participant.status.id === 5 ||
+                                        participant.status.id === 6) && (
                                         <Button
                                           variant="outline"
                                           size="sm"
@@ -568,64 +592,93 @@ export default function ProjectRequestOverview({
                                         </Button>
                                       )}
                                     {/* Botón para descargar cotización cuando el estado es "Cotización enviada", "Cotización rechazada" o "Cotización aprobada" */}
-                                    {participant.status && [7, 8, 9].includes(participant.status.id) && (
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="flex items-center gap-1 mt-1"
-                                        onClick={() => handleDownloadQuote(participant)}
-                                        disabled={downloadingQuote === participant.id}
-                                      >
-                                        {downloadingQuote === participant.id ? (
-                                          <Loader2 className="h-3 w-3 animate-spin" />
-                                        ) : (
-                                          <Download className="h-3 w-3" />
-                                        )}
-                                        <span className="text-xs">
-                                          {downloadingQuote === participant.id
-                                            ? "Descargando..."
-                                            : "Descargar cotización"}
-                                        </span>
-                                      </Button>
-                                    )}
+                                    {participant.status &&
+                                      [7, 8, 9].includes(
+                                        participant.status.id
+                                      ) && (
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="flex items-center gap-1 mt-1"
+                                          onClick={() =>
+                                            handleDownloadQuote(participant)
+                                          }
+                                          disabled={
+                                            downloadingQuote === participant.id
+                                          }
+                                        >
+                                          {downloadingQuote ===
+                                          participant.id ? (
+                                            <Loader2 className="h-3 w-3 animate-spin" />
+                                          ) : (
+                                            <Download className="h-3 w-3" />
+                                          )}
+                                          <span className="text-xs">
+                                            {downloadingQuote === participant.id
+                                              ? "Descargando..."
+                                              : "Descargar cotización"}
+                                          </span>
+                                        </Button>
+                                      )}
                                     {/* Botones para aprobar o rechazar cotización cuando el estado es "Cotización enviada" */}
-                                    {participant.status && participant.status.id === 7 && (
-                                      <div className="flex flex-row gap-2 mt-1">
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          className="flex items-center gap-1 bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
-                                          onClick={() => handleConfirmAction(participant, 'approve')}
-                                          disabled={updatingStatus === participant.id}
-                                        >
-                                          {updatingStatus === participant.id && confirmAction?.action === 'approve' ? (
-                                            <Loader2 className="h-3 w-3 animate-spin" />
-                                          ) : (
-                                            <Check className="h-3 w-3" />
-                                          )}
-                                          <span className="text-xs">
-                                            Aprobar
-                                          </span>
-                                        </Button>
-                                        
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          className="flex items-center gap-1 bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
-                                          onClick={() => handleConfirmAction(participant, 'reject')}
-                                          disabled={updatingStatus === participant.id}
-                                        >
-                                          {updatingStatus === participant.id && confirmAction?.action === 'reject' ? (
-                                            <Loader2 className="h-3 w-3 animate-spin" />
-                                          ) : (
-                                            <X className="h-3 w-3" />
-                                          )}
-                                          <span className="text-xs">
-                                            Rechazar
-                                          </span>
-                                        </Button>
-                                      </div>
-                                    )}
+                                    {participant.status &&
+                                      participant.status.id === 7 && (
+                                        <div className="flex flex-row gap-2 mt-1">
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="flex items-center gap-1 bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                                            onClick={() =>
+                                              handleConfirmAction(
+                                                participant,
+                                                "approve"
+                                              )
+                                            }
+                                            disabled={
+                                              updatingStatus === participant.id
+                                            }
+                                          >
+                                            {updatingStatus ===
+                                              participant.id &&
+                                            confirmAction?.action ===
+                                              "approve" ? (
+                                              <Loader2 className="h-3 w-3 animate-spin" />
+                                            ) : (
+                                              <Check className="h-3 w-3" />
+                                            )}
+                                            <span className="text-xs">
+                                              Aprobar
+                                            </span>
+                                          </Button>
+
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="flex items-center gap-1 bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
+                                            onClick={() =>
+                                              handleConfirmAction(
+                                                participant,
+                                                "reject"
+                                              )
+                                            }
+                                            disabled={
+                                              updatingStatus === participant.id
+                                            }
+                                          >
+                                            {updatingStatus ===
+                                              participant.id &&
+                                            confirmAction?.action ===
+                                              "reject" ? (
+                                              <Loader2 className="h-3 w-3 animate-spin" />
+                                            ) : (
+                                              <X className="h-3 w-3" />
+                                            )}
+                                            <span className="text-xs">
+                                              Rechazar
+                                            </span>
+                                          </Button>
+                                        </div>
+                                      )}
                                   </div>
                                 </div>
                               </div>
@@ -680,7 +733,7 @@ export default function ProjectRequestOverview({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel 
+            <AlertDialogCancel
               onClick={() => {
                 setConfirmDialogOpen(false);
                 setConfirmAction(null);
@@ -688,10 +741,8 @@ export default function ProjectRequestOverview({
             >
               Cancelar
             </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleUpdateQuotationStatus}
-            >
-              {confirmAction?.action === 'approve' ? 'Aprobar' : 'Rechazar'}
+            <AlertDialogAction onClick={handleUpdateQuotationStatus}>
+              {confirmAction?.action === "approve" ? "Aprobar" : "Rechazar"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

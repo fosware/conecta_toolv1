@@ -157,6 +157,13 @@ export function AssignedCompaniesTable({
       }
 
       const quoteInfo = await quoteInfoResponse.json();
+      
+      // Verificar si la cotización está disponible
+      if (!quoteInfo.available) {
+        toast.warning("No hay cotización disponible para descargar");
+        return;
+      }
+      
       const fileName = quoteInfo.quotationFileName || `cotizacion-${item.id}.xlsx`;
 
       // Luego, descargar el archivo
@@ -189,7 +196,7 @@ export function AssignedCompaniesTable({
   const getStatusBadgeStyles = (statusId: number) => {
     switch (statusId) {
       case 1: // Procesando
-        return "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300";
+        return "bg-gray-50 text-gray-700 dark:bg-gray-800/50 dark:text-gray-300";
       case 2: // Asociado seleccionado
         return "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300";
       case 3: // En espera de firma NDA
@@ -197,11 +204,15 @@ export function AssignedCompaniesTable({
       case 4: // Firmado por Asociado
         return "bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300";
       case 5: // Espera de Documentos Técnicos
-        return "bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300";
+        return "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300";
       case 6: // Finalizado
-        return "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300";
+        return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300";
       case 7: // Cotización enviada
-        return "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300";
+        return "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300";
+      case 8: // Cotización rechazada
+        return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300";
+      case 9: // Cotización aprobada
+        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300";
       default:
         return "bg-gray-50 text-gray-700 dark:bg-gray-800/50 dark:text-gray-300";
     }

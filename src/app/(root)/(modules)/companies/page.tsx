@@ -316,13 +316,19 @@ export default function CompanyPage() {
         {certificatesModal.companyId && (
           <CertificatesModal
             open={certificatesModal.isOpen}
-            onClose={() =>
+            onClose={() => {
               setCertificatesModal({
                 isOpen: false,
                 companyId: null,
                 companyName: null,
-              })
-            }
+              });
+            }}
+            onSuccess={() => {
+              // Si hay una empresa expandida y es la misma que se está editando, recargar su perfil
+              if (expandedCompanyId && expandedCompanyId === certificatesModal.companyId) {
+                loadCompanyProfile(expandedCompanyId);
+              }
+            }}
             companyId={certificatesModal.companyId}
             companyName={certificatesModal.companyName || ""}
           />
@@ -330,13 +336,19 @@ export default function CompanyPage() {
         {specialtiesModal.companyId && (
           <SpecialtiesModal
             open={specialtiesModal.isOpen}
-            onClose={() =>
+            onClose={() => {
               setSpecialtiesModal({
                 isOpen: false,
                 companyId: null,
                 companyName: null,
-              })
-            }
+              });
+            }}
+            onSuccess={() => {
+              // Si hay una empresa expandida y es la misma que se está editando, recargar su perfil
+              if (expandedCompanyId && expandedCompanyId === specialtiesModal.companyId) {
+                loadCompanyProfile(expandedCompanyId);
+              }
+            }}
             companyId={specialtiesModal.companyId}
             companyName={specialtiesModal.companyName || ""}
           />

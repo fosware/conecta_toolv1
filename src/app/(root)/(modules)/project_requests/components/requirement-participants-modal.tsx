@@ -93,11 +93,9 @@ export function RequirementParticipantsModal({
   const [totalCertifications, setTotalCertifications] = useState(0);
   const [selectedCompanies, setSelectedCompanies] = useState<number[]>([]);
   const [ndaFiles, setNdaFiles] = useState<Record<number, File | null>>({});
-  const [ndaSignedFiles, setNdaSignedFiles] = useState<
-    Record<number, File | null>
-  >({});
   const [showOnlyMatching, setShowOnlyMatching] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  
   // Interfaz para el objeto de eliminación de NDA
   interface CompanyToDeleteNDA {
     id: number;
@@ -226,81 +224,6 @@ export function RequirementParticipantsModal({
       [companyId]: file,
     }));
   };
-
-  // Manejar la carga de archivos NDA firmados
-  const handleNdaSignedFileChange = (companyId: number, file: File | null) => {
-    setNdaSignedFiles((prev) => ({
-      ...prev,
-      [companyId]: file,
-    }));
-  };
-
-  // Subir NDA firmado
-  const handleUploadSignedNDA = async (companyId: number) => {
-    if (!requirement?.id) return;
-
-    try {
-      const company = eligibleCompanies.find((c) => c.id === companyId);
-      if (!company || !company.participantId) {
-        toast.error("No se pudo identificar el registro del participante");
-        return;
-      }
-
-      const file = ndaSignedFiles[companyId];
-      if (!file) {
-        toast.error("No se ha seleccionado ningún archivo");
-        return;
-      }
-
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const response = await fetch(
-        `/api/project_requests/${requirement.projectRequestId}/requirements/${requirement.id}/participants/${company.participantId}/nda_signed`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${getToken()}`,
-          },
-          body: formData,
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Error al subir el NDA firmado");
-      }
-
-      // Mostrar toast de éxito
-      toast.success("NDA firmado subido correctamente");
-
-      // Limpiar el archivo seleccionado
-      setNdaSignedFiles((prev) => {
-        const newState = { ...prev };
-        delete newState[companyId];
-        return newState;
-      });
-
-      // Recargar los datos
-      loadEligibleCompanies(false);
-
-      // Llamar al callback de éxito si existe
-      if (onSuccess) {
-        // Llamamos a onSuccess sin mostrar toast adicional
-        onSuccess();
-      }
-    } catch (error) {
-      console.error("Error al subir NDA firmado:", error);
-      toast.error("Error al subir el NDA firmado");
-    }
-  };
-
-  // Interfaz para el objeto de eliminación de NDA
-  interface CompanyToDeleteNDA {
-    id: number;
-    companyId: number;
-    hasSignedNDA: boolean;
-    isSignedNDA?: boolean; // Indica si estamos eliminando el NDA firmado
-  }
 
   // Función para mostrar el diálogo de confirmación para eliminar NDA
   const handleDeleteNDAConfirm = (companyId: number, isSignedNDA: boolean = false) => {
@@ -524,16 +447,18 @@ export function RequirementParticipantsModal({
                     <TableBody>
                       {filteredCompanies.map((company) => (
                         <TableRow key={company.id}>
-                          <TableCell>
-                            <Checkbox
-                              checked={selectedCompanies.includes(company.id)}
-                              onCheckedChange={(checked) =>
-                                handleCompanySelection(
-                                  company.id,
-                                  checked === true
-                                )
-                              }
-                            />
+                          <TableCell className="text-center">
+                            <div className="flex justify-center items-center">
+                              <Checkbox
+                                checked={selectedCompanies.includes(company.id)}
+                                onCheckedChange={(checked) =>
+                                  handleCompanySelection(
+                                    company.id,
+                                    checked === true
+                                  )
+                                }
+                              />
+                            </div>
                           </TableCell>
                           <TableCell>
                             <div className="font-medium">
@@ -645,41 +570,11 @@ export function RequirementParticipantsModal({
                                     <Trash2 className="h-3 w-3" />
                                   </Button>
                                 </div>
-                              ) : company.ndaFileName ? (
-                                <div>
-                                  <Input
-                                    type="file"
-                                    accept=".pdf"
-                                    onChange={(e) => {
-                                      const file = e.target.files?.[0] || null;
-                                      handleNdaSignedFileChange(
-                                        company.id,
-                                        file
-                                      );
-                                    }}
-                                    className="text-xs"
-                                  />
-                                  <div className="flex items-center gap-2 mt-1">
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="h-8 text-xs"
-                                      onClick={() =>
-                                        handleUploadSignedNDA(company.id)
-                                      }
-                                      disabled={!ndaSignedFiles[company.id]}
-                                    >
-                                      <FileText className="mr-1 h-3 w-3" />
-                                      Subir NDA Firmado
-                                    </Button>
-                                  </div>
-                                  <p className="text-xs text-muted-foreground mt-1">
-                                    Subir NDA Firmado (PDF)
-                                  </p>
-                                </div>
                               ) : (
                                 <span className="text-xs text-muted-foreground">
-                                  Primero suba el NDA original
+                                  {company.ndaFileName ? 
+                                    "El NDA firmado se gestiona en otro módulo" : 
+                                    "Primero suba el NDA original"}
                                 </span>
                               )}
                             </div>

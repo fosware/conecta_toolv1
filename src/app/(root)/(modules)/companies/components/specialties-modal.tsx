@@ -50,6 +50,7 @@ interface SpecialtiesModalProps {
   onClose: () => void;
   companyId: number;
   companyName: string;
+  onSuccess?: () => void;
 }
 
 export function SpecialtiesModal({
@@ -57,6 +58,7 @@ export function SpecialtiesModal({
   onClose,
   companyId,
   companyName,
+  onSuccess,
 }: SpecialtiesModalProps) {
   const [companySpecialties, setCompanySpecialties] = useState<
     CompanySpecialty[]
@@ -133,8 +135,8 @@ export function SpecialtiesModal({
     try {
       // Depurar el token
       const token = getToken();
-      console.log("Token disponible:", token ? "Sí" : "No");
-      
+      // console.log("Token disponible:", token ? "Sí" : "No");
+
       const response = await fetch("/api/specialties", {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -142,7 +144,7 @@ export function SpecialtiesModal({
       });
 
       const data = await response.json();
-      console.log("Respuesta API especialidades:", data);
+      // console.log("Respuesta API especialidades:", data);
 
       if (!response.ok) {
         throw new Error(
@@ -158,44 +160,44 @@ export function SpecialtiesModal({
 
       // La API devuelve los datos en 'items', no en 'data'
       setSpecialties(data.items || []);
-      
+
       // Registrar en consola para depuración
-      console.log("Especialidades cargadas:", data.items);
+      //console.log("Especialidades cargadas:", data.items);
     } catch (error) {
       console.error("Error al cargar el catálogo de especialidades:", error);
       // Cargar datos de ejemplo para desarrollo
       if (process.env.NODE_ENV === "development") {
-        console.log("Cargando especialidades de ejemplo para desarrollo");
+        //console.log("Cargando especialidades de ejemplo para desarrollo");
         const especialidadesEjemplo: Especialidad[] = [
-          { 
-            id: 1, 
-            name: "Especialidad de ejemplo 1", 
+          {
+            id: 1,
+            name: "Especialidad de ejemplo 1",
             num: 1,
             isActive: true,
             isDeleted: false,
             userId: 1,
             dateCreated: new Date(),
-            dateUpdated: null 
+            dateUpdated: null,
           },
-          { 
-            id: 2, 
-            name: "Especialidad de ejemplo 2", 
+          {
+            id: 2,
+            name: "Especialidad de ejemplo 2",
             num: 2,
             isActive: true,
             isDeleted: false,
             userId: 1,
             dateCreated: new Date(),
-            dateUpdated: null 
+            dateUpdated: null,
           },
-          { 
-            id: 3, 
-            name: "Especialidad de ejemplo 3", 
+          {
+            id: 3,
+            name: "Especialidad de ejemplo 3",
             num: 3,
             isActive: true,
             isDeleted: false,
             userId: 1,
             dateCreated: new Date(),
-            dateUpdated: null 
+            dateUpdated: null,
           },
         ];
         setSpecialties(especialidadesEjemplo);
@@ -311,6 +313,7 @@ export function SpecialtiesModal({
       resetForm();
       // Recargar sin mostrar el indicador de carga
       loadCompanySpecialties(false);
+      onSuccess?.();
     } catch (error) {
       console.error(
         `Error al ${newSpecialty.id ? "actualizar" : "agregar"} la especialidad:`,
@@ -359,7 +362,7 @@ export function SpecialtiesModal({
 
   const handleDeleteSpecialty = async () => {
     if (!specialtyToDelete) return;
-    
+
     try {
       // Actualizar el estado local inmediatamente
       setCompanySpecialties((prev) =>
@@ -383,6 +386,7 @@ export function SpecialtiesModal({
       }
 
       toast.success("Especialidad eliminada correctamente");
+      onSuccess?.();
     } catch (error) {
       console.error("Error:", error);
       toast.error("Error al eliminar la especialidad");
@@ -627,10 +631,7 @@ export function SpecialtiesModal({
                         </TableRow>
                       ) : (
                         companySpecialties.map((spec) => (
-                          <TableRow
-                            key={spec.id}
-                            className="hover:bg-muted/50"
-                          >
+                          <TableRow key={spec.id} className="hover:bg-muted/50">
                             <TableCell className="font-medium whitespace-nowrap">
                               {spec.specialty?.name}
                             </TableCell>
@@ -677,8 +678,8 @@ export function SpecialtiesModal({
         </DialogContent>
       </Dialog>
 
-      <AlertDialog 
-        open={deleteDialogOpen} 
+      <AlertDialog
+        open={deleteDialogOpen}
         onOpenChange={(open) => {
           if (!open) {
             setDeleteDialogOpen(false);

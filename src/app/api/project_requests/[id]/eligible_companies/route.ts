@@ -8,11 +8,11 @@ export async function GET(
 ) {
   try {
     // Verificar token (opcional)
-    const token = request.headers.get('authorization')?.split(' ')[1];
+    const token = request.headers.get("authorization")?.split(" ")[1];
     if (!token) {
-      console.log('No se proporcionó token, pero continuamos para simplificar');
+      //console.log('No se proporcionó token, pero continuamos para simplificar');
     }
-    
+
     // Obtener el ID de la solicitud de la URL de forma correcta
     const { id } = await params;
     const projectRequestId = parseInt(id);
@@ -92,31 +92,34 @@ export async function GET(
       );
 
       // Filtrar las certificaciones de esta empresa
-      const companyCertificationsFiltered = (companyCertifications as any[]).filter(
-        (cc: any) => cc.companyId === company.id
-      );
+      const companyCertificationsFiltered = (
+        companyCertifications as any[]
+      ).filter((cc: any) => cc.companyId === company.id);
 
       // Verificar especialidades coincidentes
       const matchingSpecialties = (projectRequestSpecialties as any[]).filter(
         (reqSpecialty) => {
           return companySpecialtiesFiltered.some(
-            (companySpecialty) => 
+            (companySpecialty) =>
               companySpecialty.specialtyId === reqSpecialty.specialtyId &&
-              (!reqSpecialty.scopeId || companySpecialty.scopeId === reqSpecialty.scopeId) &&
-              (!reqSpecialty.subScopeId || companySpecialty.subScopeId === reqSpecialty.subScopeId)
+              (!reqSpecialty.scopeId ||
+                companySpecialty.scopeId === reqSpecialty.scopeId) &&
+              (!reqSpecialty.subScopeId ||
+                companySpecialty.subScopeId === reqSpecialty.subScopeId)
           );
         }
       ).length;
 
       // Verificar certificaciones coincidentes
-      const matchingCertifications = (projectRequestCertifications as any[]).filter(
-        (reqCertification) => {
-          return companyCertificationsFiltered.some(
-            (companyCertification) =>
-              companyCertification.certificationId === reqCertification.certificationId
-          );
-        }
-      ).length;
+      const matchingCertifications = (
+        projectRequestCertifications as any[]
+      ).filter((reqCertification) => {
+        return companyCertificationsFiltered.some(
+          (companyCertification) =>
+            companyCertification.certificationId ===
+            reqCertification.certificationId
+        );
+      }).length;
 
       // Verificar si la empresa ya es participante en esta solicitud
       const existingParticipant = (projectRequestCompanies as any[]).find(

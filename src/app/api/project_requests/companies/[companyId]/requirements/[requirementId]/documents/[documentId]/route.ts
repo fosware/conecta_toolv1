@@ -4,7 +4,11 @@ import { getUserFromToken } from "@/lib/get-user-from-token";
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { companyId: string; requirementId: string; documentId: string } }
+  {
+    params,
+  }: {
+    params: { companyId: string; requirementId: string; documentId: string };
+  }
 ) {
   try {
     // Validar token
@@ -14,16 +18,16 @@ export async function DELETE(
     } catch (error) {
       console.error("[AUTH_ERROR]", error);
       return NextResponse.json(
-        { error: "No autorizado", details: error instanceof Error ? error.message : "Error desconocido" },
+        {
+          error: "No autorizado",
+          details: error instanceof Error ? error.message : "Error desconocido",
+        },
         { status: 401 }
       );
     }
-    
+
     if (!userId) {
-      return NextResponse.json(
-        { error: "No autorizado" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
     // Extraer los IDs correctamente
@@ -32,11 +36,12 @@ export async function DELETE(
     const parsedRequirementId = parseInt(requirementId);
     const parsedDocumentId = parseInt(documentId);
 
-    if (isNaN(parsedCompanyId) || isNaN(parsedRequirementId) || isNaN(parsedDocumentId)) {
-      return NextResponse.json(
-        { error: "IDs inválidos" },
-        { status: 400 }
-      );
+    if (
+      isNaN(parsedCompanyId) ||
+      isNaN(parsedRequirementId) ||
+      isNaN(parsedDocumentId)
+    ) {
+      return NextResponse.json({ error: "IDs inválidos" }, { status: 400 });
     }
 
     // Verificar que la compañía y el requerimiento existen
@@ -106,19 +111,20 @@ export async function DELETE(
     });
 
     // Verificar si quedan documentos activos para esta asociación
-    console.log("[TECHNICAL_DOCUMENT_DELETE] Verificando si quedan documentos activos");
-    const remainingDocuments = await prisma.projectRequestRequirementDocuments.count({
-      where: {
-        projectRequestCompanyId: association.id,
-        isDeleted: false,
-      },
-    });
-    
-    console.log("[TECHNICAL_DOCUMENT_DELETE] Documentos restantes:", remainingDocuments);
-    
+    //console.log("[TECHNICAL_DOCUMENT_DELETE] Verificando si quedan documentos activos");
+    const remainingDocuments =
+      await prisma.projectRequestRequirementDocuments.count({
+        where: {
+          projectRequestCompanyId: association.id,
+          isDeleted: false,
+        },
+      });
+
+    //console.log("[TECHNICAL_DOCUMENT_DELETE] Documentos restantes:", remainingDocuments);
+
     // Si no quedan documentos, cambiar el estado a "En espera de Documentos Técnicos" (ID 5)
     if (remainingDocuments === 0) {
-      console.log("[TECHNICAL_DOCUMENT_DELETE] No quedan documentos, cambiando estado a 'En espera de Documentos Técnicos' (ID 5)");
+      //console.log("[TECHNICAL_DOCUMENT_DELETE] No quedan documentos, cambiando estado a 'En espera de Documentos Técnicos' (ID 5)");
       await prisma.projectRequestCompany.update({
         where: {
           id: association.id,

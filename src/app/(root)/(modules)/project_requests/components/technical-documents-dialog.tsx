@@ -18,9 +18,23 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { FileText, Download, Loader2, Upload, Trash2, AlertCircle } from "lucide-react";
+import {
+  FileText,
+  Download,
+  Loader2,
+  Upload,
+  Trash2,
+  AlertCircle,
+} from "lucide-react";
 import { toast } from "sonner";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 // Función para formatear la fecha para mostrar
 function formatDateForDisplay(dateString: string | Date | undefined): string {
@@ -75,26 +89,30 @@ export function TechnicalDocumentsDialog({
 
   const loadDocuments = async (showLoading = true) => {
     if (!companyId || !requirementId) return;
-    
+
     if (showLoading) {
       setLoading(true);
     }
-    
+
     try {
-      console.log(`Intentando cargar documentos para compañía ${companyId} y requerimiento ${requirementId}`);
-      const response = await fetch(`/api/project_requests/companies/${companyId}/requirements/${requirementId}/documents`);
-      
-      console.log(`Respuesta recibida con status: ${response.status}`);
-      
+      //console.log(`Intentando cargar documentos para compañía ${companyId} y requerimiento ${requirementId}`);
+      const response = await fetch(
+        `/api/project_requests/companies/${companyId}/requirements/${requirementId}/documents`
+      );
+
+      //console.log(`Respuesta recibida con status: ${response.status}`);
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         console.error("Error en la respuesta:", errorData);
-        throw new Error(`Error al cargar los documentos técnicos: ${errorData.error || response.statusText}`);
+        throw new Error(
+          `Error al cargar los documentos técnicos: ${errorData.error || response.statusText}`
+        );
       }
-      
+
       const data = await response.json();
-      console.log("Datos recibidos:", data);
-      
+      //console.log("Datos recibidos:", data);
+
       // Asegurarse de que documents siempre sea un array
       setDocuments(Array.isArray(data.documents) ? data.documents : []);
     } catch (error) {
@@ -106,25 +124,30 @@ export function TechnicalDocumentsDialog({
     }
   };
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     const formData = new FormData();
     formData.append("file", file); // Cambiar "document" a "file" para que coincida con el backend
-    
-    console.log("Enviando archivo:", {
-      name: file.name,
-      type: file.type,
-      size: file.size
-    });
+
+    //console.log("Enviando archivo:", {
+    //  name: file.name,
+    //  type: file.type,
+    //  size: file.size
+    //});
 
     setUploading(true);
     try {
-      const response = await fetch(`/api/project_requests/companies/${companyId}/requirements/${requirementId}/documents/upload`, {
-        method: "POST",
-        body: formData,
-      });
+      const response = await fetch(
+        `/api/project_requests/companies/${companyId}/requirements/${requirementId}/documents/upload`,
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -135,7 +158,7 @@ export function TechnicalDocumentsDialog({
       // Recargar documentos sin mostrar el indicador de carga completo
       loadDocuments(false);
       setChanged(true);
-      
+
       // Notificar inmediatamente al componente padre para actualizar el estado
       if (onDocumentsChanged) {
         onDocumentsChanged();
@@ -153,16 +176,18 @@ export function TechnicalDocumentsDialog({
   const handleDownload = async (document: Document) => {
     try {
       setDownloading(document.id);
-      
-      const response = await fetch(`/api/project_requests/companies/${companyId}/requirements/${requirementId}/documents/${document.id}/download`);
-      
+
+      const response = await fetch(
+        `/api/project_requests/companies/${companyId}/requirements/${requirementId}/documents/${document.id}/download`
+      );
+
       if (!response.ok) {
         throw new Error("Error al descargar el documento");
       }
-      
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      
+
       const a = window.document.createElement("a");
       a.href = url;
       a.download = document.documentFileName;
@@ -185,23 +210,26 @@ export function TechnicalDocumentsDialog({
 
   const handleDeleteConfirm = async () => {
     if (!documentToDelete) return;
-    
+
     setDeleteDialogOpen(false);
-    
+
     try {
-      const response = await fetch(`/api/project_requests/companies/${companyId}/requirements/${requirementId}/documents/${documentToDelete}`, {
-        method: "DELETE",
-      });
-      
+      const response = await fetch(
+        `/api/project_requests/companies/${companyId}/requirements/${requirementId}/documents/${documentToDelete}`,
+        {
+          method: "DELETE",
+        }
+      );
+
       if (!response.ok) {
         throw new Error("Error al eliminar el documento");
       }
-      
+
       toast.success("Documento eliminado correctamente");
       // Recargar documentos sin mostrar el indicador de carga completo
       loadDocuments(false);
       setChanged(true);
-      
+
       // Notificar inmediatamente al componente padre para actualizar el estado
       if (onDocumentsChanged) {
         onDocumentsChanged();
@@ -240,7 +268,9 @@ export function TechnicalDocumentsDialog({
                   variant="outline"
                   className="flex items-center gap-2"
                   disabled={uploading}
-                  onClick={() => document.getElementById("file-upload")?.click()}
+                  onClick={() =>
+                    document.getElementById("file-upload")?.click()
+                  }
                 >
                   {uploading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -277,9 +307,13 @@ export function TechnicalDocumentsDialog({
                     <TableRow key={doc.id}>
                       <TableCell className="flex items-center gap-2">
                         <FileText className="h-4 w-4 text-primary" />
-                        <span className="font-medium">{doc.documentFileName}</span>
+                        <span className="font-medium">
+                          {doc.documentFileName}
+                        </span>
                       </TableCell>
-                      <TableCell>{formatDateForDisplay(doc.createdAt)}</TableCell>
+                      <TableCell>
+                        {formatDateForDisplay(doc.createdAt)}
+                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button
@@ -312,7 +346,9 @@ export function TechnicalDocumentsDialog({
             ) : (
               <div className="flex flex-col items-center justify-center py-8 text-center">
                 <AlertCircle className="h-10 w-10 text-muted-foreground mb-2" />
-                <p className="text-muted-foreground">No hay documentos técnicos disponibles</p>
+                <p className="text-muted-foreground">
+                  No hay documentos técnicos disponibles
+                </p>
                 <p className="text-sm text-muted-foreground mt-1">
                   Sube un documento utilizando el botón "Subir documento"
                 </p>
@@ -333,7 +369,8 @@ export function TechnicalDocumentsDialog({
           <AlertDialogHeader>
             <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción eliminará el documento seleccionado y no se puede deshacer.
+              Esta acción eliminará el documento seleccionado y no se puede
+              deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

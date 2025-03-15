@@ -58,7 +58,7 @@ export async function PUT(
       );
     }
 
-    // Verificar si ya existe otro certificado activo y no vencido para esta certificación
+    // Verificar si ya existe otro certificado activo para esta certificación
     const duplicateCertificate = await prisma.companyCertifications.findFirst({
       where: {
         id: { not: certId },
@@ -66,30 +66,6 @@ export async function PUT(
         certificationId,
         isActive: true,
         isDeleted: false,
-        AND: [
-          {
-            OR: [
-              // Si es un compromiso, verificar que no haya otro compromiso activo
-              {
-                isCommitment: true,
-                commitmentDate: {
-                  gt: new Date()
-                }
-              },
-              // Si es un certificado, verificar que no haya otro certificado activo y no vencido
-              {
-                isCommitment: false,
-                expirationDate: {
-                  gt: new Date()
-                }
-              }
-            ]
-          },
-          // Que coincida con el tipo que estamos intentando actualizar
-          {
-            isCommitment: isCommitment
-          }
-        ]
       }
     });
 
@@ -97,9 +73,7 @@ export async function PUT(
       return NextResponse.json(
         {
           success: false,
-          error: isCommitment 
-            ? "Ya existe un compromiso activo para esta certificación" 
-            : "Ya existe un certificado activo para esta certificación",
+          error: "Esta certificación ya existe para esta empresa.",
         },
         { status: 400 }
       );
@@ -134,6 +108,8 @@ export async function PUT(
     // Procesar el archivo si existe
     let certificateBuffer = null;
     let fileName = null;
+    let updateFileData = false;
+    
     if (certificateFile && 
         typeof certificateFile === "object" && 
         "arrayBuffer" in certificateFile && 
@@ -141,22 +117,35 @@ export async function PUT(
       const bytes = await certificateFile.arrayBuffer();
       certificateBuffer = Buffer.from(bytes);
       fileName = "name" in certificateFile ? certificateFile.name : null;
+      updateFileData = true;
     }
+
+    // Preparar los datos para la actualización
+    const updateData: any = {
+      certificationId,
+      isCommitment,
+      expirationDate: isCommitment ? null : parsedExpirationDate,
+      commitmentDate: isCommitment ? parsedCommitmentDate : null,
+      userId,
+    };
+
+    // Solo actualizar el archivo y nombre si se proporcionó uno nuevo
+    if (updateFileData) {
+      updateData.certificateFile = isCommitment ? null : certificateBuffer;
+      updateData.certificateFileName = isCommitment ? null : fileName;
+    } else if (isCommitment) {
+      // Si es compromiso, siempre eliminar el archivo
+      updateData.certificateFile = null;
+      updateData.certificateFileName = null;
+    }
+    // Si no es compromiso y no se proporcionó un archivo nuevo, mantener el archivo existente
 
     // Actualizar el certificado
     const updatedCertificate = await prisma.companyCertifications.update({
       where: {
         id: certId,
       },
-      data: {
-        certificationId,
-        isCommitment,
-        expirationDate: isCommitment ? null : parsedExpirationDate,
-        commitmentDate: isCommitment ? parsedCommitmentDate : null,
-        certificateFile: isCommitment ? null : certificateBuffer,
-        certificateFileName: isCommitment ? null : fileName,
-        userId,
-      },
+      data: updateData,
     });
 
     return NextResponse.json({

@@ -49,16 +49,22 @@ export async function GET(
 
     if (!quotation) {
       return NextResponse.json(
-        { error: "Cotización no encontrada" },
-        { status: 404 }
+        { 
+          available: false,
+          message: "No hay cotización disponible para descargar" 
+        },
+        { status: 200 }
       );
     }
 
     // Verificar que existe un archivo
     if (!quotation.quotationFile) {
       return NextResponse.json(
-        { error: "La cotización no tiene un archivo asociado" },
-        { status: 404 }
+        { 
+          available: false,
+          message: "La cotización no tiene un archivo asociado" 
+        },
+        { status: 200 }
       );
     }
 

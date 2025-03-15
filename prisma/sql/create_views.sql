@@ -40,7 +40,7 @@ SELECT
     LEFT OUTER JOIN r_company_certifications rcc ON
         rcc."companyId" = c.id
     AND rcc."isDeleted" = false AND rcc."isActive" = true
-    AND rcc."expirationDate" >= now()::date
+    --AND rcc."expirationDate" >= now()::date
     LEFT OUTER JOIN c_certifications cc ON
         cc.id = rcc."certificationId" 
     AND cc."isDeleted" = false AND cc."isActive" = true
