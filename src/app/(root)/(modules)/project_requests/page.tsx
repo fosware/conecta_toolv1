@@ -235,6 +235,17 @@ export default function ProjectRequestsPage() {
     }
   };
 
+  // Función para recargar los datos después de actualizar documentos técnicos
+  const refreshAfterDocumentChange = useCallback(() => {
+    // Recargar la lista completa de solicitudes sin mostrar indicador de carga
+    loadProjectRequests(false);
+    
+    // Si hay una solicitud expandida, recargar sus detalles
+    if (expandedRequestId) {
+      reloadSelectedRequestDetails(false);
+    }
+  }, [expandedRequestId, loadProjectRequests, reloadSelectedRequestDetails]);
+
   const handleModalSuccess = () => {
     // Recargar la lista de solicitudes sin mostrar indicador de carga
     loadProjectRequests(false);
@@ -283,6 +294,7 @@ export default function ProjectRequestsPage() {
             expandedId={expandedRequestId}
             isStaff={isStaff}
             selectedRequestDetails={selectedRequestDetails}
+            onRefreshData={refreshAfterDocumentChange}
           />
         </CardContent>
       </Card>

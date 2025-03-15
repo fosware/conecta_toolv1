@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import * as React from "react";
-import { ProjectRequestOverview } from "./project-request-overview";
+import ProjectRequestOverview from "./project-request-overview";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -73,6 +73,7 @@ interface ProjectRequestsTableProps {
   expandedId?: number | null;
   isStaff?: boolean;
   selectedRequestDetails?: ProjectRequest | null;
+  onRefreshData?: () => void; // Nueva prop para refrescar datos
 }
 
 export function ProjectRequestsTable({
@@ -90,6 +91,7 @@ export function ProjectRequestsTable({
   expandedId = null,
   isStaff = false,
   selectedRequestDetails = null,
+  onRefreshData, // Nueva prop para refrescar datos
 }: ProjectRequestsTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -353,6 +355,7 @@ export function ProjectRequestsTable({
                             onManageSpecialties={onManageSpecialties}
                             onManageCertifications={onManageCertifications}
                             onManageParticipants={onManageParticipants}
+                            onRefreshData={onRefreshData} // Pasar la función de refresco
                           />
                         </div>
                       </TableCell>

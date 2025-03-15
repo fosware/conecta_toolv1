@@ -46,35 +46,59 @@ export async function POST(
       );
     }
 
+    // Convertir el archivo a un ArrayBuffer y luego a Uint8Array para Prisma
+    const fileBuffer = await file.arrayBuffer();
+    const fileBytes = new Uint8Array(fileBuffer);
+
     // En un entorno real, aquí subiríamos el archivo a un servicio de almacenamiento
     // como S3, Azure Blob Storage, etc.
     // Para este ejemplo, simularemos que el archivo se ha subido correctamente
+
+    // Preparar los datos para la actualización
+    const updateData: any = {
+      ndaSignedFile: fileBytes, // Usar Uint8Array en lugar de string
+      ndaSignedFileName: file.name,
+      ndaSignedAt: new Date(),
+      statusId: 4, // Cambiar a estado "Firmado por Asociado" (ID 4) cuando se sube un NDA firmado
+    };
 
     // Actualizar la asignación con la información del NDA firmado
     const updatedAssignment = await prisma.projectRequestCompany.update({
       where: {
         id: parsedId,
       },
-      data: {
-        ndaSignedFile: "signed_nda_file_url", // En un entorno real, esta sería la URL del archivo
-        ndaSignedFileName: file.name,
-        ndaSignedAt: new Date(),
-        statusId: 2, // Asumiendo que el estado 2 es "En Proceso" o similar
+      data: updateData,
+    });
+
+    // Verificar si ya existe un documento para esta asignación
+    const existingDocument = await prisma.projectRequestRequirementDocuments.findFirst({
+      where: {
+        projectRequestCompanyId: parsedId,
       },
     });
 
-    // Crear un registro de documento
-    await prisma.document.create({
-      data: {
-        fileName: file.name,
-        fileUrl: "signed_nda_file_url", // En un entorno real, esta sería la URL del archivo
-        fileType: file.type,
-        fileSize: file.size,
-        documentTypeId: 1, // Asumiendo que el tipo 1 es "NDA"
-        projectRequestCompanyId: parsedId,
-        userId: userId,
-      },
-    });
+    if (existingDocument) {
+      // Actualizar el documento existente
+      await prisma.projectRequestRequirementDocuments.update({
+        where: {
+          id: existingDocument.id,
+        },
+        data: {
+          documentFileName: file.name,
+          updatedAt: new Date(),
+          userId: userId,
+        },
+      });
+    } else {
+      // Crear un nuevo registro de documento
+      await prisma.projectRequestRequirementDocuments.create({
+        data: {
+          projectRequestCompanyId: parsedId,
+          documentFileName: file.name,
+          userId: userId,
+        },
+      });
+    }
 
     return NextResponse.json({
       success: true,

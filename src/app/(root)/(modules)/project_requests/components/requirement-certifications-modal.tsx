@@ -95,7 +95,14 @@ export function RequirementCertificationsModal({
 
   // Cargar las certificaciones requeridas para este requerimiento
   const loadRequirementCertifications = async (showLoading = true) => {
-    if (!requirement || !requirement.id) return;
+    if (!requirement || !requirement.id || !requirement.projectRequestId) {
+      console.error("Error: ID de requerimiento o proyecto no disponible", { 
+        requirementId: requirement?.id, 
+        projectRequestId: requirement?.projectRequestId 
+      });
+      toast.error("No se pueden cargar las certificaciones del requerimiento");
+      return;
+    }
     
     try {
       if (showLoading) setIsLoading(true);

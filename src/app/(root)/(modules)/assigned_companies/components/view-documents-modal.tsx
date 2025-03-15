@@ -18,10 +18,10 @@ import { AssignedCompany } from "../types";
 
 interface Document {
   id: number;
-  name: string;
-  fileName: string;
+  name?: string;
+  documentFileName?: string;
   createdAt: string;
-  type: string;
+  type?: string;
 }
 
 interface ViewDocumentsModalProps {
@@ -61,7 +61,11 @@ export function ViewDocumentsModal({
       }
 
       const data = await response.json();
-      setDocuments(data.documents || []);
+      const formattedDocuments = (data.documents || []).map((doc: any) => ({
+        ...doc,
+        name: doc.name || `Documento ${doc.id}`
+      }));
+      setDocuments(formattedDocuments);
     } catch (error) {
       console.error("Error loading documents:", error);
       toast.error("Error al cargar los documentos");
@@ -87,7 +91,7 @@ export function ViewDocumentsModal({
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = fileName;
+      a.download = fileName || `documento_${documentId}.pdf`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -136,12 +140,12 @@ export function ViewDocumentsModal({
                   <CardContent className="py-2">
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">
-                        {doc.fileName}
+                        {doc.documentFileName}
                       </span>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleDownloadDocument(doc.id, doc.fileName)}
+                        onClick={() => handleDownloadDocument(doc.id, doc.documentFileName || '')}
                         disabled={downloadingFile === doc.id.toString()}
                       >
                         {downloadingFile === doc.id.toString() ? (

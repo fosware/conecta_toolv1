@@ -118,7 +118,14 @@ export function RequirementParticipantsModal({
 
   // Cargar empresas que cumplen con los requisitos
   const loadEligibleCompanies = async (showLoading = true) => {
-    if (!requirement?.id) return;
+    if (!requirement?.id || !requirement?.projectRequestId) {
+      console.error("Error: ID de requerimiento o proyecto no disponible", { 
+        requirementId: requirement?.id, 
+        projectRequestId: requirement?.projectRequestId 
+      });
+      toast.error("No se pueden cargar las empresas elegibles");
+      return;
+    }
 
     try {
       if (showLoading) {

@@ -4,13 +4,12 @@ import { cookies } from "next/headers";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string; documentId: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
-    // Extraer los IDs correctamente según las mejores prácticas de Next.js 15
-    const { id, documentId } = await params;
+    // Extraer el ID correctamente según las mejores prácticas de Next.js 15
+    const { id } = await params;
     const parsedId = parseInt(id);
-    const parsedDocumentId = parseInt(documentId);
 
     // Verificar autenticación
     const cookieStore = await cookies();
@@ -37,19 +36,10 @@ export async function GET(
       );
     }
 
-    // Verificar que el NDA esté firmado
-    if (!projectRequestCompany.ndaSignedFile) {
-      return NextResponse.json(
-        { error: "No se puede acceder a los documentos sin un NDA firmado" },
-        { status: 403 }
-      );
-    }
-
-    // Obtener el documento
-    const document = await prisma.projectRequestRequirementDocuments.findUnique(
+    // Obtener la cotización
+    const quotation = await prisma.projectRequestRequirementQuotation.findUnique(
       {
         where: {
-          id: parsedDocumentId,
           projectRequestCompanyId: parsedId,
           isDeleted: false,
           isActive: true,
@@ -57,35 +47,35 @@ export async function GET(
       }
     );
 
-    if (!document) {
+    if (!quotation) {
       return NextResponse.json(
-        { error: "Documento no encontrado" },
+        { error: "Cotización no encontrada" },
         { status: 404 }
       );
     }
 
     // Verificar que existe un archivo
-    if (!document.documentFile) {
+    if (!quotation.quotationFile) {
       return NextResponse.json(
-        { error: "El documento no tiene un archivo asociado" },
+        { error: "La cotización no tiene un archivo asociado" },
         { status: 404 }
       );
     }
 
     // Crear respuesta con el archivo
-    const response = new NextResponse(document.documentFile);
+    const response = new NextResponse(quotation.quotationFile);
 
     // Determinar el tipo de contenido basado en la extensión del archivo
     let contentType = "application/octet-stream"; // Por defecto
     const fileName =
-      document.documentFileName || `documento-${parsedDocumentId}`;
+      quotation.quotationFileName || `cotizacion-${parsedId}`;
 
     if (fileName.endsWith(".pdf")) {
       contentType = "application/pdf";
-    } else if (fileName.endsWith(".docx")) {
+    } else if (fileName.endsWith(".docx") || fileName.endsWith(".doc")) {
       contentType =
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-    } else if (fileName.endsWith(".xlsx")) {
+    } else if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
       contentType =
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
     } else if (fileName.endsWith(".pptx")) {
@@ -101,19 +91,27 @@ export async function GET(
 
     // Establecer encabezados para la descarga
     response.headers.set("Content-Type", contentType);
+    
+    // Asegurarse de que el nombre del archivo no contenga caracteres que puedan causar problemas
+    const safeFileName = fileName.replace(/[^\w\s.-]/g, '');
+    
+    // Codificar el nombre del archivo para manejar espacios y caracteres especiales
+    const encodedFilename = encodeURIComponent(safeFileName);
+    
+    // Usar un formato de Content-Disposition más simple y directo
     response.headers.set(
       "Content-Disposition",
-      `attachment; filename="${fileName}"`
+      `attachment; filename="${safeFileName}"`
     );
 
     return response;
   } catch (error) {
     console.error(
-      "Error en GET /api/assigned_companies/[id]/documents/[documentId]/download:",
+      "Error en GET /api/assigned_companies/[id]/download-quote:",
       error
     );
     return NextResponse.json(
-      { error: "Error al descargar el documento" },
+      { error: "Error al descargar la cotización" },
       { status: 500 }
     );
   }
