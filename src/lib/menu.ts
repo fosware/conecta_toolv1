@@ -19,6 +19,11 @@ export const menuItems: MenuItem[] = [
     icon: "/icons/file-symlink.svg",
   },
   {
+    name: "Solicitudes Asignadas",
+    path: "/assigned_companies",
+    icon: "/icons/user-check.svg",
+  },
+  {
     name: "Cat Especialidades",
     path: "/cat_especialidades",
     icon: "/icons/cog.svg",

@@ -11,6 +11,7 @@ const privileges = [
   { name: "Usuarios" },
   { name: "Cat Certificaciones" },
   { name: "Solicitud de Proyectos" },
+  { name: "Solicitudes Asignadas" },
 ];
 
 export async function seedPrivileges() {
