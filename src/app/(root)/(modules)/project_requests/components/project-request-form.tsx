@@ -128,10 +128,11 @@ export function ProjectRequestForm({
           name="title"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Título del proyecto</FormLabel>
+              <FormLabel>Título de la solicitud</FormLabel>
               <FormControl>
-                <Input
-                  placeholder="Ingrese el título del proyecto"
+                <Textarea
+                  rows={4}
+                  placeholder="Ingrese el título de la solicitud"
                   {...field}
                   disabled={isSubmitting}
                 />
@@ -206,8 +207,12 @@ export function ProjectRequestForm({
                     if (e.target.value) {
                       // Crear una fecha UTC a partir del valor del input
                       // Esto evita problemas de zona horaria
-                      const [year, month, day] = e.target.value.split('-').map(Number);
-                      const date = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+                      const [year, month, day] = e.target.value
+                        .split("-")
+                        .map(Number);
+                      const date = new Date(
+                        Date.UTC(year, month - 1, day, 12, 0, 0)
+                      );
                       field.onChange(date);
                     } else {
                       field.onChange(new Date());

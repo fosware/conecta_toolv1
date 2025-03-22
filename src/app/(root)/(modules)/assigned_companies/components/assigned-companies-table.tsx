@@ -59,9 +59,13 @@ export function AssignedCompaniesTable({
   >(null);
   const [downloadingQuote, setDownloadingQuote] = useState<number | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState<AssignedCompany | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<AssignedCompany | null>(
+    null
+  );
   const [uploadQuoteDialogOpen, setUploadQuoteDialogOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<AssignedCompany | null>(null);
+  const [selectedItem, setSelectedItem] = useState<AssignedCompany | null>(
+    null
+  );
 
   const handleDownloadNda = async (
     item: AssignedCompany,
@@ -157,14 +161,15 @@ export function AssignedCompaniesTable({
       }
 
       const quoteInfo = await quoteInfoResponse.json();
-      
+
       // Verificar si la cotización está disponible
       if (!quoteInfo.available) {
         toast.warning("No hay cotización disponible para descargar");
         return;
       }
-      
-      const fileName = quoteInfo.quotationFileName || `cotizacion-${item.id}.xlsx`;
+
+      const fileName =
+        quoteInfo.quotationFileName || `cotizacion-${item.id}.xlsx`;
 
       // Luego, descargar el archivo
       const response = await fetch(
@@ -465,35 +470,37 @@ export function AssignedCompaniesTable({
                         </div>
                         <div className="grid grid-cols-3 gap-4">
                           <div>
-                            <h3 className="font-semibold mb-2">
+                            <h3 className="font-semibold mb-2 border-b p-1 text-center bg-slate-500 text-slate-100 dark:bg-slate-800">
                               Detalles de la Solicitud
                             </h3>
-                            <div className="space-y-1 text-sm">
+                            <div className="space-y-1 text-sm p-1">
                               <p>
-                                <span className="font-medium">Cliente:</span>{" "}
+                                <span className="font-semibold">Cliente:</span>{" "}
                                 {item.ProjectRequest?.clientArea?.client
                                   ?.name || "N/A"}
                               </p>
                               <p>
-                                <span className="font-medium">Área:</span>{" "}
+                                <span className="font-semibold">Área:</span>{" "}
                                 {item.ProjectRequest?.clientArea?.areaName ||
                                   item.ProjectRequest?.clientArea?.name ||
                                   "N/A"}
                               </p>
                               <p>
-                                <span className="font-medium">Solicitud:</span>{" "}
+                                <span className="font-semibold">
+                                  Solicitud:
+                                </span>{" "}
                                 {item.ProjectRequest?.title ||
                                   item.ProjectRequest?.name ||
                                   "N/A"}
                               </p>
                               <p>
-                                <span className="font-medium">
+                                <span className="font-semibold">
                                   Descripción:
                                 </span>{" "}
                                 {item.ProjectRequest?.description || "N/A"}
                               </p>
                               <p>
-                                <span className="font-medium">
+                                <span className="font-semibold">
                                   Fecha Solicitud:
                                 </span>{" "}
                                 {formatDate(
@@ -502,7 +509,7 @@ export function AssignedCompaniesTable({
                                 )}
                               </p>
                               <p>
-                                <span className="font-medium">
+                                <span className="font-semibold">
                                   Observaciones:
                                 </span>{" "}
                                 {item.ProjectRequest?.observation ||
@@ -511,16 +518,16 @@ export function AssignedCompaniesTable({
                             </div>
                           </div>
                           <div>
-                            <h3 className="font-semibold mb-2">
+                            <h3 className="font-semibold mb-2 border-b p-1 text-center bg-slate-500 text-slate-100 dark:bg-slate-800">
                               Detalles del Requerimiento
                             </h3>
-                            <div className="space-y-1 text-sm">
+                            <div className="space-y-1 text-sm p-1">
                               {item.requirements &&
                               item.requirements.length > 0 ? (
                                 item.requirements.map((req, index) => (
                                   <div key={index} className="mb-4">
                                     <p>
-                                      <span className="font-medium">
+                                      <span className="font-semibold">
                                         Nombre:
                                       </span>{" "}
                                       {req.name || "N/A"}
@@ -530,7 +537,7 @@ export function AssignedCompaniesTable({
                                     {req.certifications &&
                                       req.certifications.length > 0 && (
                                         <div className="mt-2">
-                                          <p className="font-medium">
+                                          <p className="font-semibold">
                                             Certificaciones:
                                           </p>
                                           <ul className="list-disc pl-5 mt-1">
@@ -541,7 +548,7 @@ export function AssignedCompaniesTable({
                                                     "N/A"}
                                                   {cert.observation && (
                                                     <p className="text-xs text-muted-foreground mt-1">
-                                                      <span className="font-medium">
+                                                      <span className="font-semibold">
                                                         Observación:
                                                       </span>{" "}
                                                       {cert.observation}
@@ -558,7 +565,7 @@ export function AssignedCompaniesTable({
                                     {req.specialties &&
                                       req.specialties.length > 0 && (
                                         <div className="mt-2">
-                                          <p className="font-medium">
+                                          <p className="font-semibold">
                                             Especialidades:
                                           </p>
                                           <ul className="list-disc pl-5 mt-1">
@@ -569,7 +576,7 @@ export function AssignedCompaniesTable({
                                                     "N/A"}
                                                   {spec.observation && (
                                                     <p className="text-xs text-muted-foreground mt-1">
-                                                      <span className="font-medium">
+                                                      <span className="font-semibold">
                                                         Observación:
                                                       </span>{" "}
                                                       {spec.observation}
@@ -589,11 +596,13 @@ export function AssignedCompaniesTable({
                             </div>
                           </div>
                           <div>
-                            <h3 className="font-semibold mb-2">NDA</h3>
-                            <div className="space-y-1 text-sm">
+                            <h3 className="font-semibold mb-2 border-b p-1 text-center bg-slate-500 text-slate-100 dark:bg-slate-800">
+                              NDA
+                            </h3>
+                            <div className="space-y-1 text-sm p-1">
                               {item.ndaFileName && (
                                 <p>
-                                  <span className="font-medium">
+                                  <span className="font-semibold">
                                     NDA Original:
                                   </span>{" "}
                                   {item.ndaFileName}
@@ -601,7 +610,7 @@ export function AssignedCompaniesTable({
                               )}
                               {item.ndaSignedFileName && (
                                 <p>
-                                  <span className="font-medium">
+                                  <span className="font-semibold">
                                     NDA Firmado:
                                   </span>{" "}
                                   {item.ndaSignedFileName}
@@ -629,7 +638,9 @@ export function AssignedCompaniesTable({
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={(e) => handleDownloadSignedNda(item, e)}
+                                  onClick={(e) =>
+                                    handleDownloadSignedNda(item, e)
+                                  }
                                   disabled={downloadingSignedNda === item.id}
                                   className="text-xs"
                                 >
@@ -643,21 +654,25 @@ export function AssignedCompaniesTable({
                               )}
                             </div>
                           </div>
-                          
+
                           {/* Cotización */}
                           <div className="col-span-3 mt-4 pt-4 border-t">
-                            <h3 className="font-semibold mb-2">Cotización</h3>
+                            <h3 className="font-bold mb-2 text-center bg-slate-500 text-slate-100 dark:bg-slate-800 p-1">
+                              Cotización
+                            </h3>
                             <div className="flex justify-between items-center">
                               <div className="space-y-1 text-sm">
                                 {item.status && item.status.id >= 5 ? (
                                   <p>
-                                    <span className="font-medium">
+                                    <span className="font-semibold">
                                       Estado:
                                     </span>{" "}
                                     Cotización disponible
                                   </p>
                                 ) : (
-                                  <p className="text-muted-foreground">Pendiente de cotización</p>
+                                  <p className="text-muted-foreground">
+                                    Pendiente de cotización
+                                  </p>
                                 )}
                               </div>
                               <div>
