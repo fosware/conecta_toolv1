@@ -65,7 +65,7 @@ export async function PUT(
     });
 
     return NextResponse.json({
-      message: `Estado actualizado correctamente a ${statusId === 8 ? "Cotización rechazada" : "Cotización aprobada"}`,
+      message: `Estado actualizado correctamente a ${statusId === 8 ? "Cotización rechazada" : "Revisión Ok"}`,
       data: updatedAssignedCompany,
     });
   } catch (error) {

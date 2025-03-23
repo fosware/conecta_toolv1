@@ -94,7 +94,7 @@ function getStatusBadgeStyles(statusId: number) {
       return "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300";
     case 8: // Cotización rechazada
       return "bg-red-100 text-red-800";
-    case 9: // Cotización aprobada
+    case 9: // Revisión Ok
       return "bg-green-100 text-green-800";
     case 10: // Finalizado
       return "bg-emerald-100 text-emerald-800";
@@ -250,7 +250,7 @@ export default function ProjectRequestOverview({
       setUpdatingStatus(confirmAction.participantId);
 
       // Determinar el nuevo estado según la acción
-      const newStatusId = confirmAction.action === "approve" ? 9 : 8; // 9: Cotización aprobada, 8: Cotización rechazada
+      const newStatusId = confirmAction.action === "approve" ? 9 : 8; // 9: Revisión Ok, 8: Cotización rechazada
 
       // Llamar a la API para actualizar el estado
       const response = await fetch(

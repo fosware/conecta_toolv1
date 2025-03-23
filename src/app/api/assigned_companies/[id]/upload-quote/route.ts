@@ -53,56 +53,138 @@ export async function POST(
 
     // Procesar el archivo
     const formData = await request.formData();
-    const file = formData.get("file");
+    let fileName = "";
+    let base64Data = "";
 
-    if (!file || !(file instanceof Blob)) {
+    const formDataFile = formData.get("file");
+    
+    if (formDataFile && formDataFile instanceof File) {
+      // Obtener el nombre del archivo
+      fileName = formDataFile.name;
+      
+      // Leer el archivo como un ArrayBuffer
+      const fileBytes = await formDataFile.arrayBuffer();
+      
+      // Convertimos el archivo a un Buffer binario y lo codificamos en base64 para evitar problemas de codificación UTF-8
+      base64Data = Buffer.from(fileBytes).toString('base64');
+    }
+
+    // Obtener los nuevos campos del formulario
+    const materialCostStr = formData.get("materialCost")?.toString() || "0";
+    const directCostStr = formData.get("directCost")?.toString() || "0";
+    const indirectCostStr = formData.get("indirectCost")?.toString() || "0";
+    const projectTypesIdStr = formData.get("projectTypesId")?.toString() || "1";
+    const additionalDetails = formData.get("additionalDetails")?.toString() || "";
+    
+    // Convertir a los tipos correctos
+    const materialCost = materialCostStr ? parseFloat(materialCostStr) : null;
+    const directCost = directCostStr ? parseFloat(directCostStr) : null;
+    const indirectCost = indirectCostStr ? parseFloat(indirectCostStr) : null;
+    const projectTypesId = parseInt(projectTypesIdStr);
+    
+    // Obtener los segmentos como JSON
+    let segments = [];
+    try {
+      const segmentsJson = formData.get("segments")?.toString();
+      if (segmentsJson) {
+        segments = JSON.parse(segmentsJson);
+      }
+    } catch (error) {
+      console.error("Error al parsear segmentos:", error);
       return NextResponse.json(
-        { error: "No se ha proporcionado un archivo válido" },
+        { error: "Formato de segmentos inválido" },
         { status: 400 }
       );
     }
 
-    // Obtener el nombre del archivo
-    let fileName = "cotizacion.pdf";
-    if ("name" in file && file.name) {
-      fileName = file.name;
-    }
-
-    // Leer el archivo como un ArrayBuffer
-    const fileBuffer = await file.arrayBuffer();
-    const fileBytes = new Uint8Array(fileBuffer);
-
-    // Verificar que el archivo no esté vacío
-    if (fileBytes.length === 0) {
+    // Verificar que haya al menos un segmento
+    if (!segments || segments.length === 0) {
       return NextResponse.json(
-        { error: "El archivo está vacío" },
+        { error: "Debe proporcionar al menos un segmento de entrega" },
         { status: 400 }
       );
     }
 
     try {
-      // Guardar el archivo en la base de datos
-      // Convertimos el archivo a un Buffer binario y lo codificamos en base64 para evitar problemas de codificación UTF-8
-      const base64Data = Buffer.from(fileBytes).toString('base64');
-      
-      const quoteDocument = await prisma.projectRequestRequirementQuotation.upsert({
+      // Verificar si ya existe una cotización para este proyecto
+      const existingQuote = await prisma.projectRequestRequirementQuotation.findUnique({
         where: {
           projectRequestCompanyId: parsedId,
         },
-        update: {
-          quotationFile: Buffer.from(base64Data, 'base64'),
-          quotationFileName: fileName,
+      });
+
+      let quoteDocument;
+      
+      if (existingQuote) {
+        // Actualizar la cotización existente
+        const updateData: any = {
+          materialCost,
+          directCost,
+          indirectCost,
+          projectTypesId,
+          additionalDetails,
           isActive: true,
-          userId: userId,
-        },
-        create: {
-          projectRequestCompanyId: parsedId,
-          quotationFile: Buffer.from(base64Data, 'base64'),
-          quotationFileName: fileName,
-          isActive: true,
-          userId: userId,
+          userId,
+        };
+
+        // Solo actualizar el archivo si se proporcionó uno nuevo
+        if (base64Data) {
+          updateData.quotationFile = Buffer.from(base64Data, 'base64');
+          updateData.quotationFileName = fileName;
+        }
+
+        quoteDocument = await prisma.projectRequestRequirementQuotation.update({
+          where: {
+            id: existingQuote.id,
+          },
+          data: updateData,
+        });
+      } else {
+        // Si es una nueva cotización, el archivo es obligatorio
+        if (!base64Data) {
+          return NextResponse.json(
+            { error: "El archivo es obligatorio para crear una nueva cotización" },
+            { status: 400 }
+          );
+        }
+
+        // Crear una nueva cotización
+        quoteDocument = await prisma.projectRequestRequirementQuotation.create({
+          data: {
+            projectRequestCompanyId: parsedId,
+            quotationFile: Buffer.from(base64Data, 'base64'),
+            quotationFileName: fileName,
+            materialCost,
+            directCost,
+            indirectCost,
+            projectTypesId,
+            additionalDetails,
+            isActive: true,
+            isDeleted: false,
+            userId,
+          },
+        });
+      }
+
+      // Eliminar segmentos existentes (si los hay)
+      await prisma.quotationSegment.deleteMany({
+        where: {
+          projectRequestRequirementQuotationId: quoteDocument.id,
         },
       });
+
+      // Crear los nuevos segmentos
+      for (const segment of segments) {
+        await prisma.quotationSegment.create({
+          data: {
+            projectRequestRequirementQuotationId: quoteDocument.id,
+            estimatedDeliveryDate: new Date(segment.estimatedDeliveryDate),
+            description: segment.description,
+            isActive: true,
+            userId: userId,
+          },
+        });
+      }
 
       // Actualizar el estado a "Cotización enviada" (ID: 7)
       await prisma.projectRequestCompany.update({

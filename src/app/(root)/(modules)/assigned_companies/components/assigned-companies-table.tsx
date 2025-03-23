@@ -216,7 +216,7 @@ export function AssignedCompaniesTable({
         return "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300";
       case 8: // Cotización rechazada
         return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300";
-      case 9: // Cotización aprobada
+      case 9: // Revisión Ok
         return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300";
       default:
         return "bg-gray-50 text-gray-700 dark:bg-gray-800/50 dark:text-gray-300";
