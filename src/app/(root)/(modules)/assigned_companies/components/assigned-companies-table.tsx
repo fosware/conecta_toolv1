@@ -26,6 +26,7 @@ import {
   AlertCircle,
   CheckCircle2,
   Download,
+  MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AssignedCompany, Status } from "@/lib/schemas/assigned_company";
@@ -41,6 +42,7 @@ interface AssignedCompaniesTableProps {
   onDeleteItem: (item: AssignedCompany) => void;
   onRefreshData: (showLoading: boolean) => void;
   expandedId: number | null;
+  onOpenLogs: (item: AssignedCompany) => void;
 }
 
 export function AssignedCompaniesTable({
@@ -52,6 +54,7 @@ export function AssignedCompaniesTable({
   onDeleteItem,
   onRefreshData,
   expandedId,
+  onOpenLogs,
 }: AssignedCompaniesTableProps) {
   const [downloadingNda, setDownloadingNda] = useState<number | null>(null);
   const [downloadingSignedNda, setDownloadingSignedNda] = useState<
@@ -446,6 +449,19 @@ export function AssignedCompaniesTable({
                       className="h-8 w-8"
                     >
                       <Eye className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      title="Bitácora"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenLogs(item);
+                      }}
+                      className="h-8 w-8"
+                    >
+                      <MessageSquare className="h-4 w-4 text-muted-foreground" />
                     </Button>
                   </div>
                 </TableCell>

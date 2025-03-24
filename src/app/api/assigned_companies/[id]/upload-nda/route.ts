@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-// import { getServerSession } from "next-auth";
-// import { authOptions } from "@/lib/auth";
+import { getUserFromToken } from "@/lib/get-user-from-token";
+import { ProjectRequestLogsService } from "@/lib/services/project-request-logs";
 
 export async function POST(
   request: NextRequest,
@@ -9,12 +9,12 @@ export async function POST(
 ) {
   try {
     // Extraer el ID correctamente según las mejores prácticas de Next.js 15
-    const { id } = await params;
+    const { id } = params;
     const parsedId = parseInt(id);
 
     // Verificar autenticación
-    // const session = await getServerSession(authOptions);
-    if (false) { // Autenticación deshabilitada temporalmente
+    const userId = await getUserFromToken();
+    if (!userId) {
       return NextResponse.json(
         { error: "No autorizado" },
         { status: 401 }
@@ -62,9 +62,16 @@ export async function POST(
         ndaSignedAt: new Date(),
         statusId: 4, // Actualizar al estado "Firmado por Asociado"
         updatedAt: new Date(),
-        userId: session.user.id,
+        userId: userId,
       },
     });
+
+    // Crear un log automático del sistema
+    await ProjectRequestLogsService.createSystemLog(
+      parsedId,
+      "NDA_SIGNED",
+      userId
+    );
 
     return NextResponse.json({
       success: true,

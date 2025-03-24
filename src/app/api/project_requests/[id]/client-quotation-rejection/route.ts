@@ -3,6 +3,10 @@ import { prisma } from "@/lib/prisma";
 import { getUserFromToken } from "@/lib/get-user-from-token";
 import { ProjectRequestLogsService } from "@/lib/services/project-request-logs";
 
+/**
+ * Endpoint para rechazar una cotización por parte del cliente
+ * Actualiza el estado del proyecto a "Cotización rechazada por Cliente" (statusId: 13)
+ */
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -27,6 +31,10 @@ export async function POST(
       );
     }
 
+    // Obtener datos del cuerpo (razón del rechazo)
+    const data = await request.json();
+    const { rejectionReason } = data;
+
     // Verificar que exista una cotización para cliente
     const clientQuotation = await prisma.clientQuotationSummary.findFirst({
       where: {
@@ -43,42 +51,64 @@ export async function POST(
       );
     }
 
-    // Actualizar el estado del proyecto a "Cotización enviada al Cliente" (statusId: 11)
+    // Verificar que la cotización no haya sido ya rechazada
+    const projectRequest = await prisma.projectRequest.findUnique({
+      where: {
+        id: projectRequestId,
+      },
+    });
+
+    if (!projectRequest) {
+      return NextResponse.json(
+        { error: "No se encontró la solicitud de proyecto" },
+        { status: 404 }
+      );
+    }
+
+    if (projectRequest.statusId === 13) {
+      return NextResponse.json(
+        { error: "La cotización ya ha sido rechazada por el cliente" },
+        { status: 400 }
+      );
+    }
+
+    // Actualizar el estado del proyecto a "Cotización rechazada por Cliente" (statusId: 13)
     await prisma.projectRequest.update({
       where: {
         id: projectRequestId,
       },
       data: {
-        statusId: 11, // ID del estado "Cotización enviada al Cliente"
+        statusId: 13, // ID del estado "Cotización rechazada por Cliente"
       },
     });
 
-    // Actualizar la fecha de envío en la cotización del cliente
+    // Actualizar la observación en la cotización del cliente con la razón del rechazo
+    // Ya que no existe el campo dateQuotationRejected en el modelo
     await prisma.clientQuotationSummary.update({
       where: {
         id: clientQuotation.id,
       },
       data: {
-        dateQuotationSent: new Date(),
+        observations: `Cotización rechazada el ${new Date().toISOString()}. Razón: ${rejectionReason || "No se especificó una razón"}`,
       },
     });
 
-    // Crear un log automático del sistema para registrar el envío de la cotización al cliente
+    // Crear un log automático del sistema para registrar el rechazo de la cotización por el cliente
     await ProjectRequestLogsService.createSystemLog(
       projectRequestId,
-      "CLIENT_QUOTATION_SENT",
+      "CLIENT_QUOTATION_REJECTED",
       userId,
       true // Indicar que es un log a nivel de proyecto
     );
 
     return NextResponse.json({
-      message: "Cotización enviada al cliente correctamente",
+      message: "Cotización rechazada por el cliente correctamente",
       success: true,
     });
   } catch (error) {
-    console.error("Error al enviar cotización al cliente:", error);
+    console.error("Error al rechazar cotización:", error);
     return NextResponse.json(
-      { error: "Error al enviar cotización al cliente" },
+      { error: "Error al rechazar la cotización" },
       { status: 500 }
     );
   }

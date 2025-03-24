@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getToken } from "@/lib/auth";
+import { ProjectRequestLogsService } from "@/lib/services/project-request-logs";
+import { getUserFromToken } from "@/lib/get-user-from-token";
 
 export async function POST(request: NextRequest) {
   try {
     // En una aplicación real, aquí verificaríamos la autenticación
     // Para simplificar, asumimos que el usuario está autenticado
+    const userId = await getUserFromToken();
 
     // Procesar el formulario multipart
     const formData = await request.formData();
@@ -88,7 +91,7 @@ export async function POST(request: NextRequest) {
         INSERT INTO d_project_request_companies 
         ("projectRequestId", "companyId", "ndaFile", "ndaFileName", "statusId", "userId", "isActive", "isDeleted", "createdAt", "updatedAt")
         VALUES 
-        (${projectRequestId}, ${companyId}, ${ndaFileBuffer}, ${ndaFileName}, ${statusId}, 1, true, false, NOW(), NOW())
+        (${projectRequestId}, ${companyId}, ${ndaFileBuffer}, ${ndaFileName}, ${statusId}, ${userId}, true, false, NOW(), NOW())
       `;
     });
 
@@ -126,6 +129,37 @@ export async function POST(request: NextRequest) {
 
     // Esperar a que todas las operaciones se completen
     await Promise.all([...uploadPromises, ...existingCompaniesPromises]);
+
+    // Crear logs del sistema para cada empresa añadida
+    for (const companyId of companiesToAdd) {
+      // Obtener la relación proyecto-compañía recién creada
+      const projectCompany = await prisma.projectRequestCompany.findFirst({
+        where: {
+          projectRequestId: projectRequestId,
+          companyId: companyId,
+          isDeleted: false
+        }
+      });
+      
+      if (projectCompany) {
+        // Crear log para asociado seleccionado
+        await ProjectRequestLogsService.createSystemLog(
+          projectCompany.id,
+          "ASSOCIATE_SELECTED",
+          userId
+        );
+        
+        // Si se subió un NDA, crear log adicional
+        const ndaFile = formData.get(`nda_${companyId}`) as File | null;
+        if (ndaFile) {
+          await ProjectRequestLogsService.createSystemLog(
+            projectCompany.id,
+            "NDA_SENT",
+            userId
+          );
+        }
+      }
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -3,6 +3,10 @@ import { prisma } from "@/lib/prisma";
 import { getUserFromToken } from "@/lib/get-user-from-token";
 import { ProjectRequestLogsService } from "@/lib/services/project-request-logs";
 
+/**
+ * Endpoint para aprobar una cotización por parte del cliente
+ * Actualiza el estado del proyecto a "Cotización aprobada por Cliente" (statusId: 12)
+ */
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -43,42 +47,64 @@ export async function POST(
       );
     }
 
-    // Actualizar el estado del proyecto a "Cotización enviada al Cliente" (statusId: 11)
+    // Verificar que la cotización no haya sido ya aprobada
+    const projectRequest = await prisma.projectRequest.findUnique({
+      where: {
+        id: projectRequestId,
+      },
+    });
+
+    if (!projectRequest) {
+      return NextResponse.json(
+        { error: "No se encontró la solicitud de proyecto" },
+        { status: 404 }
+      );
+    }
+
+    if (projectRequest.statusId === 12) {
+      return NextResponse.json(
+        { error: "La cotización ya ha sido aprobada por el cliente" },
+        { status: 400 }
+      );
+    }
+
+    // Actualizar el estado del proyecto a "Cotización aprobada por Cliente" (statusId: 12)
     await prisma.projectRequest.update({
       where: {
         id: projectRequestId,
       },
       data: {
-        statusId: 11, // ID del estado "Cotización enviada al Cliente"
+        statusId: 12, // ID del estado "Cotización aprobada por Cliente"
       },
     });
 
-    // Actualizar la fecha de envío en la cotización del cliente
+    // Actualizar la cotización del cliente con una observación sobre la aprobación
+    // Ya que no existe el campo dateQuotationApproved en el modelo
     await prisma.clientQuotationSummary.update({
       where: {
         id: clientQuotation.id,
       },
       data: {
-        dateQuotationSent: new Date(),
+        observations: `Cotización aprobada el ${new Date().toISOString()}`,
       },
     });
 
-    // Crear un log automático del sistema para registrar el envío de la cotización al cliente
+    // Crear un log automático del sistema para registrar la aprobación de la cotización por el cliente
     await ProjectRequestLogsService.createSystemLog(
       projectRequestId,
-      "CLIENT_QUOTATION_SENT",
+      "CLIENT_QUOTATION_APPROVED",
       userId,
       true // Indicar que es un log a nivel de proyecto
     );
 
     return NextResponse.json({
-      message: "Cotización enviada al cliente correctamente",
+      message: "Cotización aprobada por el cliente correctamente",
       success: true,
     });
   } catch (error) {
-    console.error("Error al enviar cotización al cliente:", error);
+    console.error("Error al aprobar cotización:", error);
     return NextResponse.json(
-      { error: "Error al enviar cotización al cliente" },
+      { error: "Error al aprobar la cotización" },
       { status: 500 }
     );
   }

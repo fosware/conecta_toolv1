@@ -20,6 +20,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import ProjectRequestLogsModal from "../project_request_logs/components/project-request-logs-modal";
 
 export default function AssignedCompaniesPage() {
   const [data, setData] = useState<AssignedCompany[]>([]);
@@ -40,6 +41,15 @@ export default function AssignedCompaniesPage() {
   );
   const [searchTerm, setSearchTerm] = useState("");
   const [showOnlyActive, setShowOnlyActive] = useState(true);
+
+  // Estado para el modal de bitácora
+  const [logsModalOpen, setLogsModalOpen] = useState(false);
+  const [selectedCompanyForLogs, setSelectedCompanyForLogs] = useState<{
+    id: number;
+    name: string;
+    projectRequestId: number;
+    requirementName: string;
+  } | null>(null);
 
   // Función para cargar los datos
   const loadData = async (showLoading = true) => {
@@ -128,6 +138,27 @@ export default function AssignedCompaniesPage() {
     setDeleteDialogOpen(true);
   };
 
+  // Función para abrir el modal de bitácora
+  const handleOpenLogsModal = (item: AssignedCompany) => {
+    if (!item.Company || !item.Company.id || !item.ProjectRequest || !item.ProjectRequest.id) {
+      console.error("Error: No se encontró el ID de la compañía o del proyecto", item);
+      return;
+    }
+
+    // Obtener el nombre del requerimiento (si hay varios, tomamos el primero o un valor por defecto)
+    const requirementName = item.requirements && item.requirements.length > 0
+      ? item.requirements[0].name
+      : item.ProjectRequest.requirement || "Requerimiento general";
+
+    setSelectedCompanyForLogs({
+      id: item.Company.id,
+      name: item.Company?.comercialName || item.Company?.name || "Empresa sin nombre",
+      projectRequestId: item.ProjectRequest.id,
+      requirementName: requirementName,
+    });
+    setLogsModalOpen(true);
+  };
+
   const confirmDelete = async () => {
     if (!itemToDelete) return;
 
@@ -198,6 +229,7 @@ export default function AssignedCompaniesPage() {
             onDeleteItem={handleDeleteItem}
             onRefreshData={loadData}
             expandedId={expandedId}
+            onOpenLogs={handleOpenLogsModal}
           />
         </CardContent>
       </Card>
@@ -249,6 +281,19 @@ export default function AssignedCompaniesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Modal de bitácora */}
+      <ProjectRequestLogsModal
+        isOpen={logsModalOpen}
+        onClose={() => {
+          setLogsModalOpen(false);
+          setSelectedCompanyForLogs(null);
+        }}
+        projectRequestId={selectedCompanyForLogs?.projectRequestId || 0}
+        companyId={selectedCompanyForLogs?.id}
+        title={`Bitácora - ${selectedCompanyForLogs?.name || 'Asociado'}`}
+        requirementName={selectedCompanyForLogs?.requirementName}
+      />
     </>
   );
 }

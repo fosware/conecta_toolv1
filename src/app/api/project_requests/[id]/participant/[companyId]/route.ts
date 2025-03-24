@@ -11,6 +11,8 @@ export async function GET(
     const projectRequestId = parseInt(id);
     const parsedCompanyId = parseInt(companyId);
     
+    console.log("Buscando relación para projectRequestId:", projectRequestId, "companyId:", parsedCompanyId);
+    
     // Verificar que los IDs sean válidos
     if (isNaN(projectRequestId) || isNaN(parsedCompanyId)) {
       return NextResponse.json(
@@ -33,6 +35,8 @@ export async function GET(
       },
     });
 
+    console.log("Participante encontrado:", participant);
+
     if (!participant) {
       return NextResponse.json(
         { error: "Participante no encontrado" },
@@ -40,7 +44,12 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ participant });
+    // Devolver directamente el objeto con el id
+    return NextResponse.json({
+      id: participant.id,
+      ndaFile: participant.ndaFile,
+      ndaFileName: participant.ndaFileName
+    });
   } catch (error) {
     console.error("Error al obtener información del participante:", error);
     return NextResponse.json(

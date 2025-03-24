@@ -22,6 +22,7 @@ import {
   ListChecks,
   Loader2,
   Medal,
+  MessageSquare,
   Pencil,
   Plus,
   Send,
@@ -45,6 +46,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import ProjectRequestLogsModal from "../../project_request_logs/components/project-request-logs-modal";
 
 interface ProjectRequestOverviewProps {
   data: ProjectRequestWithRelations;
@@ -150,6 +152,10 @@ export default function ProjectRequestOverview({
   const [downloadingClientQuotation, setDownloadingClientQuotation] = useState(false);
   const [sendingClientQuotation, setSendingClientQuotation] = useState(false);
   const [sendQuotationDialogOpen, setSendQuotationDialogOpen] = useState(false);
+
+  // Estado para el modal de logs de seguimiento
+  const [logsModalOpen, setLogsModalOpen] = useState(false);
+  const [selectedCompanyForLogs, setSelectedCompanyForLogs] = useState<{ id: number, name: string, requirementName: string } | null>(null);
 
   // Depuración: Imprimir los datos recibidos para verificar su estructura
 
@@ -435,6 +441,21 @@ export default function ProjectRequestOverview({
     }
   };
 
+  // Función para abrir el modal de logs de seguimiento
+  const handleOpenLogsModal = (participant: any, requirementName: string) => {
+    if (!participant.Company || !participant.Company.id) {
+      console.error("Error: No se encontró el ID de la compañía", participant);
+      return;
+    }
+
+    setSelectedCompanyForLogs({
+      id: participant.Company.id,
+      name: participant.Company?.comercialName || "Empresa sin nombre",
+      requirementName,
+    });
+    setLogsModalOpen(true);
+  };
+
   return (
     <>
       <div className="p-6 bg-card rounded-lg shadow-lg mt-4 mb-6">
@@ -683,145 +704,154 @@ export default function ProjectRequestOverview({
                             (participant: any) => (
                               <div
                                 key={participant.id}
-                                className="border rounded p-2 text-sm"
+                                className="border rounded-md p-3 text-sm hover:bg-slate-50 transition-colors"
                               >
-                                <div className="flex justify-between items-start">
+                                <div className="flex justify-between items-start mb-2">
                                   <div>
                                     <div className="font-medium">
                                       {participant.Company?.comercialName ||
                                         "Empresa sin nombre"}
                                     </div>
-                                    <div className="text-xs text-muted-foreground mt-1">
-                                      <div>
+                                    <div className="text-xs text-muted-foreground mt-1 flex gap-2">
+                                      <span>
                                         {participant.Company?.contactName ||
                                           "Sin contacto"}
-                                      </div>
-                                      <div>
+                                      </span>
+                                      <span className="text-slate-300">|</span>
+                                      <span>
                                         {participant.Company?.email ||
                                           "Sin correo"}
-                                      </div>
+                                      </span>
                                     </div>
                                   </div>
-                                  <div className="flex flex-col items-end gap-2">
-                                    {participant.status && (
-                                      <Badge
-                                        className={`flex items-center space-x-1 border-0 pointer-events-none ${getStatusBadgeStyles(participant.status.id)}`}
+                                  {participant.status && (
+                                    <Badge
+                                      className={`flex items-center space-x-1 border-0 pointer-events-none ${getStatusBadgeStyles(participant.status.id)}`}
+                                    >
+                                      {getStatusIcon(participant.status.id)}
+                                      <span>{participant.status.name}</span>
+                                    </Badge>
+                                  )}
+                                </div>
+                                <div className="flex flex-wrap gap-2 mt-3">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="flex items-center gap-1"
+                                    onClick={() => handleOpenLogsModal(participant, requirement.requirementName)}
+                                  >
+                                    <MessageSquare className="h-3 w-3" />
+                                    <span className="text-xs">
+                                      Bitácora
+                                    </span>
+                                  </Button>
+                                  {participant.status &&
+                                    (participant.status.id === 4 ||
+                                      participant.status.id === 5 ||
+                                      participant.status.id === 6) && (
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="flex items-center gap-1"
+                                        onClick={() =>
+                                          handleOpenTechnicalDocs(
+                                            participant,
+                                            requirement.id
+                                          )
+                                        }
                                       >
-                                        {getStatusIcon(participant.status.id)}
-                                        <span>{participant.status.name}</span>
-                                      </Badge>
+                                        <File className="h-3 w-3" />
+                                        <span className="text-xs">
+                                          Documentos técnicos
+                                        </span>
+                                      </Button>
                                     )}
-                                    {/* Botón de Documentos Técnicos para asociados que han firmado el NDA o están en espera/con documentos técnicos */}
-                                    {participant.status &&
-                                      (participant.status.id === 4 ||
-                                        participant.status.id === 5 ||
-                                        participant.status.id === 6) && (
+                                  {participant.status &&
+                                    [7, 8, 9].includes(
+                                      participant.status.id
+                                    ) && (
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="flex items-center gap-1"
+                                        onClick={() =>
+                                          handleDownloadQuote(participant)
+                                        }
+                                        disabled={
+                                          downloadingQuote === participant.id
+                                        }
+                                      >
+                                        {downloadingQuote ===
+                                        participant.id ? (
+                                          <Loader2 className="h-3 w-3 animate-spin" />
+                                        ) : (
+                                          <Download className="h-3 w-3" />
+                                        )}
+                                        <span className="text-xs">
+                                          {downloadingQuote === participant.id
+                                            ? "Descargando..."
+                                            : "Descargar cotización"}
+                                        </span>
+                                      </Button>
+                                    )}
+                                  {participant.status &&
+                                    participant.status.id === 7 && (
+                                      <>
                                         <Button
                                           variant="outline"
                                           size="sm"
-                                          className="flex items-center gap-2 mt-1"
+                                          className="flex items-center gap-1 bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
                                           onClick={() =>
-                                            handleOpenTechnicalDocs(
+                                            handleConfirmAction(
                                               participant,
-                                              requirement.id
+                                              "approve"
                                             )
                                           }
+                                          disabled={
+                                            updatingStatus === participant.id
+                                          }
                                         >
-                                          <File className="h-3 w-3" />
+                                          {updatingStatus ===
+                                          participant.id &&
+                                          confirmAction?.action ===
+                                            "approve" ? (
+                                            <Loader2 className="h-3 w-3 animate-spin" />
+                                          ) : (
+                                            <Check className="h-3 w-3" />
+                                          )}
                                           <span className="text-xs">
-                                            Documentos técnicos
+                                            Aprobar
                                           </span>
                                         </Button>
-                                      )}
-                                    {/* Botón para descargar cotización cuando el estado es "Cotización enviada", "Cotización rechazada" o "Cotización aprobada" */}
-                                    {participant.status &&
-                                      [7, 8, 9].includes(
-                                        participant.status.id
-                                      ) && (
+
                                         <Button
                                           variant="outline"
                                           size="sm"
-                                          className="flex items-center gap-2 mt-1"
+                                          className="flex items-center gap-1 bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
                                           onClick={() =>
-                                            handleDownloadQuote(participant)
+                                            handleConfirmAction(
+                                              participant,
+                                              "reject"
+                                            )
                                           }
                                           disabled={
-                                            downloadingQuote === participant.id
+                                            updatingStatus === participant.id
                                           }
                                         >
-                                          {downloadingQuote ===
-                                          participant.id ? (
+                                          {updatingStatus ===
+                                          participant.id &&
+                                          confirmAction?.action ===
+                                            "reject" ? (
                                             <Loader2 className="h-3 w-3 animate-spin" />
                                           ) : (
-                                            <Download className="h-3 w-3" />
+                                            <X className="h-3 w-3" />
                                           )}
                                           <span className="text-xs">
-                                            {downloadingQuote === participant.id
-                                              ? "Descargando..."
-                                              : "Descargar cotización"}
+                                            Rechazar
                                           </span>
                                         </Button>
-                                      )}
-                                    {/* Botones para aprobar o rechazar cotización cuando el estado es "Cotización enviada" */}
-                                    {participant.status &&
-                                      participant.status.id === 7 && (
-                                        <div className="flex flex-row gap-2 mt-1">
-                                          <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="flex items-center gap-2 bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
-                                            onClick={() =>
-                                              handleConfirmAction(
-                                                participant,
-                                                "approve"
-                                              )
-                                            }
-                                            disabled={
-                                              updatingStatus === participant.id
-                                            }
-                                          >
-                                            {updatingStatus ===
-                                              participant.id &&
-                                            confirmAction?.action ===
-                                              "approve" ? (
-                                              <Loader2 className="h-3 w-3 animate-spin" />
-                                            ) : (
-                                              <Check className="h-3 w-3" />
-                                            )}
-                                            <span className="text-xs">
-                                              Aprobar
-                                            </span>
-                                          </Button>
-
-                                          <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="flex items-center gap-2 bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
-                                            onClick={() =>
-                                              handleConfirmAction(
-                                                participant,
-                                                "reject"
-                                              )
-                                            }
-                                            disabled={
-                                              updatingStatus === participant.id
-                                            }
-                                          >
-                                            {updatingStatus ===
-                                              participant.id &&
-                                            confirmAction?.action ===
-                                              "reject" ? (
-                                              <Loader2 className="h-3 w-3 animate-spin" />
-                                            ) : (
-                                              <X className="h-3 w-3" />
-                                            )}
-                                            <span className="text-xs">
-                                              Rechazar
-                                            </span>
-                                          </Button>
-                                        </div>
-                                      )}
-                                  </div>
+                                      </>
+                                    )}
                                 </div>
                               </div>
                             )
@@ -1077,6 +1107,19 @@ export default function ProjectRequestOverview({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Modal de logs de seguimiento */}
+      <ProjectRequestLogsModal
+        isOpen={logsModalOpen}
+        onClose={() => {
+          setLogsModalOpen(false);
+          setSelectedCompanyForLogs(null);
+        }}
+        projectRequestId={data.id}
+        companyId={selectedCompanyForLogs?.id}
+        requirementName={selectedCompanyForLogs?.requirementName}
+        title={`Bitácora - ${selectedCompanyForLogs?.name || 'Asociado'}`}
+      />
     </>
   );
 }

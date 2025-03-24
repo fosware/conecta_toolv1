@@ -184,6 +184,16 @@ export async function POST(
       },
     });
 
+    // Crear un log para registrar el cambio de estado
+    await prisma.projectRequestCompanyStatusLog.create({
+      data: {
+        projectRequestCompanyId: association.id,
+        message: `[SISTEMA] Se ha subido el documento técnico "${file.name}" y se ha actualizado el estado a "Documentos técnicos enviados"`,
+        userId: userId,
+        dateTimeMessage: new Date(),
+      },
+    });
+
     //console.log(
     //  "[TECHNICAL_DOCUMENT_UPLOAD] Asociación actualizada:",
     //  updatedAssociation

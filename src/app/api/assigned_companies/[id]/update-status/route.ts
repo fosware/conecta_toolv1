@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
+import { getUserFromToken } from "@/lib/get-user-from-token";
+import { ProjectRequestLogsService } from "@/lib/services/project-request-logs";
 
 export async function PUT(
   request: NextRequest,
@@ -12,10 +14,8 @@ export async function PUT(
     const parsedId = parseInt(id);
 
     // Verificar autenticación
-    const cookieStore = await cookies();
-    const token = cookieStore.get("token");
-
-    if (!token || !token.value) {
+    const userId = await getUserFromToken();
+    if (!userId) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
@@ -44,6 +44,9 @@ export async function PUT(
         id: parsedId,
         isDeleted: false,
       },
+      include: {
+        status: true,
+      },
     });
 
     if (!assignedCompany) {
@@ -64,14 +67,22 @@ export async function PUT(
       },
     });
 
+    // Crear un log automático del sistema
+    const messageType = statusId === 8 ? "QUOTATION_REJECTED" : "QUOTATION_APPROVED";
+    await ProjectRequestLogsService.createSystemLog(
+      parsedId,
+      messageType as any,
+      userId
+    );
+
     return NextResponse.json({
       message: `Estado actualizado correctamente a ${statusId === 8 ? "Cotización rechazada" : "Revisión Ok"}`,
       data: updatedAssignedCompany,
     });
   } catch (error) {
-    console.error("Error al actualizar el estado:", error);
+    console.error("Error al actualizar estado:", error);
     return NextResponse.json(
-      { error: "Error al actualizar el estado" },
+      { error: "Error al actualizar estado" },
       { status: 500 }
     );
   }

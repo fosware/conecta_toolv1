@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { getUserFromToken } from "@/lib/get-user-from-token";
+import { ProjectRequestLogsService } from "@/lib/services/project-request-logs";
 
 export async function POST(
   request: NextRequest,
@@ -195,6 +196,13 @@ export async function POST(
           statusId: 7, // Cotización enviada
         },
       });
+
+      // Crear un log del sistema cuando se sube una cotización
+      await ProjectRequestLogsService.createSystemLog(
+        parsedId,
+        "QUOTATION_SENT",
+        userId
+      );
 
       return NextResponse.json(
         {
