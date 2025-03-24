@@ -56,6 +56,12 @@ export async function GET(
         requestDate: true,
         observation: true,
         statusId: true,
+        status: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         isActive: true,
         isDeleted: true,
         dateDeleted: true,

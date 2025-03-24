@@ -3,25 +3,37 @@ import { useEffect, useState } from "react";
 import { getToken } from "@/lib/auth";
 import { Badge } from "@/components/ui/badge";
 import {
+  AlertCircle,
+  Award,
   Building,
   Calendar,
-  FileText,
-  ClipboardList,
-  Medal,
-  Award,
-  Users,
-  CheckSquare,
-  AlertCircle,
-  ListChecks,
-  File,
-  Download,
-  Loader2,
   Check,
+  CheckSquare,
+  ChevronDown,
+  ChevronRight,
+  ClipboardList,
+  Clock,
+  DollarSign,
+  Download,
+  Eye,
+  File,
+  FileDigit,
+  FileText,
+  ListChecks,
+  Loader2,
+  Medal,
+  Pencil,
+  Plus,
+  Send,
+  Upload,
+  User,
+  Users,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ProjectRequestWithRelations } from "@/lib/schemas/project_request";
 import { TechnicalDocumentsDialog } from "./technical-documents-dialog";
+import { ClientQuotationModal } from "./client-quotation-modal";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -47,14 +59,17 @@ interface ProjectRequestOverviewProps {
 function formatDateForDisplay(dateString: string | Date | undefined): string {
   if (!dateString) return "Fecha no disponible";
 
+  // Crear una fecha a partir de la cadena
   const date = new Date(dateString);
   if (isNaN(date.getTime())) return "Fecha inválida";
 
-  const day = date.getDate().toString().padStart(2, "0");
-  const month = (date.getMonth() + 1).toString().padStart(2, "0");
-  const year = date.getFullYear();
-
-  return `${day}/${month}/${year}`;
+  // Usar toLocaleDateString para formatear la fecha correctamente según la configuración regional
+  return date.toLocaleDateString("es-MX", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    timeZone: "UTC", // Usar UTC para evitar ajustes de zona horaria
+  });
 }
 
 // Función para obtener el icono según el estado
@@ -128,6 +143,13 @@ export default function ProjectRequestOverview({
 
   // Estado para el modal de documentos técnicos
   const [technicalDocsOpen, setTechnicalDocsOpen] = useState(false);
+
+  // Estado para el modal de cotizaciones para cliente
+  const [clientQuotationOpen, setClientQuotationOpen] = useState(false);
+  const [clientQuotationData, setClientQuotationData] = useState<any>(null);
+  const [downloadingClientQuotation, setDownloadingClientQuotation] = useState(false);
+  const [sendingClientQuotation, setSendingClientQuotation] = useState(false);
+  const [sendQuotationDialogOpen, setSendQuotationDialogOpen] = useState(false);
 
   // Depuración: Imprimir los datos recibidos para verificar su estructura
 
@@ -293,6 +315,126 @@ export default function ProjectRequestOverview({
     }
   };
 
+  // Función para descargar la cotización para cliente
+  const handleDownloadClientQuotation = async () => {
+    try {
+      setDownloadingClientQuotation(true);
+
+      // Descargar el archivo
+      const downloadResponse = await fetch(
+        `/api/project_requests/${data.id}/download-client-quotation`,
+        {
+          headers: {
+            Authorization: `Bearer ${getToken()}`,
+          },
+        }
+      );
+
+      if (!downloadResponse.ok) {
+        throw new Error("Error al descargar el archivo de cotización");
+      }
+
+      // Crear un blob y descargar el archivo
+      const blob = await downloadResponse.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download =
+        clientQuotationData.quotationFileName || "cotizacion-cliente.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast.success("Cotización descargada correctamente");
+    } catch (error: any) {
+      console.error("Error al descargar cotización para cliente:", error);
+      toast.error(error.message || "Error al descargar la cotización");
+    } finally {
+      setDownloadingClientQuotation(false);
+    }
+  };
+
+  // Función para enviar la cotización al cliente
+  const handleSendClientQuotation = async () => {
+    // Abrir el diálogo de confirmación
+    setSendQuotationDialogOpen(true);
+  };
+
+  // Función que se ejecuta cuando se confirma el envío de la cotización
+  const handleConfirmSendQuotation = async () => {
+    try {
+      setSendingClientQuotation(true);
+
+      // Enviar la cotización al cliente
+      const response = await fetch(
+        `/api/project_requests/${data.id}/send-client-quotation`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${getToken()}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Error al enviar la cotización al cliente");
+      }
+
+      toast.success("Cotización enviada al cliente correctamente");
+      
+      // Refrescar los datos si existe la función
+      if (onRefreshData) {
+        onRefreshData();
+      }
+    } catch (error: any) {
+      console.error("Error al enviar cotización al cliente:", error);
+      toast.error(error.message || "Error al enviar la cotización al cliente");
+    } finally {
+      setSendingClientQuotation(false);
+      setSendQuotationDialogOpen(false);
+    }
+  };
+
+  // Función para cargar los datos de la cotización para cliente
+  const loadClientQuotationData = async () => {
+    try {
+      const response = await fetch(
+        `/api/project_requests/${data.id}/client-quotation`,
+        {
+          headers: {
+            Authorization: `Bearer ${getToken()}`,
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setClientQuotationData(data.quotation);
+      } else {
+        setClientQuotationData(null);
+      }
+    } catch (error) {
+      console.error("Error al cargar datos de cotización para cliente:", error);
+      setClientQuotationData(null);
+    }
+  };
+
+  // Cargar los datos de la cotización para cliente al montar el componente
+  useEffect(() => {
+    loadClientQuotationData();
+  }, [data.id]);
+
+  // Función para manejar el éxito al guardar la cotización para cliente
+  const handleClientQuotationSuccess = () => {
+    loadClientQuotationData();
+    if (onRefreshData) {
+      onRefreshData();
+    }
+  };
+
   return (
     <>
       <div className="p-6 bg-card rounded-lg shadow-lg mt-4 mb-6">
@@ -440,7 +582,7 @@ export default function ProjectRequestOverview({
                     <div className="ml-7 mb-3">
                       <h5 className="text-sm font-medium mb-2 flex items-center">
                         <Award className="h-4 w-4 mr-1 text-amber-500" />
-                        Especialidades
+                        <span>Especialidades</span>
                       </h5>
                       {requirement.RequirementSpecialty &&
                       requirement.RequirementSpecialty.length > 0 ? (
@@ -478,7 +620,7 @@ export default function ProjectRequestOverview({
                     <div className="ml-7 mb-3">
                       <h5 className="text-sm font-medium mb-2 flex items-center">
                         <Medal className="h-4 w-4 mr-1 text-blue-500" />
-                        Certificaciones
+                        <span>Certificaciones</span>
                       </h5>
                       {requirement.RequirementCertification &&
                       requirement.RequirementCertification.length > 0 ? (
@@ -508,7 +650,7 @@ export default function ProjectRequestOverview({
                       <div className="flex justify-between items-center mb-2">
                         <h5 className="text-sm font-medium flex items-center">
                           <Users className="h-4 w-4 mr-1 text-green-500" />
-                          Asociados seleccionados
+                          <span>Asociados seleccionados</span>
                         </h5>
                         {onManageParticipants &&
                           ((requirement.RequirementSpecialty &&
@@ -577,7 +719,7 @@ export default function ProjectRequestOverview({
                                         <Button
                                           variant="outline"
                                           size="sm"
-                                          className="flex items-center gap-1 mt-1"
+                                          className="flex items-center gap-2 mt-1"
                                           onClick={() =>
                                             handleOpenTechnicalDocs(
                                               participant,
@@ -599,7 +741,7 @@ export default function ProjectRequestOverview({
                                         <Button
                                           variant="outline"
                                           size="sm"
-                                          className="flex items-center gap-1 mt-1"
+                                          className="flex items-center gap-2 mt-1"
                                           onClick={() =>
                                             handleDownloadQuote(participant)
                                           }
@@ -627,7 +769,7 @@ export default function ProjectRequestOverview({
                                           <Button
                                             variant="outline"
                                             size="sm"
-                                            className="flex items-center gap-1 bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                                            className="flex items-center gap-2 bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
                                             onClick={() =>
                                               handleConfirmAction(
                                                 participant,
@@ -654,7 +796,7 @@ export default function ProjectRequestOverview({
                                           <Button
                                             variant="outline"
                                             size="sm"
-                                            className="flex items-center gap-1 bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
+                                            className="flex items-center gap-2 bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
                                             onClick={() =>
                                               handleConfirmAction(
                                                 participant,
@@ -702,7 +844,159 @@ export default function ProjectRequestOverview({
             </div>
           </div>
 
-          {/* Fin de los requerimientos */}
+          {/* Divisor */}
+          <div className="border-t border-gray-200 my-2"></div>
+
+          {/* Nueva sección: Cotizaciones para Cliente */}
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-medium flex items-center space-x-2">
+                <FileDigit className="w-5 h-5" />
+                <span>Cotizaciones para Cliente</span>
+              </h3>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
+                  {data.statusId === 11 ? (
+                    <Send className="h-4 w-4 text-purple-600" />
+                  ) : (
+                    <Clock className={`h-4 w-4 ${
+                      data.statusId === 10 
+                        ? "text-blue-600" 
+                        : data.statusId >= 12 
+                          ? "text-green-600" 
+                          : "text-muted-foreground"
+                    }`} />
+                  )}
+                  <Badge 
+                    variant="outline"
+                    className={
+                      data.statusId === 10 
+                        ? "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100" 
+                        : data.statusId === 11 
+                          ? "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100" 
+                          : data.statusId >= 12 
+                            ? "bg-green-50 text-green-700 border-green-200 hover:bg-green-100" 
+                            : ""
+                    }
+                  >
+                    {data?.status?.name || `Estado ${data.statusId}`}
+                  </Badge>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                  onClick={() => setClientQuotationOpen(true)}
+                >
+                  <FileDigit className="h-4 w-4" />
+                  <span>Cotización para Cliente</span>
+                </Button>
+              </div>
+            </div>
+
+            {/* Contenedor para la información de cotización para cliente */}
+            <div className="border rounded-lg p-4">
+              {clientQuotationData ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <h4 className="font-medium">Información de Cotización</h4>
+                      <div className="text-sm space-y-1">
+                        <div className="flex items-center space-x-2">
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          <span>
+                            <span className="font-semibold">Fecha de creación:</span>{" "}
+                            {formatDateForDisplay(
+                              clientQuotationData.dateQuotationClient
+                            )}
+                          </span>
+                        </div>
+                        {clientQuotationData.dateQuotationSent && (
+                          <div className="flex items-center space-x-2">
+                            <Send className="h-4 w-4 text-purple-600" />
+                            <span>
+                              <span className="font-semibold">Cotización enviada al Cliente:</span>{" "}
+                              {formatDateForDisplay(
+                                clientQuotationData.dateQuotationSent
+                              )}
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex items-center space-x-2">
+                          <FileDigit className="h-4 w-4 text-muted-foreground" />
+                          <span>
+                            <span className="font-semibold">
+                              Precio al Cliente:
+                            </span>{" "}
+                            {new Intl.NumberFormat("es-MX", {
+                              style: "currency",
+                              currency: "MXN",
+                            }).format(clientQuotationData.clientPrice)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {clientQuotationData.quotationFileName && (
+                      <div className="space-y-2">
+                        <h4 className="font-medium">Archivo de Cotización</h4>
+                        <div className="flex flex-col space-y-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex items-center gap-2"
+                            onClick={handleDownloadClientQuotation}
+                            disabled={downloadingClientQuotation}
+                          >
+                            {downloadingClientQuotation ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Download className="h-4 w-4" />
+                            )}
+                            <span>{clientQuotationData.quotationFileName}</span>
+                          </Button>
+                          
+                          {data.statusId === 10 && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex items-center gap-2"
+                              onClick={handleSendClientQuotation}
+                              disabled={sendingClientQuotation}
+                            >
+                              {sendingClientQuotation ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Send className="h-4 w-4" />
+                              )}
+                              <span>
+                                {sendingClientQuotation ? "Enviando..." : "Enviar Cotización"}
+                              </span>
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {clientQuotationData.observations && (
+                    <div className="space-y-2">
+                      <h4 className="font-medium">Observaciones</h4>
+                      <p className="text-sm whitespace-pre-line">
+                        {clientQuotationData.observations}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-center justify-center py-8 text-muted-foreground">
+                  <p>No hay cotización para cliente definida</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Fin de cotizaciones para cliente */}
         </div>
       </div>
 
@@ -722,6 +1016,14 @@ export default function ProjectRequestOverview({
           onDocumentsChanged={handleRefreshData}
         />
       )}
+
+      {/* Modal de Cotizaciones para Cliente */}
+      <ClientQuotationModal
+        open={clientQuotationOpen}
+        onOpenChange={setClientQuotationOpen}
+        projectRequestId={data.id}
+        onSuccess={handleClientQuotationSuccess}
+      />
 
       {/* Diálogo de confirmación para aprobar/rechazar cotización */}
       <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
@@ -743,6 +1045,34 @@ export default function ProjectRequestOverview({
             </AlertDialogCancel>
             <AlertDialogAction onClick={handleUpdateQuotationStatus}>
               {confirmAction?.action === "approve" ? "Aprobar" : "Rechazar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Diálogo de confirmación para enviar cotización */}
+      <AlertDialog open={sendQuotationDialogOpen} onOpenChange={setSendQuotationDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Send className="h-5 w-5 text-purple-600" />
+              Enviar Cotización
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Está seguro de enviar la cotización al cliente? Esto cambiará el estado del proyecto.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                setSendQuotationDialogOpen(false);
+              }}
+            >
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmSendQuotation} className="flex items-center gap-2">
+              <Send className="h-4 w-4" />
+              Enviar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

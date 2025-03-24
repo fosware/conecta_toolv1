@@ -43,6 +43,11 @@ export interface ProjectRequestWithRelations extends Omit<ProjectRequest, "reque
   createdAt: string;
   updatedAt: string;
   dateDeleted: string | null;
+  statusId: number;
+  status?: {
+    id: number;
+    name: string;
+  };
   clientArea: {
     id: number;
     areaName: string;

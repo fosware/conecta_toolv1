@@ -65,6 +65,12 @@ export async function GET(request: NextRequest) {
             email: true,
           },
         },
+        status: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
       orderBy: { createdAt: "desc" as const },
       skip,
@@ -112,6 +118,12 @@ export async function GET(request: NextRequest) {
               id: true,
               email: true,
               username: true,
+            },
+          },
+          status: {
+            select: {
+              id: true,
+              name: true,
             },
           },
           ProjectRequirements: {
@@ -242,6 +254,12 @@ export async function POST(request: NextRequest) {
               id: true,
               email: true,
               username: true,
+            },
+          },
+          status: {
+            select: {
+              id: true,
+              name: true,
             },
           },
           ProjectRequirements: {

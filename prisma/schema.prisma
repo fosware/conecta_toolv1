@@ -39,6 +39,7 @@ model User {
   ProjectRequirements                ProjectRequirements[]
   QuotationSegment                   QuotationSegment[]
   ClientQuotationSummary             ClientQuotationSummary[]
+  ProjectRequestCompanyStatusLog     ProjectRequestCompanyStatusLog[]
 
   @@unique([email, isDeleted])
   @@unique([username, isDeleted])
@@ -397,24 +398,24 @@ model StatusProjectRequest {
 
 // Modelo de solicitud de proyectos
 model ProjectRequest {
-  id           Int                  @id @default(autoincrement())
+  id           Int         @id @default(autoincrement())
   title        String
-  requestDate  DateTime             @default(now())
+  requestDate  DateTime    @default(now())
   observation  String?
-  statusId     Int                  @default(1)
-  status       StatusProjectRequest @relation(fields: [statusId], references: [id])
-  isActive     Boolean              @default(true)
-  isDeleted    Boolean              @default(false)
+  statusId     Int         @default(1)
+  isActive     Boolean     @default(true)
+  isDeleted    Boolean     @default(false)
   dateDeleted  DateTime?
-  createdAt    DateTime             @default(now())
-  updatedAt    DateTime             @updatedAt
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
   userId       Int
-  user         User                 @relation(fields: [userId], references: [id])
+  user         User        @relation(fields: [userId], references: [id])
   clientAreaId Int
-  clientArea   ClientAreas          @relation(fields: [clientAreaId], references: [id])
+  clientArea   ClientAreas @relation(fields: [clientAreaId], references: [id])
 
   ProjectRequirements    ProjectRequirements[]
   ClientQuotationSummary ClientQuotationSummary[]
+  status                 StatusProjectRequest     @relation(fields: [statusId], references: [id])
 
   @@index([isDeleted, isActive])
   @@map("d_project_requests")
@@ -505,18 +506,19 @@ model ProjectRequestCompany {
   ndaSignedFileName     String?
   ndaSignedAt           DateTime?
 
-  isActive            Boolean                              @default(true)
-  isDeleted           Boolean                              @default(false)
-  dateDeleted         DateTime?
-  createdAt           DateTime                             @default(now())
-  updatedAt           DateTime                             @updatedAt
-  userId              Int
-  user                User                                 @relation(fields: [userId], references: [id])
-  Company             Company                              @relation(fields: [companyId], references: [id])
-  ProjectRequirements ProjectRequirements                  @relation(fields: [projectRequirementsId], references: [id])
-  Quotation           ProjectRequestRequirementQuotation?
-  Documents           ProjectRequestRequirementDocuments[]
-  projectRequestId    Int?
+  isActive                       Boolean                              @default(true)
+  isDeleted                      Boolean                              @default(false)
+  dateDeleted                    DateTime?
+  createdAt                      DateTime                             @default(now())
+  updatedAt                      DateTime                             @updatedAt
+  userId                         Int
+  user                           User                                 @relation(fields: [userId], references: [id])
+  Company                        Company                              @relation(fields: [companyId], references: [id])
+  ProjectRequirements            ProjectRequirements                  @relation(fields: [projectRequirementsId], references: [id])
+  Quotation                      ProjectRequestRequirementQuotation?
+  Documents                      ProjectRequestRequirementDocuments[]
+  projectRequestId               Int?
+  ProjectRequestCompanyStatusLog ProjectRequestCompanyStatusLog[]
 
   @@index([isDeleted, isActive])
   @@map("d_project_request_companies")
@@ -598,6 +600,7 @@ model ClientQuotationSummary {
   quotationFile       Bytes?
   quotationFileName   String?
   dateQuotationClient DateTime
+  dateQuotationSent   DateTime?
   clientPrice         Float     @default(0)
   observations        String?
   isActive            Boolean   @default(true)
@@ -612,4 +615,24 @@ model ClientQuotationSummary {
 
   @@index([isDeleted, isActive])
   @@map("d_client_quotation_summaries")
+}
+
+//logs de estatus de cotizaciones
+model ProjectRequestCompanyStatusLog {
+  id                      Int       @id @default(autoincrement())
+  projectRequestCompanyId Int
+  dateTimeMessage         DateTime  @default(now())
+  message                 String
+  isActive                Boolean   @default(true)
+  isDeleted               Boolean   @default(false)
+  dateDeleted             DateTime?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+  userId                  Int
+  user                    User      @relation(fields: [userId], references: [id])
+
+  ProjectRequestCompany ProjectRequestCompany @relation(fields: [projectRequestCompanyId], references: [id])
+
+  @@index([isDeleted, isActive])
+  @@map("d_project_request_company_status_logs")
 }
