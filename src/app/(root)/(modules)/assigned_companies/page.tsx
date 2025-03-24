@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import ProjectRequestLogsModal from "../project_request_logs/components/project-request-logs-modal";
+import { toast } from "sonner";
 
 export default function AssignedCompaniesPage() {
   const [data, setData] = useState<AssignedCompany[]>([]);
@@ -141,7 +142,7 @@ export default function AssignedCompaniesPage() {
   // Función para abrir el modal de bitácora
   const handleOpenLogsModal = (item: AssignedCompany) => {
     if (!item.Company || !item.Company.id || !item.ProjectRequest || !item.ProjectRequest.id) {
-      console.error("Error: No se encontró el ID de la compañía o del proyecto", item);
+      toast.error("Error: No se encontró información de la compañía o del proyecto");
       return;
     }
 

@@ -53,6 +53,8 @@ export default function ProjectRequestLogsModal({
   }, [isOpen, projectRequestId, companyId]);
 
   const fetchLogs = async () => {
+    if (!projectRequestId) return;
+
     setLoading(true);
     try {
       let url = "";
@@ -88,28 +90,21 @@ export default function ProjectRequestLogsModal({
     let projectRequestCompanyId: number | null = null;
     
     try {
-      console.log("Enviando mensaje. ProjectRequestId:", projectRequestId, "CompanyId:", companyId);
-      
       if (companyId) {
         // Si tenemos companyId, buscamos la relación específica
         const relationResponse = await fetch(
           `/api/project_requests/${projectRequestId}/participant/${companyId}`
         );
         
-        console.log("Respuesta de API participant:", relationResponse.status);
-        
         if (!relationResponse.ok) {
           throw new Error("Error al obtener la relación proyecto-compañía");
         }
         
         const relationData = await relationResponse.json();
-        console.log("Datos de relación recibidos:", JSON.stringify(relationData));
         
         if (relationData && relationData.id) {
           projectRequestCompanyId = relationData.id;
-          console.log("ID de relación obtenido:", projectRequestCompanyId);
         } else {
-          console.error("Estructura de respuesta incorrecta:", relationData);
           throw new Error("Error al obtener el ID de la relación proyecto-compañía");
         }
       } else {
@@ -119,7 +114,6 @@ export default function ProjectRequestLogsModal({
         return;
       }
       
-      console.log("Enviando a API create con projectRequestCompanyId:", projectRequestCompanyId);
       const response = await fetch("/api/project_requests/logs/create", {
         method: "POST",
         headers: {
@@ -131,11 +125,8 @@ export default function ProjectRequestLogsModal({
         }),
       });
       
-      console.log("Respuesta de API create:", response.status);
-      
       if (!response.ok) {
         const errorData = await response.json();
-        console.error("Error del servidor:", errorData);
         throw new Error("Error al enviar el mensaje");
       }
       
