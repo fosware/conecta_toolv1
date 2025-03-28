@@ -5,20 +5,6 @@ import { getUserFromToken } from "@/lib/get-user-from-token";
 // Tamaño máximo de archivo: 10MB
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
-// Tipos de archivo permitidos
-const ALLOWED_FILE_TYPES = [
-  "application/pdf",
-  "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "application/vnd.ms-excel",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  "application/vnd.ms-powerpoint",
-  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-  "text/plain",
-  "application/zip",
-  "application/x-rar-compressed",
-];
-
 export async function POST(
   request: NextRequest,
   { params }: { params: { companyId: string; requirementId: string } }
@@ -79,11 +65,6 @@ export async function POST(
     }
 
     // Verificar que la compañía está asociada al requerimiento
-    //console.log("[TECHNICAL_DOCUMENT_UPLOAD] Buscando asociación entre compañía y requerimiento:", {
-    //  companyId: parsedCompanyId,
-    //  requirementId: parsedRequirementId
-    //});
-
     const association = await prisma.projectRequestCompany.findFirst({
       where: {
         companyId: parsedCompanyId,
@@ -92,15 +73,7 @@ export async function POST(
       },
     });
 
-    //console.log(
-    //  "[TECHNICAL_DOCUMENT_UPLOAD] Resultado de búsqueda de asociación:",
-    //  association
-    //);
-
     if (!association) {
-      //console.log(
-      //  "[TECHNICAL_DOCUMENT_UPLOAD] No se encontró asociación entre la compañía y el requerimiento"
-      //);
       return NextResponse.json(
         { error: "La compañía no está asociada a este requerimiento" },
         { status: 403 }
@@ -108,49 +81,20 @@ export async function POST(
     }
 
     // Procesar el formulario
-    //console.log("[TECHNICAL_DOCUMENT_UPLOAD] Procesando formData");
     const formData = await request.formData();
-    /*
-    console.log(
-      "[TECHNICAL_DOCUMENT_UPLOAD] FormData recibido:",
-      Array.from(formData.entries()).map(([key, value]) => {
-        if (value instanceof File) {
-          return `${key}: File (${value.name}, ${value.type}, ${value.size} bytes)`;
-        }
-        return `${key}: ${value}`;
-      })
-    );
-   */
     const file = formData.get("file") as File | null;
 
     if (!file) {
-      //console.log(
-      //  "[TECHNICAL_DOCUMENT_UPLOAD] No se proporcionó ningún archivo"
-      //);
       return NextResponse.json(
         { error: "No se ha proporcionado ningún archivo" },
         { status: 400 }
       );
     }
 
-    //console.log("[TECHNICAL_DOCUMENT_UPLOAD] Archivo recibido:", {
-    //  name: file.name,
-    //  type: file.type,
-    //  size: file.size,
-    //});
-
     // Validar tamaño del archivo
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
         { error: "El archivo excede el tamaño máximo permitido (10MB)" },
-        { status: 400 }
-      );
-    }
-
-    // Validar tipo de archivo
-    if (!ALLOWED_FILE_TYPES.includes(file.type)) {
-      return NextResponse.json(
-        { error: "Tipo de archivo no permitido" },
         { status: 400 }
       );
     }
@@ -171,10 +115,6 @@ export async function POST(
     });
 
     // Actualizar el estado de la asociación a "Documentos técnicos enviados" (ID 6)
-    //console.log(
-    //  "[TECHNICAL_DOCUMENT_UPLOAD] Actualizando estado a 'Documentos técnicos enviados' (ID 6) para la asociación:",
-    //  association.id
-    //);
     const updatedAssociation = await prisma.projectRequestCompany.update({
       where: {
         id: association.id,
@@ -193,11 +133,6 @@ export async function POST(
         dateTimeMessage: new Date(),
       },
     });
-
-    //console.log(
-    //  "[TECHNICAL_DOCUMENT_UPLOAD] Asociación actualizada:",
-    //  updatedAssociation
-    //);
 
     return NextResponse.json({
       success: true,
