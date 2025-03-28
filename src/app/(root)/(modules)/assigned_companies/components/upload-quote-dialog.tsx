@@ -80,7 +80,12 @@ export function UploadQuoteDialog({
   const loadExistingQuote = async (id: number) => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/assigned_companies/${id}/get-quote`);
+      const token = await getToken();
+      const response = await fetch(`/api/assigned_companies/${id}/get-quote`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       
       if (response.ok) {
         const data = await response.json();
@@ -265,11 +270,15 @@ export function UploadQuoteDialog({
         );
       }
 
+      const token = await getToken();
       const response = await fetch(
         `/api/assigned_companies/${item.id}/upload-quote`,
         {
           method: "POST",
           body: formData,
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
 

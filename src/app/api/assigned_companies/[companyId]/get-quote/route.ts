@@ -4,12 +4,12 @@ import { getUserFromToken } from "@/lib/get-user-from-token";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { companyId: string } }
 ) {
   try {
-    // Extraer el ID correctamente según las mejores prácticas de Next.js
-    const { id } = params;
-    const parsedId = parseInt(id);
+    // Extraer el ID correctamente
+    const { companyId } = params;
+    const parsedId = parseInt(companyId);
 
     // Verificar autenticación
     const userId = await getUserFromToken();
@@ -50,10 +50,9 @@ export async function GET(
       },
     });
 
-    // Devolver la respuesta con el código de estado 200 (OK)
     return NextResponse.json({ quotation }, { status: 200 });
   } catch (error) {
-    console.error("Error en GET /api/assigned_companies/[id]/get-quote:", error);
+    console.error("Error en GET /api/assigned_companies/[companyId]/get-quote:", error);
     return NextResponse.json(
       { error: "Error al obtener la cotización" },
       { status: 500 }
