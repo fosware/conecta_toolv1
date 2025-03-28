@@ -7,8 +7,8 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    // Extraer el ID correctamente según las mejores prácticas de Next.js 15
-    const { id } = await params;
+    // Extraer el ID correctamente según las mejores prácticas de Next.js
+    const { id } = params;
     const parsedId = parseInt(id);
 
     // Verificar autenticación
@@ -57,9 +57,9 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ quotation });
+    return NextResponse.json({ quotation }, { status: 200 });
   } catch (error) {
-    console.error("Error al obtener la cotización:", error);
+    console.error("Error en GET /api/assigned_companies/[id]/get-quote:", error);
     return NextResponse.json(
       { error: "Error al obtener la cotización" },
       { status: 500 }
