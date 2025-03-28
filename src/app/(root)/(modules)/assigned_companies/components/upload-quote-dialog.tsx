@@ -67,6 +67,7 @@ export function UploadQuoteDialog({
   const [existingFileName, setExistingFileName] = useState<string>("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [segmentToDeleteIndex, setSegmentToDeleteIndex] = useState<number | null>(null);
+  const [editingSegmentIndex, setEditingSegmentIndex] = useState<number | null>(null);
 
   useEffect(() => {
     if (open && item) {
@@ -167,6 +168,39 @@ export function UploadQuoteDialog({
     // Limpiar campos
     setNewSegmentDate("");
     setNewSegmentDescription("");
+  };
+
+  const handleEditSegment = (index: number) => {
+    const segmentToEdit = segments[index];
+    setNewSegmentDate(segmentToEdit.estimatedDeliveryDate);
+    setNewSegmentDescription(segmentToEdit.description);
+    setEditingSegmentIndex(index);
+  };
+
+  const handleUpdateSegment = () => {
+    if (editingSegmentIndex === null || !newSegmentDate || !newSegmentDescription) {
+      toast.error("Por favor complete la fecha y descripción del segmento");
+      return;
+    }
+
+    const updatedSegments = [...segments];
+    updatedSegments[editingSegmentIndex] = {
+      ...updatedSegments[editingSegmentIndex],
+      estimatedDeliveryDate: newSegmentDate,
+      description: newSegmentDescription,
+    };
+
+    setSegments(updatedSegments);
+    setNewSegmentDate("");
+    setNewSegmentDescription("");
+    setEditingSegmentIndex(null);
+    toast.success("Segmento actualizado correctamente");
+  };
+
+  const handleCancelEdit = () => {
+    setNewSegmentDate("");
+    setNewSegmentDescription("");
+    setEditingSegmentIndex(null);
   };
 
   const handleDeleteSegment = (index: number) => {
@@ -439,17 +473,42 @@ export function UploadQuoteDialog({
                         />
                       </div>
                       <div className="flex items-end">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={handleAddSegment}
-                          disabled={uploading || !newSegmentDate || !newSegmentDescription}
-                          className="h-10 ml-auto"
-                        >
-                          <Plus className="h-4 w-4 mr-2" />
-                          Agregar Segmento
-                        </Button>
+                        {editingSegmentIndex !== null ? (
+                          <div className="flex gap-2 ml-auto">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={handleCancelEdit}
+                              disabled={uploading}
+                              className="h-10"
+                            >
+                              Cancelar
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="default"
+                              size="sm"
+                              onClick={handleUpdateSegment}
+                              disabled={uploading || !newSegmentDate || !newSegmentDescription}
+                              className="h-10"
+                            >
+                              Actualizar Segmento
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleAddSegment}
+                            disabled={uploading || !newSegmentDate || !newSegmentDescription}
+                            className="h-10 ml-auto"
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Agregar Segmento
+                          </Button>
+                        )}
                       </div>
                     </div>
 
@@ -489,14 +548,27 @@ export function UploadQuoteDialog({
                                 </TableCell>
                                 <TableCell>{segment.description}</TableCell>
                                 <TableCell>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => handleDeleteSegment(index)}
-                                    disabled={uploading}
-                                  >
-                                    <Trash2 className="h-4 w-4 text-red-500" />
-                                  </Button>
+                                  <div className="flex space-x-1">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => handleEditSegment(index)}
+                                      disabled={uploading || editingSegmentIndex !== null}
+                                    >
+                                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                      </svg>
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => handleDeleteSegment(index)}
+                                      disabled={uploading}
+                                    >
+                                      <Trash2 className="h-4 w-4 text-red-500" />
+                                    </Button>
+                                  </div>
                                 </TableCell>
                               </TableRow>
                             ))}

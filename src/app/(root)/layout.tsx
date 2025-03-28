@@ -45,7 +45,7 @@ export default function RootLayout({
         <Navbar isSidebarOpen={isSidebarOpen} setSidebarOpen={setSidebarOpen} />
         <div className="flex flex-1 overflow-hidden pt-16 bg-background dark:bg-background-dark">
           <Sidebar isOpen={isSidebarOpen} setIsOpen={setSidebarOpen} />
-          <main className="flex-1 overflow-y-auto p-4 bg-background dark:bg-background-dark">
+          <main className="flex-1 overflow-y-auto p-4 bg-background dark:bg-background-dark w-full">
             {children}
           </main>
         </div>

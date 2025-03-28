@@ -284,7 +284,7 @@ export function TechnicalDocumentsDialog({
                   type="file"
                   className="hidden"
                   onChange={handleFileChange}
-                  accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar"
+                  /*accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar"*/
                 />
               </div>
             </div>

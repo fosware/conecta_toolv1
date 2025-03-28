@@ -704,7 +704,7 @@ export default function ProjectRequestOverview({
                             (participant: any) => (
                               <div
                                 key={participant.id}
-                                className="border rounded-md p-3 text-sm hover:bg-slate-50 transition-colors"
+                                className="border rounded-md p-3 text-sm hover:bg-muted/50 transition-colors"
                               >
                                 <div className="flex justify-between items-start mb-2">
                                   <div>

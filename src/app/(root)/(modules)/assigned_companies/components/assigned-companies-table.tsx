@@ -122,7 +122,7 @@ export function AssignedCompaniesTable({
     try {
       setDownloadingSignedNda(item.id);
       const response = await fetch(
-        `/api/assigned_companies/${item.id}/download-nda-signed`,
+        `/api/assigned_companies/${item.id}/download-signed-nda`,
         {
           headers: {
             // Usamos cookies para autenticación
@@ -143,8 +143,9 @@ export function AssignedCompaniesTable({
       a.click();
       window.URL.revokeObjectURL(url);
       window.document.body.removeChild(a);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error downloading signed NDA:", error);
+      toast.error(`Error al descargar el NDA firmado: ${error.message || 'Error desconocido'}`);
     } finally {
       setDownloadingSignedNda(null);
     }

@@ -62,14 +62,14 @@ export default function Sidebar({
   return (
     <>
       {/* Sidebar fijo para pantallas grandes */}
-      <aside className="hidden lg:block w-66 bg-background dark:bg-background-dark text-foreground dark:text-foreground-dark border-r border-[#EEF1F6] dark:border-[#1D2532] h-screen">
+      <aside className="hidden lg:block w-64 bg-background dark:bg-background-dark text-foreground dark:text-foreground-dark border-r border-[#EEF1F6] dark:border-[#1D2532] h-full overflow-y-auto">
         <nav className="p-4">
           <ul className="space-y-4">
             {menuItems.map((item) => (
               <li key={item.path}>
                 <Link
                   href={item.path}
-                  className="flex items-center space-x-3 px-4 py-2 rounded-lg sidebar-item hover:bg-accent hover:text-background transition group"
+                  className="flex items-center space-x-3 px-4 py-2 rounded-lg sidebar-item hover:bg-muted/50 transition group"
                 >
                   <Image
                     src={item.icon}
@@ -78,7 +78,7 @@ export default function Sidebar({
                     height={24}
                     className="dark:invert dark:backdrop-brightness-1"
                   />
-                  <span className="hidden lg:inline">{item.name}</span>
+                  <span>{item.name}</span>
                 </Link>
               </li>
             ))}
