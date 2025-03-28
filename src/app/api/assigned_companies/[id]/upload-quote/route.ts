@@ -121,6 +121,29 @@ export async function POST(
         "QUOTATION_SENT",
         userId
       );
+
+      // Actualizar el estado del proyecto a "Cotización enviada" (ID 7)
+      // Primero obtenemos la relación projectRequestCompany para obtener el projectRequestId
+      const projectRequestCompany = await prisma.projectRequestCompany.findUnique({
+        where: {
+          id: parsedId,
+        },
+        select: {
+          projectRequestId: true,
+        },
+      });
+
+      if (projectRequestCompany && projectRequestCompany.projectRequestId) {
+        // Actualizamos el estado del proyecto
+        await prisma.projectRequest.update({
+          where: {
+            id: projectRequestCompany.projectRequestId,
+          },
+          data: {
+            statusId: 7, // "Cotización enviada"
+          },
+        });
+      }
     }
 
     // Crear nuevos segmentos
