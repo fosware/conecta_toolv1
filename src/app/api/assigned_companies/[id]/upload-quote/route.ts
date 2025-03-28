@@ -130,28 +130,18 @@ export async function POST(
       );
     }
 
-    // Actualizar el estado del proyecto a "Cotización enviada" (ID 7)
-    // Primero obtenemos la relación projectRequestCompany para obtener el projectRequestId
-    const projectRequestCompany = await prisma.projectRequestCompany.findUnique({
+    // Actualizar el estado del asociado-requerimiento a "Cotización enviada" (ID 7)
+    // Solo actualizamos el estado en ProjectRequestCompany (lo que se muestra en la UI)
+    await prisma.projectRequestCompany.update({
       where: {
         id: parsedId,
       },
-      select: {
-        projectRequestId: true,
+      data: {
+        statusId: 7, // "Cotización enviada"
       },
     });
 
-    if (projectRequestCompany && projectRequestCompany.projectRequestId) {
-      // Actualizamos el estado del proyecto
-      await prisma.projectRequest.update({
-        where: {
-          id: projectRequestCompany.projectRequestId,
-        },
-        data: {
-          statusId: 7, // "Cotización enviada"
-        },
-      });
-    }
+    // No actualizamos el estado en ProjectRequest ya que es a nivel de asociado-requerimiento
 
     // Crear nuevos segmentos
     for (const segment of segments) {
