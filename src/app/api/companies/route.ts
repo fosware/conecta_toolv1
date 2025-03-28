@@ -12,11 +12,71 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
+    // Obtener el usuario y su rol
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        role: true,
+      }
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
+    }
+
+    // Parámetros de búsqueda
+    const searchQuery = request.nextUrl.searchParams.get("search") || "";
+    const showActive = request.nextUrl.searchParams.get("showActive") === "true";
+
+    // Construir la condición where base
+    let whereCondition: Prisma.CompanyWhereInput = {
+      isDeleted: false,
+    };
+
+    // Añadir condición de activo si se solicita
+    if (showActive) {
+      whereCondition.isActive = true;
+    }
+
+    // Añadir condición de búsqueda si existe
+    if (searchQuery) {
+      whereCondition.OR = [
+        { companyName: { contains: searchQuery, mode: 'insensitive' } },
+        { comercialName: { contains: searchQuery, mode: 'insensitive' } },
+        { contactName: { contains: searchQuery, mode: 'insensitive' } },
+        { email: { contains: searchQuery, mode: 'insensitive' } },
+      ];
+    }
+
+    // Si el usuario es asociado, solo puede ver las empresas a las que está asociado
+    if (user.role.name.toLowerCase().includes('asociado')) {
+      // Obtener las empresas asociadas al usuario
+      const userCompanies = await prisma.companyUser.findMany({
+        where: {
+          userId: userId,
+          isActive: true,
+          isDeleted: false,
+        },
+        select: {
+          companyId: true,
+        }
+      });
+
+      if (userCompanies.length === 0) {
+        return NextResponse.json({ 
+          success: true,
+          data: [] 
+        });
+      }
+
+      // Filtrar solo por las empresas del usuario
+      whereCondition.id = {
+        in: userCompanies.map(uc => uc.companyId)
+      };
+    }
+
     const companies = await prisma.company.findMany({
-      where: {
-        isActive: true,
-        isDeleted: false,
-      },
+      where: whereCondition,
       select: {
         id: true,
         companyName: true,
