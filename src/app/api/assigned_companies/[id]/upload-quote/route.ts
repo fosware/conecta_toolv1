@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { cookies } from "next/headers";
 import { getUserFromToken } from "@/lib/get-user-from-token";
 import { ProjectRequestLogsService } from "@/lib/services/project-request-logs";
 
@@ -10,7 +9,7 @@ export async function POST(
 ) {
   try {
     // Extraer el ID correctamente según las mejores prácticas de Next.js 15
-    const { id } = await params;
+    const { id } = params;
     const parsedId = parseInt(id);
 
     // Verificar autenticación
