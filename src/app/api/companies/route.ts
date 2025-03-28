@@ -48,8 +48,8 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    // Si el usuario es asociado, solo puede ver las empresas a las que está asociado
-    if (user.role.name.toLowerCase().includes('asociado')) {
+    // Si el usuario es asociado o staff, solo puede ver las empresas a las que está asociado
+    if (user.role.name.toLowerCase() === 'asociado' || user.role.name.toLowerCase() === 'staff') {
       // Obtener las empresas asociadas al usuario
       const userCompanies = await prisma.companyUser.findMany({
         where: {
