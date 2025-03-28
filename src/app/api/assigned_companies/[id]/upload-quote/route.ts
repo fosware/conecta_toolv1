@@ -98,6 +98,13 @@ export async function POST(
           isDeleted: true,
         },
       });
+
+      // Crear log de sistema para actualización
+      await ProjectRequestLogsService.createSystemLog(
+        parsedId,
+        "QUOTATION_SENT",
+        userId
+      );
     } else {
       // Crear nueva cotización
       quotation = await prisma.projectRequestRequirementQuotation.create({
@@ -121,29 +128,29 @@ export async function POST(
         "QUOTATION_SENT",
         userId
       );
+    }
 
-      // Actualizar el estado del proyecto a "Cotización enviada" (ID 7)
-      // Primero obtenemos la relación projectRequestCompany para obtener el projectRequestId
-      const projectRequestCompany = await prisma.projectRequestCompany.findUnique({
+    // Actualizar el estado del proyecto a "Cotización enviada" (ID 7)
+    // Primero obtenemos la relación projectRequestCompany para obtener el projectRequestId
+    const projectRequestCompany = await prisma.projectRequestCompany.findUnique({
+      where: {
+        id: parsedId,
+      },
+      select: {
+        projectRequestId: true,
+      },
+    });
+
+    if (projectRequestCompany && projectRequestCompany.projectRequestId) {
+      // Actualizamos el estado del proyecto
+      await prisma.projectRequest.update({
         where: {
-          id: parsedId,
+          id: projectRequestCompany.projectRequestId,
         },
-        select: {
-          projectRequestId: true,
+        data: {
+          statusId: 7, // "Cotización enviada"
         },
       });
-
-      if (projectRequestCompany && projectRequestCompany.projectRequestId) {
-        // Actualizamos el estado del proyecto
-        await prisma.projectRequest.update({
-          where: {
-            id: projectRequestCompany.projectRequestId,
-          },
-          data: {
-            statusId: 7, // "Cotización enviada"
-          },
-        });
-      }
     }
 
     // Crear nuevos segmentos
