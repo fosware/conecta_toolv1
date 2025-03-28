@@ -15,6 +15,16 @@ import { useUserStore } from "@/lib/store/useUserState";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LogOut, User } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function Navbar({
   isSidebarOpen,
@@ -26,7 +36,8 @@ export default function Navbar({
   const router = useRouter();
   const { profileImage, setProfileImage } = useUserStore();
   const [username, setUsername] = useState<string | null>(null);
-  //const usernameRef = useRef<string | null>(null);
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+
   // Fetch profile image on mount
   useEffect(() => {
     const fetchProfileImage = async () => {
@@ -95,12 +106,16 @@ export default function Navbar({
         setUsername(null);
         router.push("/login"); // Redirige al login después del logout
       } else {
-        alert("Error al cerrar sesión");
+        // Reemplazamos el alert por un manejo de error más elegante
+        console.error("Error al cerrar sesión");
       }
     } catch (error) {
       console.error("Error al cerrar sesión:", error);
-      alert("Error al cerrar sesión");
     }
+  };
+
+  const openLogoutDialog = () => {
+    setLogoutDialogOpen(true);
   };
 
   return (
@@ -185,7 +200,7 @@ export default function Navbar({
               </Link>
               {/* Cerrar Sesión */}
               <DropdownMenuItem
-                onClick={handleLogout}
+                onClick={openLogoutDialog}
                 className="hover:bg-accent hover:text-accent-foreground transition cursor-pointer"
               >
                 <LogOut className="mr-2 h-4 w-4" />
@@ -195,6 +210,24 @@ export default function Navbar({
           </DropdownMenu>
         </div>
       </div>
+
+      {/* Diálogo de confirmación para cerrar sesión */}
+      <AlertDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Cerrar sesión?</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Estás seguro de que deseas cerrar sesión?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleLogout}>
+              Cerrar sesión
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </nav>
   );
 }
