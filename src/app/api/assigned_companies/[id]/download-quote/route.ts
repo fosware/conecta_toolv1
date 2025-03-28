@@ -1,51 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { cookies } from "next/headers";
+import { getUserFromToken } from "@/lib/get-user-from-token";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    // Extraer el ID correctamente según las mejores prácticas de Next.js 15
-    const { id } = await params;
+    // Extraer el ID correctamente
+    const { id } = params;
     const parsedId = parseInt(id);
 
     // Verificar autenticación
-    const cookieStore = await cookies();
-    const token = cookieStore.get("token");
-
-    if (!token || !token.value) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-    }
-
-    // Obtener el registro de ProjectRequestCompany
-    const projectRequestCompany = await prisma.projectRequestCompany.findUnique(
-      {
-        where: {
-          id: parsedId,
-          isDeleted: false,
-        },
-      }
-    );
-
-    if (!projectRequestCompany) {
+    const userId = await getUserFromToken();
+    if (!userId) {
       return NextResponse.json(
-        { error: "Registro no encontrado" },
-        { status: 404 }
+        { error: "No autorizado" },
+        { status: 401 }
       );
     }
 
-    // Obtener la cotización
-    const quotation = await prisma.projectRequestRequirementQuotation.findUnique(
-      {
-        where: {
-          projectRequestCompanyId: parsedId,
-          isDeleted: false,
-          isActive: true,
-        },
+    // Obtener la cotización con el archivo
+    const quotation = await prisma.projectRequestRequirementQuotation.findUnique({
+      where: {
+        projectRequestCompanyId: parsedId,
+        isActive: true,
+      },
+      select: {
+        quotationFile: true,
+        quotationFileName: true,
       }
-    );
+    });
 
     if (!quotation) {
       return NextResponse.json(
@@ -73,20 +58,16 @@ export async function GET(
 
     // Determinar el tipo de contenido basado en la extensión del archivo
     let contentType = "application/octet-stream"; // Por defecto
-    const fileName =
-      quotation.quotationFileName || `cotizacion-${parsedId}`;
+    const fileName = quotation.quotationFileName || `cotizacion-${parsedId}.pdf`;
 
     if (fileName.endsWith(".pdf")) {
       contentType = "application/pdf";
     } else if (fileName.endsWith(".docx") || fileName.endsWith(".doc")) {
-      contentType =
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+      contentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
     } else if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
-      contentType =
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+      contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
     } else if (fileName.endsWith(".pptx")) {
-      contentType =
-        "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+      contentType = "application/vnd.openxmlformats-officedocument.presentationml.presentation";
     } else if (fileName.endsWith(".txt")) {
       contentType = "text/plain";
     } else if (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")) {
@@ -98,17 +79,16 @@ export async function GET(
     // Establecer encabezados para la descarga
     response.headers.set("Content-Type", contentType);
     
-    // Asegurarse de que el nombre del archivo no contenga caracteres que puedan causar problemas
-    const safeFileName = fileName.replace(/[^\w\s.-]/g, '');
-    
-    // Codificar el nombre del archivo para manejar espacios y caracteres especiales
-    const encodedFilename = encodeURIComponent(safeFileName);
-    
-    // Usar un formato de Content-Disposition más simple y directo
+    // Usar Content-Disposition para forzar la descarga
     response.headers.set(
       "Content-Disposition",
-      `attachment; filename="${safeFileName}"`
+      `attachment; filename="${fileName}"`
     );
+
+    // Agregar encabezados de seguridad
+    response.headers.set("Content-Security-Policy", "default-src 'self'");
+    response.headers.set("X-Content-Type-Options", "nosniff");
+    response.headers.set("Cache-Control", "no-store, max-age=0");
 
     return response;
   } catch (error) {
