@@ -2,9 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserFromToken } from "@/lib/get-user-from-token";
 import { ProjectRequestLogsService } from "@/lib/services/project-request-logs";
-import { writeFile } from "fs/promises";
-import { join } from "path";
-import { mkdir } from "fs/promises";
 
 export async function POST(
   request: NextRequest,
@@ -56,17 +53,11 @@ export async function POST(
 
     // Si hay un archivo nuevo, guardarlo
     if (file) {
-      // Crear el directorio si no existe
-      const uploadDir = join(process.cwd(), "uploads", "quotations");
-      await mkdir(uploadDir, { recursive: true });
-
-      // Generar nombre de archivo único
-      fileName = `quotation_${parsedId}_${Date.now()}_${file.name}`;
-      const filePath = join(uploadDir, fileName);
-
-      // Guardar el archivo
+      // Leer el archivo como buffer para guardarlo en la base de datos
       const fileBuffer = Buffer.from(await file.arrayBuffer());
-      await writeFile(filePath, fileBuffer);
+      
+      // Guardar el nombre del archivo original
+      fileName = file.name;
     }
 
     // Crear o actualizar la cotización
@@ -84,6 +75,7 @@ export async function POST(
           projectTypesId: projectTypesId ? parseInt(projectTypesId) : undefined,
           additionalDetails,
           ...(fileName ? { quotationFileName: fileName } : {}),
+          ...(file ? { quotationFile: Buffer.from(await file.arrayBuffer()) } : {}),
           userId: userId, // Añadir userId para cumplir con el esquema
         },
       });
@@ -116,6 +108,7 @@ export async function POST(
           projectTypesId: projectTypesId ? parseInt(projectTypesId) : undefined,
           additionalDetails,
           quotationFileName: fileName,
+          quotationFile: file ? Buffer.from(await file.arrayBuffer()) : undefined,
           userId: userId, // Añadir userId para cumplir con el esquema
           isActive: true,
           isDeleted: false,
