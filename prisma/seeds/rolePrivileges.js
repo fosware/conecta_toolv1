@@ -37,6 +37,7 @@ export async function seedRolePrivileges() {
     "Cat Certificaciones",
     "Solicitud de Proyectos",
     "Solicitudes Asignadas",
+    "Administración de NDA's",
   ];
 
   // Mapear privilegios específicos para Staff

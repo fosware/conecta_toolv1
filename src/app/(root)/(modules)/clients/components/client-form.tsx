@@ -2,7 +2,11 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { type Client, type ClientCreate, clientCreateSchema } from "@/lib/schemas/client";
+import {
+  type Client,
+  type ClientCreate,
+  clientCreateSchema,
+} from "@/lib/schemas/client";
 import {
   Form,
   FormControl,
@@ -21,7 +25,11 @@ interface ClientFormProps {
   isSubmitting?: boolean;
 }
 
-const ClientForm = ({ initialData, onSubmit, isSubmitting = false }: ClientFormProps) => {
+const ClientForm = ({
+  initialData,
+  onSubmit,
+  isSubmitting = false,
+}: ClientFormProps) => {
   const form = useForm<ClientCreate>({
     resolver: zodResolver(clientCreateSchema),
     defaultValues: {
@@ -104,10 +112,7 @@ const ClientForm = ({ initialData, onSubmit, isSubmitting = false }: ClientFormP
         />
 
         <div className="flex justify-end gap-4">
-          <Button
-            type="submit"
-            disabled={isSubmitting}
-          >
+          <Button type="submit" disabled={isSubmitting}>
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {initialData ? "Guardar cambios" : "Crear cliente"}
           </Button>

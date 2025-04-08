@@ -17,7 +17,7 @@ export async function GET(
     }
     
     // Obtener los IDs de la URL
-    const { id, requirementId, participantId } = params;
+    const { id, requirementId, participantId } = await params;
     const projectRequestId = parseInt(id);
     const projectRequirementId = parseInt(requirementId);
     const participantIdNum = parseInt(participantId);

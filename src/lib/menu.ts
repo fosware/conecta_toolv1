@@ -38,4 +38,9 @@ export const menuItems: MenuItem[] = [
     path: "/usuarios",
     icon: "/icons/new_user.svg",
   },
+  {
+    name: "Administración de NDA's",
+    path: "/client_company_nda",
+    icon: "/icons/file-key.svg",
+  },
 ];

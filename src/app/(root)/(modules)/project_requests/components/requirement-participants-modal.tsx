@@ -93,9 +93,12 @@ export function RequirementParticipantsModal({
   const [totalCertifications, setTotalCertifications] = useState(0);
   const [selectedCompanies, setSelectedCompanies] = useState<number[]>([]);
   const [ndaFiles, setNdaFiles] = useState<Record<number, File | null>>({});
-  const [showOnlyMatching, setShowOnlyMatching] = useState(true);
+  const [uploadedNdaFiles, setUploadedNdaFiles] = useState<Record<string, boolean>>({});
+  const [filterType, setFilterType] = useState<
+    "all" | "both" | "specialties" | "certifications" | "none"
+  >("both");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  
+
   // Interfaz para el objeto de eliminación de NDA
   interface CompanyToDeleteNDA {
     id: number;
@@ -104,8 +107,13 @@ export function RequirementParticipantsModal({
     isSignedNDA?: boolean; // Indica si estamos eliminando el NDA firmado
   }
 
-  const [companyToDeleteNDA, setCompanyToDeleteNDA] = useState<CompanyToDeleteNDA | null>(null);
+  const [companyToDeleteNDA, setCompanyToDeleteNDA] =
+    useState<CompanyToDeleteNDA | null>(null);
   const [deletingNDA, setDeletingNDA] = useState(false);
+
+  const [companyToDeselect, setCompanyToDeselect] = useState<number | null>(null);
+  const [deselectDialogOpen, setDeselectDialogOpen] = useState(false);
+  const [deselecting, setDeselecting] = useState(false);
 
   // Cargar empresas elegibles cuando se abre el modal
   useEffect(() => {
@@ -117,9 +125,9 @@ export function RequirementParticipantsModal({
   // Cargar empresas que cumplen con los requisitos
   const loadEligibleCompanies = async (showLoading = true) => {
     if (!requirement?.id || !requirement?.projectRequestId) {
-      console.error("Error: ID de requerimiento o proyecto no disponible", { 
-        requirementId: requirement?.id, 
-        projectRequestId: requirement?.projectRequestId 
+      console.error("Error: ID de requerimiento o proyecto no disponible", {
+        requirementId: requirement?.id,
+        projectRequestId: requirement?.projectRequestId,
       });
       toast.error("No se pueden cargar las empresas elegibles");
       return;
@@ -149,7 +157,7 @@ export function RequirementParticipantsModal({
       // Guardar los totales de especialidades y certificaciones requeridas
       setTotalSpecialties(data.totalSpecialties || 0);
       setTotalCertifications(data.totalCertifications || 0);
-      
+
       // Transformar los datos y marcar las empresas ya seleccionadas
       const companiesWithSelection = data.companies.map((company: any) => ({
         ...company,
@@ -172,7 +180,7 @@ export function RequirementParticipantsModal({
     }
   };
 
-  // Filtrar empresas según el término de búsqueda y el switch de coincidencias
+  // Filtrar empresas según el término de búsqueda y el tipo de filtro seleccionado
   const filteredCompanies = eligibleCompanies.filter((company) => {
     // Filtro por texto de búsqueda
     if (searchTerm.trim()) {
@@ -182,30 +190,38 @@ export function RequirementParticipantsModal({
       }
     }
 
-    // Filtro por coincidencias si está activado
-    if (showOnlyMatching) {
-      // Si hay especialidades definidas, verificar si la empresa cumple
-      const matchesSpecialties = totalSpecialties > 0 ? company.matchingSpecialties > 0 : true;
-      
-      // Si hay certificaciones definidas, verificar si la empresa cumple
-      const matchesCertifications = totalCertifications > 0 ? company.matchingCertifications > 0 : true;
-      
-      // Mostrar empresas que cumplen con los requisitos definidos
-      // Si hay ambos requisitos, debe cumplir ambos
-      // Si solo hay un tipo de requisito, debe cumplir ese tipo
-      if (totalSpecialties > 0 && totalCertifications > 0) {
-        return matchesSpecialties && matchesCertifications;
-      } else if (totalSpecialties > 0) {
-        return matchesSpecialties;
-      } else if (totalCertifications > 0) {
-        return matchesCertifications;
-      } else {
-        // Si no hay requisitos definidos, mostrar todas las empresas
-        return true;
-      }
-    }
+    // Verificar si cumple con especialidades
+    const matchesSpecialties =
+      totalSpecialties > 0 ? company.matchingSpecialties > 0 : true;
 
-    return true;
+    // Verificar si cumple con certificaciones
+    const matchesCertifications =
+      totalCertifications > 0 ? company.matchingCertifications > 0 : true;
+
+    // Aplicar filtro según el tipo seleccionado
+    switch (filterType) {
+      case "all": // Mostrar todas las empresas
+        return true;
+      case "both": // Cumplen con ambos requisitos
+        return matchesSpecialties && matchesCertifications;
+      case "specialties": // Solo cumplen con especialidades
+        return (
+          matchesSpecialties &&
+          (totalCertifications === 0 || !matchesCertifications)
+        );
+      case "certifications": // Solo cumplen con certificaciones
+        return (
+          matchesCertifications &&
+          (totalSpecialties === 0 || !matchesSpecialties)
+        );
+      case "none": // No cumplen con ninguno
+        return (
+          (!matchesSpecialties || totalSpecialties === 0) &&
+          (!matchesCertifications || totalCertifications === 0)
+        );
+      default:
+        return true;
+    }
   });
 
   // Manejar la selección de una empresa
@@ -213,20 +229,95 @@ export function RequirementParticipantsModal({
     if (isSelected) {
       setSelectedCompanies((prev) => [...prev, companyId]);
     } else {
-      setSelectedCompanies((prev) => prev.filter((id) => id !== companyId));
+      // Verificar si la empresa tiene NDAs subidos antes de deseleccionar
+      const hasOriginalNDA = uploadedNdaFiles[`${companyId}_original`] || 
+        eligibleCompanies.find(c => c.id === companyId)?.ndaFileName;
+      const hasSignedNDA = uploadedNdaFiles[`${companyId}_signed`] || 
+        eligibleCompanies.find(c => c.id === companyId)?.ndaSignedFileName;
+      
+      if (hasOriginalNDA || hasSignedNDA) {
+        // Mostrar diálogo de confirmación
+        setCompanyToDeselect(companyId);
+        setDeselectDialogOpen(true);
+      } else {
+        // Si no tiene NDAs, deseleccionar directamente
+        removeCompany(companyId);
+      }
+    }
+  };
+
+  // Función para remover una empresa y sus NDAs
+  const removeCompany = (companyId: number) => {
+    setDeselecting(true);
+    
+    // Al deseleccionar, también limpiamos los archivos NDA y su estado
+    setSelectedCompanies((prev) => prev.filter((id) => id !== companyId));
+    
+    // Limpiar archivos NDA para esta empresa
+    setNdaFiles((prev) => {
+      const newFiles = { ...prev };
+      delete newFiles[companyId];
+      return newFiles;
+    });
+    
+    // Limpiar estados de archivos subidos
+    setUploadedNdaFiles((prev) => {
+      const newUploaded = { ...prev };
+      delete newUploaded[`${companyId}_original`];
+      delete newUploaded[`${companyId}_signed`];
+      return newUploaded;
+    });
+
+    // Mostrar confirmación visual
+    toast.success("Empresa deseleccionada y archivos NDA eliminados");
+    setDeselecting(false);
+  };
+
+  // Confirmar deselección de empresa
+  const handleDeselect = () => {
+    if (companyToDeselect !== null) {
+      removeCompany(companyToDeselect);
+      setCompanyToDeselect(null);
+      setDeselectDialogOpen(false);
     }
   };
 
   // Manejar la carga de archivos NDA
-  const handleNdaFileChange = (companyId: number, file: File | null) => {
+  const handleNdaFileChange = (
+    companyId: number,
+    file: File | null,
+    isSignedNDA: boolean = false
+  ) => {
     setNdaFiles((prev) => ({
       ...prev,
       [companyId]: file,
     }));
+
+    // Marcar el archivo como subido si existe
+    if (file) {
+      const key = `${companyId}_${isSignedNDA ? 'signed' : 'original'}`;
+      setUploadedNdaFiles((prev) => ({
+        ...prev,
+        [key]: true,
+      }));
+
+      // Asegurarse de que la empresa esté seleccionada
+      if (!selectedCompanies.includes(companyId)) {
+        setSelectedCompanies((prev) => [...prev, companyId]);
+      }
+
+      // Mostrar confirmación visual
+      toast.success(
+        `NDA ${isSignedNDA ? "firmado" : "original"} seleccionado: ${file.name}`
+      );
+    }
   };
 
   // Función para mostrar el diálogo de confirmación para eliminar NDA
-  const handleDeleteNDAConfirm = (companyId: number, isSignedNDA: boolean = false) => {
+  const handleDeleteNDAConfirm = (
+    companyId: number,
+    isSignedNDA: boolean = false
+  ) => {
     const company = eligibleCompanies.find((c) => c.id === companyId);
     if (!company) return;
 
@@ -239,7 +330,7 @@ export function RequirementParticipantsModal({
       id: company.participantId,
       companyId: companyId,
       hasSignedNDA: !!company.ndaSignedFileName,
-      isSignedNDA: isSignedNDA // Indica si estamos eliminando el NDA firmado
+      isSignedNDA: isSignedNDA, // Indica si estamos eliminando el NDA firmado
     });
     setDeleteDialogOpen(true);
   };
@@ -255,7 +346,7 @@ export function RequirementParticipantsModal({
       // Si isSignedNDA es true, significa que estamos eliminando el NDA firmado
       // Si isSignedNDA es false o undefined, significa que estamos eliminando el NDA original
       const isSignedNDA = companyToDeleteNDA.isSignedNDA === true;
-      
+
       // Si estamos eliminando el NDA firmado, usar el endpoint nda_signed
       // Si estamos eliminando el NDA original, usar el endpoint nda (que eliminará también el firmado si existe)
       const endpoint = isSignedNDA
@@ -276,7 +367,7 @@ export function RequirementParticipantsModal({
       // Mostrar toast de éxito
       toast.success("NDA eliminado correctamente");
       loadEligibleCompanies(false);
-      
+
       // Llamar al callback de éxito si existe
       if (onSuccess) {
         // Llamamos a onSuccess sin mostrar toast adicional
@@ -385,20 +476,61 @@ export function RequirementParticipantsModal({
 
           {requirement ? (
             <>
-              <div className="flex items-center justify-between mb-4">
+              <div className="space-y-4 mb-4">
                 <div className="text-lg font-medium">
                   Requerimiento: {requirement.requirementName}
                 </div>
 
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="show-matching"
-                    checked={showOnlyMatching}
-                    onCheckedChange={setShowOnlyMatching}
-                  />
-                  <Label htmlFor="show-matching">
-                    Mostrar solo asociados que cumplen requisitos
-                  </Label>
+                <div className="space-y-2">
+                  <div className="flex items-center">
+                    <Label className="text-sm font-medium">Filtrar por:</Label>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant={filterType === "both" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setFilterType("both")}
+                      className="text-xs h-8"
+                    >
+                      Cumplen ambos
+                    </Button>
+                    <Button
+                      variant={
+                        filterType === "specialties" ? "default" : "outline"
+                      }
+                      size="sm"
+                      onClick={() => setFilterType("specialties")}
+                      className="text-xs h-8"
+                    >
+                      Solo especialidades
+                    </Button>
+                    <Button
+                      variant={
+                        filterType === "certifications" ? "default" : "outline"
+                      }
+                      size="sm"
+                      onClick={() => setFilterType("certifications")}
+                      className="text-xs h-8"
+                    >
+                      Solo certificaciones
+                    </Button>
+                    <Button
+                      variant={filterType === "none" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setFilterType("none")}
+                      className="text-xs h-8"
+                    >
+                      No cumplen
+                    </Button>
+                    <Button
+                      variant={filterType === "all" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setFilterType("all")}
+                      className="text-xs h-8"
+                    >
+                      Todos
+                    </Button>
+                  </div>
                 </div>
               </div>
 
@@ -436,10 +568,10 @@ export function RequirementParticipantsModal({
                         <TableHead className="text-center">
                           Certificaciones
                         </TableHead>
-                        <TableHead className="text-center">
+                        <TableHead className="w-[150px] text-center">
                           NDA Original
                         </TableHead>
-                        <TableHead className="text-center">
+                        <TableHead className="w-[150px] text-center">
                           NDA Firmado
                         </TableHead>
                       </TableRow>
@@ -468,7 +600,9 @@ export function RequirementParticipantsModal({
                           <TableCell className="text-center">
                             <div className="flex justify-center items-center">
                               <span className="font-medium">
-                                {totalSpecialties > 0 ? company.matchingSpecialties : "N/A"}
+                                {totalSpecialties > 0
+                                  ? company.matchingSpecialties
+                                  : "N/A"}
                               </span>
                               {totalSpecialties > 0 ? (
                                 company.matchingSpecialties > 0 ? (
@@ -482,7 +616,9 @@ export function RequirementParticipantsModal({
                           <TableCell className="text-center">
                             <div className="flex justify-center items-center">
                               <span className="font-medium">
-                                {totalCertifications > 0 ? company.matchingCertifications : "N/A"}
+                                {totalCertifications > 0
+                                  ? company.matchingCertifications
+                                  : "N/A"}
                               </span>
                               {totalCertifications > 0 ? (
                                 company.matchingCertifications > 0 ? (
@@ -494,88 +630,162 @@ export function RequirementParticipantsModal({
                             </div>
                           </TableCell>
                           {/* NDA Original */}
-                          <TableCell>
-                            <div className="flex flex-col gap-2">
+                          <TableCell className="w-[150px]">
+                            <div className="flex justify-center">
                               {company.ndaFileName ? (
-                                <div className="flex items-center gap-2">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-8 text-xs"
-                                    onClick={() =>
-                                      handleDownloadNDA(company.id, false)
-                                    }
-                                  >
-                                    <FileText className="mr-1 h-3 w-3" />
-                                    Ver NDA
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-8 text-xs text-red-500 hover:text-red-600"
-                                    onClick={() =>
-                                      handleDeleteNDAConfirm(company.id, false)
-                                    }
-                                  >
-                                    <Trash2 className="h-3 w-3" />
-                                  </Button>
-                                </div>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 w-[120px] text-xs"
+                                  onClick={() =>
+                                    handleDownloadNDA(company.id, false)
+                                  }
+                                >
+                                  <FileText className="mr-1 h-3 w-3" />
+                                  NDA Original
+                                </Button>
                               ) : selectedCompanies.includes(company.id) ? (
                                 <div>
-                                  <Input
-                                    type="file"
-                                    accept=".pdf"
-                                    onChange={(e) => {
-                                      const file = e.target.files?.[0] || null;
-                                      handleNdaFileChange(company.id, file);
-                                    }}
-                                    className="text-xs"
-                                  />
-                                  <p className="text-xs text-muted-foreground mt-1">
-                                    Subir NDA (PDF)
-                                  </p>
+                                  <div className="flex justify-center">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-8 w-[120px] text-xs"
+                                      asChild
+                                    >
+                                      <label htmlFor={`nda-file-${company.id}`}>
+                                        <FileText className="mr-1 h-3 w-3" />
+                                        {uploadedNdaFiles[`${company.id}_original`]
+                                          ? "NDA Listo"
+                                          : "Subir NDA"}
+                                      </label>
+                                    </Button>
+                                    <input
+                                      id={`nda-file-${company.id}`}
+                                      type="file"
+                                      accept=".pdf"
+                                      onChange={(e) => {
+                                        const file =
+                                          e.target.files?.[0] || null;
+                                        handleNdaFileChange(company.id, file);
+                                      }}
+                                      className="hidden"
+                                      disabled={!selectedCompanies.includes(company.id)}
+                                    />
+                                  </div>
                                 </div>
                               ) : (
-                                <span className="text-xs text-muted-foreground">
-                                  Seleccione la empresa para subir NDA
-                                </span>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 w-[120px] text-xs opacity-50"
+                                  disabled
+                                >
+                                  <FileText className="mr-1 h-3 w-3" />
+                                  Subir NDA
+                                </Button>
                               )}
                             </div>
                           </TableCell>
 
                           {/* NDA Firmado */}
-                          <TableCell>
-                            <div className="flex flex-col gap-2">
+                          <TableCell className="w-[150px]">
+                            <div className="flex flex-col items-center gap-2">
                               {company.ndaSignedFileName ? (
-                                <div className="flex items-center gap-2">
+                                <>
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    className="h-8 text-xs"
+                                    className="h-8 w-[120px] text-xs"
                                     onClick={() =>
                                       handleDownloadNDA(company.id, true)
                                     }
                                   >
                                     <FileText className="mr-1 h-3 w-3" />
-                                    Ver NDA Firmado
+                                    NDA Firmado
                                   </Button>
+                                  {selectedCompanies.includes(company.id) ? (
+                                    <>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-8 w-[120px] text-xs"
+                                        asChild
+                                      >
+                                        <label
+                                          htmlFor={`nda-signed-file-${company.id}`}
+                                        >
+                                          <FileText className="mr-1 h-3 w-3" />
+                                          Reemplazar
+                                        </label>
+                                      </Button>
+                                      <input
+                                        id={`nda-signed-file-${company.id}`}
+                                        type="file"
+                                        accept=".pdf"
+                                        onChange={(e) => {
+                                          const file = e.target.files?.[0] || null;
+                                          handleNdaFileChange(
+                                            company.id,
+                                            file,
+                                            true
+                                          );
+                                        }}
+                                        className="hidden"
+                                        disabled={!selectedCompanies.includes(company.id)}
+                                      />
+                                    </>
+                                  ) : (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-8 w-[120px] text-xs opacity-50"
+                                      disabled
+                                    >
+                                      <FileText className="mr-1 h-3 w-3" />
+                                      Reemplazar
+                                    </Button>
+                                  )}
+                                </>
+                              ) : (company.ndaFileName || uploadedNdaFiles[`${company.id}_original`]) && selectedCompanies.includes(company.id) ? (
+                                <>
                                   <Button
-                                    variant="ghost"
+                                    variant="outline"
                                     size="sm"
-                                    className="h-8 text-xs text-red-500 hover:text-red-600"
-                                    onClick={() =>
-                                      handleDeleteNDAConfirm(company.id, true)
-                                    }
+                                    className="h-8 w-[120px] text-xs"
+                                    asChild
                                   >
-                                    <Trash2 className="h-3 w-3" />
+                                    <label
+                                      htmlFor={`nda-signed-file-${company.id}`}
+                                    >
+                                      <FileText className="mr-1 h-3 w-3" />
+                                      {uploadedNdaFiles[`${company.id}_signed`]
+                                        ? "NDA Listo"
+                                        : "Subir firmado"}
+                                    </label>
                                   </Button>
-                                </div>
+                                  <input
+                                    id={`nda-signed-file-${company.id}`}
+                                    type="file"
+                                    accept=".pdf"
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0] || null;
+                                      handleNdaFileChange(company.id, file, true);
+                                    }}
+                                    className="hidden"
+                                    disabled={!selectedCompanies.includes(company.id)}
+                                  />
+                                </>
                               ) : (
-                                <span className="text-xs text-muted-foreground">
-                                  {company.ndaFileName ? 
-                                    "El NDA firmado se gestiona en otro módulo" : 
-                                    "Primero suba el NDA original"}
-                                </span>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 w-[120px] text-xs opacity-50"
+                                  disabled
+                                >
+                                  <FileText className="mr-1 h-3 w-3" />
+                                  Subir firmado
+                                </Button>
                               )}
                             </div>
                           </TableCell>
@@ -632,6 +842,34 @@ export function RequirementParticipantsModal({
                 </>
               ) : (
                 "Eliminar"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={deselectDialogOpen} onOpenChange={setDeselectDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Deseleccionar empresa?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta empresa tiene archivos NDA subidos. Al deseleccionarla, se eliminarán todos los archivos NDA asociados y tendrá que volver a subirlos si la selecciona nuevamente.
+              <br /><br />
+              ¿Está seguro de que desea deseleccionar esta empresa?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeselectDialogOpen(false)}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeselect} disabled={deselecting}>
+              {deselecting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deseleccionando...
+                </>
+              ) : (
+                "Deseleccionar"
               )}
             </AlertDialogAction>
           </AlertDialogFooter>

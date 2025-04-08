@@ -134,7 +134,7 @@ export const AreasModal = ({
       }
 
       // Recargar para obtener el ID real y datos actualizados
-      await loadAreas(); 
+      await loadAreas();
       setAreaForm({ isOpen: false, area: undefined });
       toast.success("Área creada correctamente");
     } catch (error: any) {
@@ -203,7 +203,7 @@ export const AreasModal = ({
       );
 
       if (!response.ok) throw new Error();
-      
+
       // Ya no necesitamos llamar a onAreasUpdated aquí porque loadAreas lo hará
       await loadAreas();
       toast.success("Área eliminada correctamente");
@@ -226,18 +226,15 @@ export const AreasModal = ({
         )
       );
 
-      const response = await fetch(
-        `/api/clients/${client.id}/areas/${id}`,
-        {
-          method: "PATCH",
-          headers: {
-            Authorization: `Bearer ${getToken()}`,
-          },
-        }
-      );
+      const response = await fetch(`/api/clients/${client.id}/areas/${id}`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${getToken()}`,
+        },
+      });
 
       if (!response.ok) throw new Error();
-      
+
       // Ya no necesitamos llamar a onAreasUpdated aquí porque loadAreas lo hará
       await loadAreas();
       toast.success(
@@ -259,9 +256,7 @@ export const AreasModal = ({
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle>
-              Áreas/Direcciones - {client?.name}
-            </DialogTitle>
+            <DialogTitle>Áreas/Direcciones - {client?.name}</DialogTitle>
           </DialogHeader>
 
           <div className="flex justify-end">
@@ -293,14 +288,18 @@ export const AreasModal = ({
       <AlertDialog
         open={deleteDialog.isOpen}
         onOpenChange={(isOpen) =>
-          setDeleteDialog({ isOpen, area: isOpen ? deleteDialog.area : undefined })
+          setDeleteDialog({
+            isOpen,
+            area: isOpen ? deleteDialog.area : undefined,
+          })
         }
       >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción eliminará el área "{deleteDialog.area?.areaName}". Esta acción no se puede deshacer.
+              Esta acción eliminará el área "{deleteDialog.area?.areaName}".
+              Esta acción no se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -312,7 +311,9 @@ export const AreasModal = ({
               Cancelar
             </AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => deleteDialog.area && handleDeleteArea(deleteDialog.area)}
+              onClick={() =>
+                deleteDialog.area && handleDeleteArea(deleteDialog.area)
+              }
             >
               Eliminar
             </AlertDialogAction>

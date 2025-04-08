@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useState, useEffect } from "react";
-import { toast } from "sonner"; 
+import { toast } from "sonner";
 import { type ClientArea, clientAreaCreateSchema } from "@/lib/schemas/client";
 
 interface AreaFormProps {
@@ -73,7 +73,7 @@ export const AreaForm = ({
     try {
       setIsSubmitting(true);
       await onSubmit(data);
-      onClose(); 
+      onClose();
     } catch (error) {
       // El error ya se maneja en el componente padre
     } finally {
@@ -86,7 +86,7 @@ export const AreaForm = ({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {initialData ? "Editar Área" : "Nueva Área"}
+            {initialData ? "Editar Contacto" : "Nuevo Contacto"}
           </DialogTitle>
         </DialogHeader>
 
@@ -100,10 +100,10 @@ export const AreaForm = ({
               name="areaName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Nombre del área</FormLabel>
+                  <FormLabel>Puesto</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="Nombre del área"
+                      placeholder="Puesto"
                       {...field}
                       disabled={isSubmitting}
                     />
