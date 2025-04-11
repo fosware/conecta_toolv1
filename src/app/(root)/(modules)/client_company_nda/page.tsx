@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useUserRole } from "@/hooks/use-user-role";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Plus, RefreshCw, Search } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { getToken } from "@/lib/auth";
@@ -26,7 +26,7 @@ const ClientCompanyNDA = () => {
   const [loadingPermission, setLoadingPermission] = useState(true);
   const [ndaItems, setNdaItems] = useState<ClientCompanyNDAItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [showActive, setShowActive] = useState(true);
+  const [showOnlyValid, setShowOnlyValid] = useState(true);
 
   const debouncedSearch = useDebounce(searchQuery, 300);
 
@@ -103,7 +103,7 @@ const ClientCompanyNDA = () => {
       if (debouncedSearch) {
         params.append("search", debouncedSearch);
       }
-      params.append("showActive", showActive.toString());
+      params.append("showOnlyValid", showOnlyValid.toString());
 
       const url = `/api/client_company_nda?${params.toString()}`;
 
@@ -125,7 +125,7 @@ const ClientCompanyNDA = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedSearch, showActive]);
+  }, [debouncedSearch, showOnlyValid]);
 
   // Cargar datos una vez que se verifique que tiene permisos
   useEffect(() => {
@@ -212,12 +212,12 @@ const ClientCompanyNDA = () => {
           <div className="h-[40px] flex items-center">
             <div className="flex items-center space-x-2">
               <Switch
-                checked={showActive}
-                onCheckedChange={setShowActive}
-                id="active-filter"
+                checked={showOnlyValid}
+                onCheckedChange={setShowOnlyValid}
+                id="valid-filter"
               />
-              <Label htmlFor="active-filter" className="text-sm">
-                Mostrar solo activos
+              <Label htmlFor="valid-filter" className="text-sm">
+                Mostrar solo vigentes
               </Label>
             </div>
           </div>

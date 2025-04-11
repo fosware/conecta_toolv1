@@ -25,15 +25,25 @@ export async function GET(request: NextRequest) {
 
     // Parámetros de búsqueda
     const searchQuery = request.nextUrl.searchParams.get("search") || "";
-    const showActive = request.nextUrl.searchParams.get("showActive") === "true";
+    const showOnlyValid = request.nextUrl.searchParams.get("showOnlyValid") === "true";
 
     // Construir la condición where base
     let whereCondition: Prisma.ClientCompanyNDAWhereInput = {};
 
-    // Añadir condición de activo si se solicita
-    if (showActive) {
-      whereCondition.isActive = true;
+    // Filtrar por NDAs vigentes si se solicita
+    if (showOnlyValid) {
+      // Obtener la fecha actual (hoy)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Establecer a inicio del día para comparación correcta
+      
+      // En el modelo, ndaExpirationDate es obligatorio (no puede ser null)
+      whereCondition.ndaExpirationDate = {
+        gte: today
+      };
     }
+
+    // Siempre excluir los registros eliminados
+    whereCondition.isDeleted = false;
 
     // Añadir condición de búsqueda si existe
     if (searchQuery) {
@@ -80,11 +90,10 @@ export async function GET(request: NextRequest) {
       clientName: nda.Client.name,
       companyId: nda.companyId,
       companyName: nda.Company.companyName,
-      ndaFileName: nda.ndaFileName,
-      ndaDateUploaded: nda.ndaDateUploaded?.toISOString() || null,
       ndaSignedFileName: nda.ndaSignedFileName,
-      ndaSignedAt: nda.ndaSignedAt?.toISOString() || null,
       ndaExpirationDate: nda.ndaExpirationDate?.toISOString() || null,
+      createdAt: nda.createdAt.toISOString(),
+      updatedAt: nda.updatedAt.toISOString(),
       isActive: nda.isActive,
     }));
 
@@ -120,7 +129,7 @@ export async function POST(request: NextRequest) {
     const ndaFile = formData.get("ndaFile");
 
     // Validar datos
-    if (!clientId || !companyId || !ndaFile) {
+    if (!clientId || !companyId || !ndaFile || !expirationDateStr) {
       return NextResponse.json(
         { 
           success: false,
@@ -174,19 +183,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Crear la fecha de expiración a partir de los componentes de la fecha
+    const [year, month, day] = expirationDateStr.split('-').map(Number);
+    // Crear una fecha simple sin preocuparse por la zona horaria
+    const expirationDate = new Date(year, month - 1, day);
+
     // Crear el NDA en la base de datos
     const newNDA = await prisma.clientCompanyNDA.create({
       data: {
         clientId,
         companyId,
-        ndaFileName,
-        ndaFile: ndaFileData,
-        ndaDateUploaded: new Date(),
-        // Crear la fecha de expiración a partir de los componentes de la fecha para evitar problemas con zonas horarias
-        ndaExpirationDate: expirationDateStr ? (() => {
-          const [year, month, day] = expirationDateStr.split('-').map(Number);
-          return new Date(Date.UTC(year, month - 1, day));
-        })() : null,
+        ndaSignedFileName: ndaFileName,
+        ndaSignedFile: ndaFileData,
+        ndaExpirationDate: expirationDate,
         isActive: true,
         userId: userId
       },

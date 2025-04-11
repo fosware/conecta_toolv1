@@ -4,10 +4,9 @@ export interface ClientCompanyNDAItem {
   clientName: string;
   companyId: number;
   companyName: string;
-  ndaFileName: string | null;
-  ndaDateUploaded: string;
-  ndaSignedFileName: string | null;
-  ndaSignedAt: string | null;
+  ndaSignedFileName: string;
   ndaExpirationDate: string | null;
+  createdAt: string;
+  updatedAt: string;
   isActive: boolean;
 }

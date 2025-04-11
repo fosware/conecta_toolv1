@@ -47,7 +47,7 @@ interface Company {
 const formSchema = z.object({
   clientId: z.string().min(1, { message: "Seleccione un cliente" }),
   companyId: z.string().min(1, { message: "Seleccione un asociado" }),
-  expirationDate: z.string().optional(),
+  expirationDate: z.string().min(1, { message: "La fecha de expiración es requerida" }),
 });
 
 interface NDAFormProps {
@@ -68,11 +68,7 @@ export function ClientCompanyNDAForm({
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [ndaFile, setNdaFile] = useState<File | null>(null);
-  const [signedNdaFile, setSignedNdaFile] = useState<File | null>(null);
   const [currentFileName, setCurrentFileName] = useState("");
-  const [currentSignedFileName, setCurrentSignedFileName] = useState("");
-  const [displayDate, setDisplayDate] = useState<string>("");
-  const [signedDate, setSignedDate] = useState<string>("");
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -90,12 +86,12 @@ export function ClientCompanyNDAForm({
       const d = date instanceof Date ? date : new Date(date);
       if (isNaN(d.getTime())) throw new Error("Invalid date");
 
-      return d.toLocaleDateString("es-ES", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-        timeZone: "UTC", // Usar UTC para evitar problemas con zonas horarias
-      });
+      // Formatear fecha de forma simple
+      const day = String(d.getDate()).padStart(2, "0");
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const year = d.getFullYear();
+      
+      return `${day}/${month}/${year}`;
     } catch (error) {
       console.error("Error formatting date:", date, error);
       return "";
@@ -141,51 +137,21 @@ export function ClientCompanyNDAForm({
           form.setValue("companyId", editItem.companyId.toString());
 
           // Mostrar el nombre del archivo actual
-          setCurrentFileName(editItem.ndaFileName || "");
-          setCurrentSignedFileName(editItem.ndaSignedFileName || "");
+          if (editItem.ndaSignedFileName) {
+            setCurrentFileName(editItem.ndaSignedFileName);
+          }
 
+          // Establecer la fecha de expiración
           if (editItem.ndaExpirationDate) {
-            // Crear fecha UTC para evitar problemas con zonas horarias
-            const dateObj = new Date(editItem.ndaExpirationDate);
-
-            // Extraer año, mes y día de la fecha UTC
-            const year = dateObj.getUTCFullYear();
-            const month = String(dateObj.getUTCMonth() + 1).padStart(2, "0");
-            const day = String(dateObj.getUTCDate()).padStart(2, "0");
+            // Crear una nueva fecha en UTC para evitar problemas con zonas horarias
+            const date = new Date(editItem.ndaExpirationDate);
+            // Ajustar para compensar la diferencia de zona horaria
+            const year = date.getUTCFullYear();
+            const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+            const day = String(date.getUTCDate()).padStart(2, "0");
             const formattedDate = `${year}-${month}-${day}`;
-
             form.setValue("expirationDate", formattedDate);
-
-            // Actualizar la fecha de visualización
-            setDisplayDate(formatDateForDisplay(dateObj));
           }
-
-          if (editItem.ndaSignedAt) {
-            const signedDateObj = new Date(editItem.ndaSignedAt);
-            const year = signedDateObj.getUTCFullYear();
-            const month = String(signedDateObj.getUTCMonth() + 1).padStart(
-              2,
-              "0"
-            );
-            const day = String(signedDateObj.getUTCDate()).padStart(2, "0");
-            const formattedSignedDate = `${year}-${month}-${day}`;
-            setSignedDate(formattedSignedDate);
-          } else {
-            setSignedDate("");
-          }
-        } else {
-          // Si es un nuevo NDA, resetear el formulario
-          form.reset({
-            clientId: "",
-            companyId: "",
-            expirationDate: "",
-          });
-          setCurrentFileName("");
-          setCurrentSignedFileName("");
-          setDisplayDate("");
-          setSignedDate("");
-          setNdaFile(null);
-          setSignedNdaFile(null);
         }
       } catch (error) {
         console.error("Error loading data:", error);
@@ -197,85 +163,50 @@ export function ClientCompanyNDAForm({
 
     if (isOpen) {
       loadData();
-    } else {
-      // Cuando se cierra el modal, resetear el formulario
-      form.reset();
-      setNdaFile(null);
-      setSignedNdaFile(null);
-      setCurrentFileName("");
-      setCurrentSignedFileName("");
-      setDisplayDate("");
-      setSignedDate("");
     }
   }, [isOpen, editItem, form]);
 
-  // Cuando se selecciona un archivo de NDA firmado, establecer la fecha de firma al día actual
+  // Limpiar el formulario cuando se cierra
   useEffect(() => {
-    if (signedNdaFile && !signedDate) {
-      // Obtener la fecha actual en formato YYYY-MM-DD
-      const today = new Date();
-      const year = today.getFullYear();
-      const month = String(today.getMonth() + 1).padStart(2, "0");
-      const day = String(today.getDate()).padStart(2, "0");
-      const formattedDate = `${year}-${month}-${day}`;
-      
-      setSignedDate(formattedDate);
+    if (!isOpen) {
+      form.reset();
+      setNdaFile(null);
+      setCurrentFileName("");
     }
-  }, [signedNdaFile, signedDate]);
+  }, [isOpen, form]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const file = e.target.files[0];
-      // Verificar que sea un PDF
-      if (file.type !== "application/pdf") {
-        toast.error("El archivo debe ser un PDF");
-        return;
-      }
-      setNdaFile(file);
-    }
-  };
-
-  const handleSignedFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const file = e.target.files[0];
-      // Verificar que sea un PDF
-      if (file.type !== "application/pdf") {
-        toast.error("El archivo debe ser un PDF");
-        return;
-      }
-      setSignedNdaFile(file);
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      setNdaFile(files[0]);
+      setCurrentFileName(files[0].name);
+    } else {
+      setNdaFile(null);
     }
   };
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    try {
-      setIsSubmitting(true);
+    setIsSubmitting(true);
 
-      // Preparar FormData para la solicitud
+    try {
       const formData = new FormData();
       formData.append("clientId", values.clientId);
       formData.append("companyId", values.companyId);
+      formData.append("expirationDate", values.expirationDate);
 
-      if (values.expirationDate) {
-        // Convertir la fecha a formato ISO UTC para evitar problemas con zonas horarias
-        const dateObj = new Date(values.expirationDate);
-        const isoDate = dateObj.toISOString().split("T")[0];
-        formData.append("expirationDate", isoDate);
-      }
-
-      // Si hay un nuevo archivo, lo añadimos al FormData
       if (ndaFile) {
         formData.append("ndaFile", ndaFile);
       }
 
-      // Determinar si estamos creando o actualizando
-      const url = editItem
-        ? `/api/client_company_nda/${editItem.id}`
-        : "/api/client_company_nda";
+      let url = "/api/client_company_nda";
+      let method = "POST";
 
-      const method = editItem ? "PUT" : "POST";
+      // Si estamos editando, usar PUT y la URL con ID
+      if (editItem) {
+        url = `/api/client_company_nda/${editItem.id}`;
+        method = "PUT";
+      }
 
-      // Enviar la solicitud
       const response = await fetch(url, {
         method,
         headers: {
@@ -284,51 +215,9 @@ export function ClientCompanyNDAForm({
         body: formData,
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        // Manejar errores específicos
-        if (response.status === 409) {
-          toast.error("Ya existe un NDA activo para este cliente y asociado");
-        } else {
-          toast.error(data.error || "Error al guardar el NDA");
-        }
-        setIsSubmitting(false);
-        return;
-      }
-
-      // Obtener el ID del NDA (ya sea del existente o del recién creado)
-      const ndaId = editItem ? editItem.id : data.data.id;
-
-      // Si hay un archivo firmado, lo subimos usando la ruta específica
-      if (signedNdaFile) {
-        // Validar que se haya seleccionado una fecha de firma
-        if (!signedDate) {
-          toast.error("Debe seleccionar una fecha de firma");
-          setIsSubmitting(false);
-          return;
-        }
-
-        const signedFormData = new FormData();
-        signedFormData.append("signedFile", signedNdaFile);
-        // Usar la fecha de firma seleccionada por el usuario
-        signedFormData.append("signedDate", signedDate);
-
-        const signedResponse = await fetch(
-          `/api/client_company_nda/${ndaId}/upload-signed`,
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${getToken()}`,
-            },
-            body: signedFormData,
-          }
-        );
-
-        if (!signedResponse.ok) {
-          const errorData = await signedResponse.json();
-          throw new Error(errorData.error || "Error al guardar el NDA firmado");
-        }
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Error al guardar el NDA");
       }
 
       toast.success(
@@ -337,9 +226,11 @@ export function ClientCompanyNDAForm({
       onSuccess();
       onClose();
     } catch (error) {
-      console.error("Error saving NDA:", error);
+      console.error("Error submitting NDA:", error);
       toast.error(
-        error instanceof Error ? error.message : "Error al guardar el NDA"
+        error instanceof Error
+          ? error.message
+          : "Error al guardar el NDA"
       );
     } finally {
       setIsSubmitting(false);
@@ -354,14 +245,11 @@ export function ClientCompanyNDAForm({
             {editItem ? "Editar NDA" : "Crear Nuevo NDA"}
           </DialogTitle>
           <DialogDescription>
-            {editItem
-              ? "Actualice la información del NDA"
-              : "Complete la información para crear un nuevo NDA"}
+            Complete los campos para {editItem ? "actualizar el" : "crear un nuevo"} NDA.
           </DialogDescription>
         </DialogHeader>
-
         {isLoading ? (
-          <div className="flex justify-center py-8">
+          <div className="flex justify-center items-center py-8">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : (
@@ -432,7 +320,7 @@ export function ClientCompanyNDAForm({
               />
 
               <div className="space-y-2">
-                <FormLabel>Documento NDA</FormLabel>
+                <FormLabel>Documento NDA Firmado</FormLabel>
                 <Input
                   type="file"
                   accept=".pdf"
@@ -459,72 +347,13 @@ export function ClientCompanyNDAForm({
                       <Input
                         type="date"
                         {...field}
-                        disabled={
-                          isSubmitting || (!ndaFile && !currentFileName)
-                        }
+                        disabled={isSubmitting}
                       />
                     </FormControl>
                     <FormMessage />
-                    {!ndaFile && !currentFileName && (
-                      <p className="text-sm text-muted-foreground">
-                        Primero debe seleccionar un documento NDA
-                      </p>
-                    )}
                   </FormItem>
                 )}
               />
-
-              <div className="space-y-2">
-                <FormLabel>Documento NDA Firmado</FormLabel>
-                <Input
-                  type="file"
-                  accept=".pdf"
-                  onChange={handleSignedFileChange}
-                  disabled={isSubmitting || !ndaFile && !currentFileName}
-                  className="flex-1"
-                />
-                {currentSignedFileName && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setSignedNdaFile(null)}
-                    disabled={isSubmitting}
-                  >
-                    Limpiar
-                  </Button>
-                )}
-                {currentSignedFileName && (
-                  <p className="text-sm text-muted-foreground">
-                    Archivo actual: {currentSignedFileName}
-                  </p>
-                )}
-                {!ndaFile && !currentFileName && (
-                  <p className="text-sm text-muted-foreground">
-                    Primero debe subir un NDA original
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <FormLabel>Fecha de Firma</FormLabel>
-                <Input
-                  type="date"
-                  value={signedDate}
-                  onChange={(e) => setSignedDate(e.target.value)}
-                  disabled={
-                    isSubmitting ||
-                    (!signedNdaFile && !currentSignedFileName) ||
-                    (!ndaFile && !currentFileName)
-                  }
-                  required
-                />
-                {!signedNdaFile && !currentSignedFileName && (
-                  <p className="text-sm text-muted-foreground">
-                    Primero debe seleccionar un documento NDA firmado
-                  </p>
-                )}
-              </div>
 
               <DialogFooter>
                 <Button

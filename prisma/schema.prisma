@@ -500,13 +500,9 @@ model ClientCompanyNDA {
   id                Int       @id @default(autoincrement())
   clientId          Int
   companyId         Int
-  ndaFile           Bytes?
-  ndaFileName       String?
-  ndaDateUploaded   DateTime  @default(now())
-  ndaSignedFile     Bytes?
-  ndaSignedFileName String?
-  ndaSignedAt       DateTime?
-  ndaExpirationDate DateTime?
+  ndaSignedFile     Bytes
+  ndaSignedFileName String
+  ndaExpirationDate DateTime
   isActive          Boolean   @default(true)
   isDeleted         Boolean   @default(false)
   dateDeleted       DateTime?

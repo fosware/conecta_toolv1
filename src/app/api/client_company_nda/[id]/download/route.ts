@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getUserFromToken } from "@/lib/get-user-from-token";
 import { NextRequest, NextResponse } from "next/server";
 
-// GET: Descargar el archivo NDA original
+// GET: Descargar el archivo NDA firmado
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -21,12 +21,12 @@ export async function GET(
     const nda = await prisma.clientCompanyNDA.findUnique({
       where: { id: ndaId },
       select: {
-        ndaFile: true,
-        ndaFileName: true,
+        ndaSignedFile: true,
+        ndaSignedFileName: true,
       },
     });
 
-    if (!nda || !nda.ndaFile || !nda.ndaFileName) {
+    if (!nda || !nda.ndaSignedFile || !nda.ndaSignedFileName) {
       return NextResponse.json(
         { 
           success: false,
@@ -37,13 +37,13 @@ export async function GET(
     }
 
     // Crear la respuesta con el archivo
-    const response = new NextResponse(nda.ndaFile);
+    const response = new NextResponse(nda.ndaSignedFile);
     
     // Establecer los encabezados adecuados para la descarga
     response.headers.set("Content-Type", "application/octet-stream");
     response.headers.set(
       "Content-Disposition",
-      `attachment; filename="${nda.ndaFileName}"`
+      `attachment; filename="${nda.ndaSignedFileName}"`
     );
 
     return response;

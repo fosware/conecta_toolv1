@@ -53,11 +53,10 @@ export async function GET(
       clientName: nda.Client.name,
       companyId: nda.companyId,
       companyName: nda.Company.companyName,
-      ndaFileName: nda.ndaFileName,
-      ndaDateUploaded: nda.ndaDateUploaded?.toISOString() || null,
       ndaSignedFileName: nda.ndaSignedFileName,
-      ndaSignedAt: nda.ndaSignedAt?.toISOString() || null,
       ndaExpirationDate: nda.ndaExpirationDate?.toISOString() || null,
+      createdAt: nda.createdAt.toISOString(),
+      updatedAt: nda.updatedAt.toISOString(),
       isActive: nda.isActive,
     };
 
@@ -115,7 +114,7 @@ export async function PUT(
     const ndaFile = formData.get("ndaFile");
 
     // Validar datos
-    if (!clientId || !companyId) {
+    if (!clientId || !companyId || !expirationDateStr) {
       return NextResponse.json(
         { 
           success: false,
@@ -145,15 +144,16 @@ export async function PUT(
       );
     }
 
+    // Crear la fecha de expiración a partir de los componentes de la fecha
+    const [year, month, day] = expirationDateStr.split('-').map(Number);
+    // Crear una fecha simple sin preocuparse por la zona horaria
+    const expirationDate = new Date(year, month - 1, day);
+
     // Preparar datos para actualización
     const updateData: any = {
       clientId,
       companyId,
-      // Crear la fecha de expiración a partir de los componentes de la fecha para evitar problemas con zonas horarias
-      ndaExpirationDate: expirationDateStr ? (() => {
-        const [year, month, day] = expirationDateStr.split('-').map(Number);
-        return new Date(Date.UTC(year, month - 1, day));
-      })() : null,
+      ndaExpirationDate: expirationDate,
     };
 
     // Si se proporciona un nuevo archivo, procesarlo
@@ -162,9 +162,8 @@ export async function PUT(
         "arrayBuffer" in ndaFile &&
         typeof ndaFile.arrayBuffer === "function") {
       const bytes = await ndaFile.arrayBuffer();
-      updateData.ndaFile = Buffer.from(bytes);
-      updateData.ndaFileName = "name" in ndaFile ? (ndaFile.name as string) : null;
-      updateData.ndaDateUploaded = new Date();
+      updateData.ndaSignedFile = Buffer.from(bytes);
+      updateData.ndaSignedFileName = "name" in ndaFile ? (ndaFile.name as string) : null;
     }
 
     // Actualizar el NDA en la base de datos
@@ -225,6 +224,8 @@ export async function DELETE(
       where: { id: ndaId },
       data: {
         isActive: false,
+        isDeleted: true,
+        dateDeleted: new Date(),
       },
     });
 

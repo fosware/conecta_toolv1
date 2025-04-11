@@ -31,17 +31,15 @@ export function ViewNDADetails({
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "N/A";
     try {
-      // Si la fecha ya es un objeto Date, usarlo directamente
       const d = new Date(dateString);
       if (isNaN(d.getTime())) throw new Error("Invalid date");
 
-      // Usar formato español (DD/MM/YYYY)
-      return d.toLocaleDateString("es-ES", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-        timeZone: "UTC", // Forzar interpretación UTC para evitar problemas con zonas horarias
-      });
+      // Formatear fecha de forma simple
+      const day = String(d.getDate()).padStart(2, "0");
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const year = d.getFullYear();
+      
+      return `${day}/${month}/${year}`;
     } catch (error) {
       console.error("Error formatting date:", dateString, error);
       return "Fecha inválida";
@@ -92,69 +90,18 @@ export function ViewNDADetails({
     }
   };
 
-  const handleDownloadSignedNDA = async () => {
-    try {
-      const response = await fetch(
-        `/api/client_company_nda/${ndaItem.id}/download-signed`,
-        {
-          headers: {
-            Authorization: `Bearer ${getToken()}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Error al descargar el NDA firmado");
-      }
-
-      // Obtener el nombre del archivo de la cabecera de respuesta
-      const contentDisposition = response.headers.get("content-disposition");
-      let filename = "nda-signed-document.pdf";
-      if (contentDisposition) {
-        const filenameMatch = contentDisposition.match(/filename="(.+)"/);
-        if (filenameMatch && filenameMatch[1]) {
-          filename = filenameMatch[1];
-        }
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      toast.success("NDA firmado descargado correctamente");
-    } catch (error) {
-      console.error("Error downloading signed NDA:", error);
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Error al descargar el NDA firmado"
-      );
-    }
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[550px]">
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Detalles del NDA</DialogTitle>
           <DialogDescription>
-            Información del acuerdo de confidencialidad
+            Información detallada del NDA entre {ndaItem.clientName} y{" "}
+            {ndaItem.companyName}.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
-          <div className="flex justify-center">
-            <div className="bg-muted p-6 rounded-lg inline-flex items-center justify-center">
-              <FileText className="h-16 w-16 text-primary" />
-            </div>
-          </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div>
               <h3 className="text-sm font-medium text-muted-foreground">
@@ -175,8 +122,6 @@ export function ViewNDADetails({
               <div className="mt-1">
                 {ndaItem.ndaSignedFileName ? (
                   <Badge variant="default">Firmado</Badge>
-                ) : ndaItem.ndaFileName ? (
-                  <Badge variant="secondary">Pendiente de firma</Badge>
                 ) : (
                   <Badge variant="destructive">Sin NDA</Badge>
                 )}
@@ -189,38 +134,23 @@ export function ViewNDADetails({
               <p className="text-base font-semibold">
                 {ndaItem.ndaExpirationDate
                   ? (() => {
-                      // Crear fechas usando UTC para evitar problemas con zonas horarias
+                      // Crear fecha actual
                       const today = new Date();
-                      const todayUTC = new Date(
-                        Date.UTC(
-                          today.getFullYear(),
-                          today.getMonth(),
-                          today.getDate()
-                        )
-                      );
-
-                      // Convertir la fecha de expiración a UTC
-                      const expirationDate = new Date(
-                        ndaItem.ndaExpirationDate
-                      );
-                      const expirationDateUTC = new Date(
-                        Date.UTC(
-                          expirationDate.getUTCFullYear(),
-                          expirationDate.getUTCMonth(),
-                          expirationDate.getUTCDate(),
-                          23,
-                          59,
-                          59 // Establecer a final del día para comparación correcta
-                        )
-                      );
-
-                      // Un NDA se considera válido hasta el final del día de expiración
-                      return todayUTC <= expirationDateUTC ? (
-                        formatDate(ndaItem.ndaExpirationDate)
-                      ) : (
+                      today.setHours(0, 0, 0, 0); // Inicio del día para comparación correcta
+                      
+                      // Crear fecha de expiración
+                      const expirationDate = new Date(ndaItem.ndaExpirationDate);
+                      expirationDate.setHours(0, 0, 0, 0); // Inicio del día para comparación correcta
+                      
+                      // Comparar fechas (ignorando la hora)
+                      const isExpired = today > expirationDate;
+                      
+                      return isExpired ? (
                         <span className="text-destructive font-medium">
                           Expirado: {formatDate(ndaItem.ndaExpirationDate)}
                         </span>
+                      ) : (
+                        formatDate(ndaItem.ndaExpirationDate)
                       );
                     })()
                   : "No definida"}
@@ -228,18 +158,18 @@ export function ViewNDADetails({
             </div>
             <div>
               <h3 className="text-sm font-medium text-muted-foreground">
-                Fecha de Firma
+                Fecha de Creación
               </h3>
-              <p className="text-base">{formatDate(ndaItem.ndaSignedAt)}</p>
+              <p className="text-base">{formatDate(ndaItem.createdAt)}</p>
             </div>
           </div>
 
           <div className="flex flex-col gap-2">
             <h3 className="text-sm font-medium text-muted-foreground">
-              Documentos
+              Documento
             </h3>
             <div className="flex gap-2">
-              {ndaItem.ndaFileName && (
+              {ndaItem.ndaSignedFileName && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -247,18 +177,7 @@ export function ViewNDADetails({
                   className="flex items-center gap-2"
                 >
                   <Download className="h-4 w-4" />
-                  Descargar NDA Original
-                </Button>
-              )}
-              {ndaItem.ndaSignedFileName && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDownloadSignedNDA}
-                  className="flex items-center gap-2"
-                >
-                  <Download className="h-4 w-4" />
-                  Descargar NDA Firmado
+                  Descargar NDA
                 </Button>
               )}
             </div>
