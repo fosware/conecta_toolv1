@@ -196,6 +196,28 @@ export function ClientCompanyNDAForm({
         return;
       }
 
+      // Verificar si ya existe un NDA activo para esta combinación antes de enviar
+      const checkResponse = await fetch("/api/client_company_nda/check-exists", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({
+          clientId: values.clientId,
+          companyId: values.companyId,
+          excludeId: editItem?.id || undefined,
+        }),
+      });
+
+      const checkData = await checkResponse.json();
+      
+      if (checkData.success && checkData.exists) {
+        toast.error("Ya existe un NDA activo para este cliente y asociado");
+        setIsSubmitting(false);
+        return;
+      }
+
       const formData = new FormData();
       formData.append("clientId", values.clientId);
       formData.append("companyId", values.companyId);
