@@ -129,11 +129,21 @@ export async function POST(request: NextRequest) {
     const ndaFile = formData.get("ndaFile");
 
     // Validar datos
-    if (!clientId || !companyId || !ndaFile || !expirationDateStr) {
+    if (!clientId || !companyId || !expirationDateStr) {
       return NextResponse.json(
         { 
           success: false,
-          error: "Faltan datos requeridos" 
+          error: "Faltan datos del cliente o asociado o fecha de expiración" 
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!ndaFile) {
+      return NextResponse.json(
+        { 
+          success: false,
+          error: "El archivo NDA es requerido" 
         },
         { status: 400 }
       );
@@ -144,7 +154,8 @@ export async function POST(request: NextRequest) {
       where: {
         clientId,
         companyId,
-        isActive: true
+        isActive: true,
+        isDeleted: false
       }
     });
     

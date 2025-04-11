@@ -189,6 +189,13 @@ export function ClientCompanyNDAForm({
     setIsSubmitting(true);
 
     try {
+      // Validar que se haya seleccionado un archivo NDA si es creación
+      if (!editItem && !ndaFile) {
+        toast.error("El archivo NDA es requerido");
+        setIsSubmitting(false);
+        return;
+      }
+
       const formData = new FormData();
       formData.append("clientId", values.clientId);
       formData.append("companyId", values.companyId);
@@ -217,7 +224,20 @@ export function ClientCompanyNDAForm({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Error al guardar el NDA");
+        
+        // Manejar el error de conflicto (409) de manera especial
+        if (response.status === 409) {
+          // No lanzar error, solo mostrar el toast y detener el proceso
+          toast.error("Ya existe un NDA activo para este cliente y asociado");
+          setIsSubmitting(false);
+          return;
+        } 
+        
+        // Para otros errores, lanzar la excepción
+        throw new Error(
+          errorData.error || 
+          (response.status === 400 ? "Faltan datos requeridos para el NDA" : "Error al guardar el NDA")
+        );
       }
 
       toast.success(

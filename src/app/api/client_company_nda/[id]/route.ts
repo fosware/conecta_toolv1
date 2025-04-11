@@ -130,6 +130,7 @@ export async function PUT(
         clientId,
         companyId,
         isActive: true,
+        isDeleted: false,
         id: { not: ndaId } // Excluir el NDA actual
       }
     });

@@ -25,8 +25,10 @@ const ClientCompanyNDA = () => {
   const [hasPermission, setHasPermission] = useState(false);
   const [loadingPermission, setLoadingPermission] = useState(true);
   const [ndaItems, setNdaItems] = useState<ClientCompanyNDAItem[]>([]);
+  const [filteredNdaItems, setFilteredNdaItems] = useState<ClientCompanyNDAItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [showOnlyValid, setShowOnlyValid] = useState(true);
+  const [allNdaItems, setAllNdaItems] = useState<ClientCompanyNDAItem[]>([]);
 
   const debouncedSearch = useDebounce(searchQuery, 300);
 
@@ -98,12 +100,13 @@ const ClientCompanyNDA = () => {
     try {
       setIsLoading(true);
 
-      // Construir URL con parámetros de búsqueda si es necesario
+      // Obtener todos los NDAs sin filtro de validez para tenerlos en caché local
       const params = new URLSearchParams();
       if (debouncedSearch) {
         params.append("search", debouncedSearch);
       }
-      params.append("showOnlyValid", showOnlyValid.toString());
+      // Siempre pedimos todos los NDAs (válidos e inválidos)
+      params.append("showOnlyValid", "false");
 
       const url = `/api/client_company_nda?${params.toString()}`;
 
@@ -118,14 +121,57 @@ const ClientCompanyNDA = () => {
       }
 
       const data = await response.json();
-      setNdaItems(data.data);
+      setAllNdaItems(data.data);
+      
+      // Aplicar filtro local según el estado del switch
+      const filtered = showOnlyValid 
+        ? data.data.filter((nda: ClientCompanyNDAItem) => {
+            if (!nda.ndaExpirationDate) return false;
+            
+            // Normalizar las fechas para comparación
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); // Establecer a inicio del día
+            
+            const expirationDate = new Date(nda.ndaExpirationDate);
+            expirationDate.setHours(0, 0, 0, 0); // Establecer a inicio del día
+            
+            // Un NDA es válido si la fecha de expiración es hoy o en el futuro
+            return expirationDate >= today;
+          })
+        : data.data;
+      
+      setNdaItems(filtered);
     } catch (error) {
       console.error("Error loading NDAs:", error);
       toast.error("Error al cargar los NDAs");
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedSearch, showOnlyValid]);
+  }, [debouncedSearch]);
+
+  // Efecto para aplicar filtros localmente cuando cambia el switch
+  useEffect(() => {
+    if (allNdaItems.length > 0) {
+      // No activar el loader para cambios de filtro local
+      const filtered = showOnlyValid 
+        ? allNdaItems.filter((nda) => {
+            if (!nda.ndaExpirationDate) return false;
+            
+            // Normalizar las fechas para comparación
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); // Establecer a inicio del día
+            
+            const expirationDate = new Date(nda.ndaExpirationDate);
+            expirationDate.setHours(0, 0, 0, 0); // Establecer a inicio del día
+            
+            // Un NDA es válido si la fecha de expiración es hoy o en el futuro
+            return expirationDate >= today;
+          })
+        : allNdaItems;
+      
+      setNdaItems(filtered);
+    }
+  }, [showOnlyValid, allNdaItems]);
 
   // Cargar datos una vez que se verifique que tiene permisos
   useEffect(() => {
@@ -213,7 +259,10 @@ const ClientCompanyNDA = () => {
             <div className="flex items-center space-x-2">
               <Switch
                 checked={showOnlyValid}
-                onCheckedChange={setShowOnlyValid}
+                onCheckedChange={(checked) => {
+                  // Aplicar el cambio sin activar el loader completo
+                  setShowOnlyValid(checked);
+                }}
                 id="valid-filter"
               />
               <Label htmlFor="valid-filter" className="text-sm">
@@ -225,19 +274,20 @@ const ClientCompanyNDA = () => {
       </div>
 
       <Card>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="flex justify-center items-center h-64">
+        <CardContent className="p-0 relative">
+          {isLoading && (
+            <div className="absolute inset-0 bg-background/70 flex justify-center items-center z-10">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
-          ) : (
+          )}
+          <div className={`transition-opacity duration-200 ${isLoading ? 'opacity-50' : 'opacity-100'}`}>
             <ClientCompanyNDATable
               ndaItems={ndaItems}
               onEdit={handleEditNDA}
               onDelete={handleDeleteNDA}
               onRefresh={loadNDAs}
             />
-          )}
+          </div>
         </CardContent>
       </Card>
 

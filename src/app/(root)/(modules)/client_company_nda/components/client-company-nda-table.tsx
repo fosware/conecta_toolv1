@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Table,
   TableBody,
@@ -31,6 +31,20 @@ export function ClientCompanyNDATable({
 }: ClientCompanyNDATableProps) {
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Añadir estado para la animación de la tabla
+  const [isVisible, setIsVisible] = useState(true);
+
+  // Efecto para animar la tabla cuando cambian los elementos
+  useEffect(() => {
+    setIsVisible(false);
+    // Pequeño retraso para la animación
+    const timeout = setTimeout(() => {
+      setIsVisible(true);
+    }, 50);
+    
+    return () => clearTimeout(timeout);
+  }, [ndaItems]);
 
   const handleDownloadNDA = async (item: ClientCompanyNDAItem) => {
     try {
@@ -95,7 +109,7 @@ export function ClientCompanyNDATable({
   };
 
   return (
-    <div className="rounded-md border">
+    <div className={`transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'} rounded-md border`}>
       <Table>
         <TableHeader>
           <TableRow>
