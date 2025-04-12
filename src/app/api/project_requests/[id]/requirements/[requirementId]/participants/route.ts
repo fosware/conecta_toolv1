@@ -92,68 +92,92 @@ export async function POST(
         });
       }
 
+      // Obtener el ID del cliente para esta solicitud de proyecto
+      const projectRequest = await tx.projectRequest.findUnique({
+        where: {
+          id: projectRequestId,
+        },
+        include: {
+          clientArea: {
+            include: {
+              client: true,
+            },
+          },
+        },
+      });
+
+      if (!projectRequest) {
+        throw new Error("Solicitud de proyecto no encontrada");
+      }
+
+      const clientId = projectRequest.clientArea.client.id;
+
+      // Obtener la fecha actual para verificar NDAs válidos
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      console.log(
+        `POST: Procesando participantes para el cliente ID: ${clientId}`
+      );
+
       // Agregar nuevas empresas seleccionadas
       for (const companyId of companiesToAdd) {
+        // Buscar si existe un NDA activo para este asociado
+        // Ignoramos el clientId para permitir que un asociado use el mismo NDA con diferentes clientes
+        const validNDA = await tx.clientCompanyNDA.findFirst({
+          where: {
+            // clientId: clientId,  // Comentamos esta línea para ignorar el clientId
+            companyId: companyId,
+            isActive: true,
+            isDeleted: false,
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+        });
+
+        if (validNDA) {
+          console.log(
+            `  ✅ NDA válido encontrado: ID ${validNDA.id}, Expira: ${validNDA.ndaExpirationDate}`
+          );
+        } else {
+          console.log(
+            `  ❌ No se encontró NDA válido para el asociado ${companyId}`
+          );
+        }
+
+        // Crear el registro de participante con o sin NDA
         await tx.projectRequestCompany.create({
           data: {
-            companyId,
+            companyId: companyId,
             projectRequirementsId: projectRequirementId,
+            statusId: validNDA ? 4 : 2, // Estado inicial (por definir)
             userId: userId,
-            projectRequestId: projectRequestId, // Mantener referencia a la solicitud original
+            clientCompanyNDAId: validNDA?.id || null,
           },
         });
       }
 
-      // Procesar archivos NDA para las empresas seleccionadas
-      for (const companyId of selectedCompanies) {
-        const ndaFile = formData.get(`nda_${companyId}`) as File | null;
+      // Actualizar el estado de cada asociado individualmente para empresas existentes
+      const existingCompanies = selectedCompanies.filter(
+        (companyId) => !companiesToAdd.includes(companyId)
+      );
 
-        if (ndaFile) {
-          // Buscar si ya existe un registro para esta empresa
-          const existingCompany = currentCompanies.find(
-            (company) => company.companyId === companyId
-          );
+      for (const companyId of existingCompanies) {
+        // Buscar si existe un NDA activo para este asociado
+        // Ignoramos el clientId para permitir que un asociado use el mismo NDA con diferentes clientes
+        const validNDA = await tx.clientCompanyNDA.findFirst({
+          where: {
+            // clientId: clientId,  // Comentamos esta línea para ignorar el clientId
+            companyId: companyId,
+            isActive: true,
+            isDeleted: false,
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+        });
 
-          if (existingCompany) {
-            // Actualizar el registro existente
-            await tx.projectRequestCompany.update({
-              where: {
-                id: existingCompany.id,
-              },
-              data: {
-                ndaFile: new Uint8Array(await ndaFile.arrayBuffer()),
-                ndaFileName: ndaFile.name,
-                userId: userId,
-              },
-            });
-          } else {
-            // El registro debe haber sido creado en el paso anterior
-            const newCompany = await tx.projectRequestCompany.findFirst({
-              where: {
-                companyId,
-                projectRequirementsId: projectRequirementId,
-                isDeleted: false,
-              },
-            });
-
-            if (newCompany) {
-              await tx.projectRequestCompany.update({
-                where: {
-                  id: newCompany.id,
-                },
-                data: {
-                  ndaFile: new Uint8Array(await ndaFile.arrayBuffer()),
-                  ndaFileName: ndaFile.name,
-                  userId: userId,
-                },
-              });
-            }
-          }
-        }
-      }
-
-      // Actualizar el estado de cada asociado individualmente
-      for (const companyId of selectedCompanies) {
         // Buscar el registro del asociado
         const associateRecord = await tx.projectRequestCompany.findFirst({
           where: {
@@ -164,14 +188,8 @@ export async function POST(
         });
 
         if (associateRecord) {
-          // Determinar el estado basado en los archivos NDA
-          let newStatusId = 2; // Por defecto "Asociado seleccionado"
-
-          if (associateRecord.ndaSignedFile) {
-            newStatusId = 4; // "Firmado por Asociado"
-          } else if (associateRecord.ndaFile) {
-            newStatusId = 3; // "En espera de firma NDA"
-          }
+          // Determinar el estado basado en si existe un NDA
+          const newStatusId = validNDA ? 4 : 2; // Estado inicial (por definir)
 
           // Actualizar el estado del asociado
           await tx.projectRequestCompany.update({
@@ -180,6 +198,7 @@ export async function POST(
             },
             data: {
               statusId: newStatusId,
+              clientCompanyNDAId: validNDA?.id || null,
             },
           });
         }
@@ -187,12 +206,11 @@ export async function POST(
     });
 
     return NextResponse.json({
+      success: true,
       message: "Participantes actualizados correctamente",
-      added: companiesToAdd.length,
-      removed: companiesToRemove.length,
     });
   } catch (error) {
-    console.error("Error al gestionar participantes:", error);
+    console.error("Error al actualizar participantes:", error);
     return NextResponse.json(
       { error: "Error al procesar la solicitud" },
       { status: 500 }
@@ -221,6 +239,48 @@ export async function GET(
       return NextResponse.json({ error: "IDs inválidos" }, { status: 400 });
     }
 
+    // Obtener el proyecto para saber el cliente
+    const projectRequest = await prisma.projectRequest.findUnique({
+      where: {
+        id: projectRequestId,
+        isDeleted: false,
+      },
+      include: {
+        clientArea: {
+          include: {
+            client: true,
+          },
+        },
+      },
+    });
+
+    if (!projectRequest) {
+      return NextResponse.json(
+        { error: "Solicitud de proyecto no encontrada" },
+        { status: 404 }
+      );
+    }
+
+    const clientId = projectRequest.clientArea.client.id;
+
+    // Obtener la fecha actual para verificar NDAs válidos
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Obtener todos los NDAs disponibles para referencia
+    const allNDAs = await prisma.clientCompanyNDA.findMany({
+      where: {
+        isDeleted: false,
+      },
+      select: {
+        id: true,
+        clientId: true,
+        companyId: true,
+        isActive: true,
+        ndaExpirationDate: true,
+      },
+    });
+
     // Obtener los participantes del requerimiento
     const participants = await prisma.projectRequestCompany.findMany({
       where: {
@@ -241,18 +301,40 @@ export async function GET(
       },
     });
 
+    // Buscar NDAs válidos para cada participante
+    const participantsWithNDA = await Promise.all(
+      participants.map(async (participant) => {
+        // Buscar directamente en la base de datos si existe un NDA válido para este asociado
+        // Ignoramos el clientId para permitir que un asociado use el mismo NDA con diferentes clientes
+        const validNDA = await prisma.clientCompanyNDA.findFirst({
+          where: {
+            // clientId: clientId,  // Comentamos esta línea para ignorar el clientId
+            companyId: participant.companyId,
+            isActive: true,
+            isDeleted: false,
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+        });
+
+        // Determinar si tiene un NDA válido
+        const hasValidNDA = !!validNDA;
+
+        return {
+          id: participant.id,
+          company: participant.Company,
+          status: participant.status,
+          hasNDA: hasValidNDA,
+          ndaId: validNDA?.id || null,
+          ndaExpirationDate: validNDA?.ndaExpirationDate || null,
+          ndaFileName: validNDA?.ndaSignedFileName || null,
+        };
+      })
+    );
+
     return NextResponse.json({
-      participants: participants.map((participant) => ({
-        id: participant.id,
-        company: participant.Company,
-        statusId: participant.statusId,
-        status: participant.status,
-        hasNDA: !!participant.ndaFile,
-        ndaFileName: participant.ndaFileName,
-        hasSignedNDA: !!participant.ndaSignedFile,
-        ndaSignedFileName: participant.ndaSignedFileName,
-        ndaSignedAt: participant.ndaSignedAt,
-      })),
+      participants: participantsWithNDA,
     });
   } catch (error) {
     console.error("Error al obtener participantes:", error);

@@ -62,12 +62,11 @@ interface CompanyWithMatch {
   matchingSpecialties: number;
   matchingCertifications: number;
   hasNDA: boolean;
-  ndaFile?: string | null;
   ndaFileName?: string | null;
-  hasSignedNDA?: boolean;
-  ndaSignedFileName?: string | null;
-  statusId?: number | null;
+  ndaExpirationDate?: string | null;
+  ndaId?: number | null;
   participantId?: number | null;
+  statusId?: number | null;
 }
 
 interface RequirementParticipantsModalProps {
@@ -92,25 +91,9 @@ export function RequirementParticipantsModal({
   const [totalSpecialties, setTotalSpecialties] = useState(0);
   const [totalCertifications, setTotalCertifications] = useState(0);
   const [selectedCompanies, setSelectedCompanies] = useState<number[]>([]);
-  const [ndaFiles, setNdaFiles] = useState<Record<number, File | null>>({});
-  const [uploadedNdaFiles, setUploadedNdaFiles] = useState<Record<string, boolean>>({});
   const [filterType, setFilterType] = useState<
     "all" | "both" | "specialties" | "certifications" | "none"
   >("both");
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-
-  // Interfaz para el objeto de eliminación de NDA
-  interface CompanyToDeleteNDA {
-    id: number;
-    companyId: number;
-    hasSignedNDA: boolean;
-    isSignedNDA?: boolean; // Indica si estamos eliminando el NDA firmado
-  }
-
-  const [companyToDeleteNDA, setCompanyToDeleteNDA] =
-    useState<CompanyToDeleteNDA | null>(null);
-  const [deletingNDA, setDeletingNDA] = useState(false);
-
   const [companyToDeselect, setCompanyToDeselect] = useState<number | null>(null);
   const [deselectDialogOpen, setDeselectDialogOpen] = useState(false);
   const [deselecting, setDeselecting] = useState(false);
@@ -153,30 +136,121 @@ export function RequirementParticipantsModal({
       }
 
       const data = await response.json();
+      
+      // Obtener los participantes actuales
+      const participantsResponse = await fetch(
+        `/api/project_requests/${requirement.projectRequestId}/requirements/${requirement.id}/participants`,
+        {
+          headers: {
+            Authorization: `Bearer ${getToken()}`,
+          },
+        }
+      );
 
-      // Guardar los totales de especialidades y certificaciones requeridas
+      if (!participantsResponse.ok) {
+        throw new Error("Error al cargar participantes");
+      }
+
+      const participantsData = await participantsResponse.json();
+      
+      // Obtener información de NDAs para todas las empresas
+      const ndasResponse = await fetch(
+        `/api/project_requests/${requirement.projectRequestId}/requirements/${requirement.id}/check_ndas`,
+        {
+          headers: {
+            Authorization: `Bearer ${getToken()}`,
+          },
+        }
+      );
+
+      if (!ndasResponse.ok) {
+        throw new Error("Error al verificar NDAs");
+      }
+
+      const ndasData = await ndasResponse.json();
+      
+      // Obtener el cliente asociado a esta solicitud de proyecto
+      const projectResponse = await fetch(
+        `/api/project_requests/${requirement.projectRequestId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${getToken()}`,
+          },
+        }
+      );
+      
+      if (!projectResponse.ok) {
+        throw new Error("Error al cargar información del proyecto");
+      }
+      
+      const projectData = await projectResponse.json();
+      
+      // Verificar la estructura de la respuesta y obtener el clientId
+      let clientId;
+      if (projectData.project) {
+        clientId = projectData.project.clientArea.client.id;
+      } else if (projectData.clientAreaId) {
+        // Obtener el área del cliente
+        const clientAreaResponse = await fetch(
+          `/api/client_areas/${projectData.clientAreaId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${getToken()}`,
+            },
+          }
+        );
+        
+        if (!clientAreaResponse.ok) {
+          throw new Error("Error al cargar información del área del cliente");
+        }
+        
+        const clientAreaData = await clientAreaResponse.json();
+        clientId = clientAreaData.clientId;
+      } else {
+        // Si no podemos obtener el clientId, continuamos sin filtrar por NDA
+        console.warn("No se pudo obtener el ID del cliente, no se verificarán NDAs");
+        clientId = null;
+      }
+      
+      // Combinar los datos
+      const companies = data.companies.map((company: any) => {
+        const participant = participantsData.participants.find(
+          (p: any) => p.company.id === company.id
+        );
+        
+        // Verificar si existe un NDA válido entre el cliente y la empresa
+        const nda = ndasData.ndaResults.find((n: any) => n.companyId === company.id);
+        const hasNDA = nda?.hasNDA || false;
+        
+        return {
+          ...company,
+          isSelected: !!participant,
+          hasNDA: hasNDA,
+          ndaFileName: nda?.ndaFileName || null,
+          ndaExpirationDate: nda?.ndaExpirationDate || null,
+          ndaId: nda?.ndaId || null,
+          participantId: participant?.id || null,
+          statusId: participant?.statusId || null,
+        };
+      });
+
+      setEligibleCompanies(companies);
       setTotalSpecialties(data.totalSpecialties || 0);
       setTotalCertifications(data.totalCertifications || 0);
-
-      // Transformar los datos y marcar las empresas ya seleccionadas
-      const companiesWithSelection = data.companies.map((company: any) => ({
-        ...company,
-        isSelected: company.isParticipant || false,
-      }));
-
-      setEligibleCompanies(companiesWithSelection);
-
-      // Inicializar el array de empresas seleccionadas
-      const initialSelectedCompanies = companiesWithSelection
-        .filter((company: CompanyWithMatch) => company.isSelected)
-        .map((company: CompanyWithMatch) => company.id);
-
-      setSelectedCompanies(initialSelectedCompanies);
+      
+      // Actualizar la lista de empresas seleccionadas
+      setSelectedCompanies(
+        companies
+          .filter((company: CompanyWithMatch) => company.isSelected)
+          .map((company: CompanyWithMatch) => company.id)
+      );
     } catch (error) {
       console.error("Error al cargar empresas elegibles:", error);
       toast.error("Error al cargar empresas elegibles");
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   };
 
@@ -229,181 +303,25 @@ export function RequirementParticipantsModal({
     if (isSelected) {
       setSelectedCompanies((prev) => [...prev, companyId]);
     } else {
-      // Verificar si la empresa tiene NDAs subidos antes de deseleccionar
-      const hasOriginalNDA = uploadedNdaFiles[`${companyId}_original`] || 
-        eligibleCompanies.find(c => c.id === companyId)?.ndaFileName;
-      const hasSignedNDA = uploadedNdaFiles[`${companyId}_signed`] || 
-        eligibleCompanies.find(c => c.id === companyId)?.ndaSignedFileName;
-      
-      if (hasOriginalNDA || hasSignedNDA) {
-        // Mostrar diálogo de confirmación
-        setCompanyToDeselect(companyId);
-        setDeselectDialogOpen(true);
-      } else {
-        // Si no tiene NDAs, deseleccionar directamente
-        removeCompany(companyId);
-      }
-    }
-  };
-
-  // Función para remover una empresa y sus NDAs
-  const removeCompany = (companyId: number) => {
-    setDeselecting(true);
-    
-    // Al deseleccionar, también limpiamos los archivos NDA y su estado
-    setSelectedCompanies((prev) => prev.filter((id) => id !== companyId));
-    
-    // Limpiar archivos NDA para esta empresa
-    setNdaFiles((prev) => {
-      const newFiles = { ...prev };
-      delete newFiles[companyId];
-      return newFiles;
-    });
-    
-    // Limpiar estados de archivos subidos
-    setUploadedNdaFiles((prev) => {
-      const newUploaded = { ...prev };
-      delete newUploaded[`${companyId}_original`];
-      delete newUploaded[`${companyId}_signed`];
-      return newUploaded;
-    });
-
-    // Mostrar confirmación visual
-    toast.success("Empresa deseleccionada y archivos NDA eliminados");
-    setDeselecting(false);
-  };
-
-  // Confirmar deselección de empresa
-  const handleDeselect = () => {
-    if (companyToDeselect !== null) {
-      removeCompany(companyToDeselect);
-      setCompanyToDeselect(null);
-      setDeselectDialogOpen(false);
-    }
-  };
-
-  // Manejar la carga de archivos NDA
-  const handleNdaFileChange = (
-    companyId: number,
-    file: File | null,
-    isSignedNDA: boolean = false
-  ) => {
-    setNdaFiles((prev) => ({
-      ...prev,
-      [companyId]: file,
-    }));
-
-    // Marcar el archivo como subido si existe
-    if (file) {
-      const key = `${companyId}_${isSignedNDA ? 'signed' : 'original'}`;
-      setUploadedNdaFiles((prev) => ({
-        ...prev,
-        [key]: true,
-      }));
-
-      // Asegurarse de que la empresa esté seleccionada
-      if (!selectedCompanies.includes(companyId)) {
-        setSelectedCompanies((prev) => [...prev, companyId]);
-      }
-
-      // Mostrar confirmación visual
-      toast.success(
-        `NDA ${isSignedNDA ? "firmado" : "original"} seleccionado: ${file.name}`
-      );
-    }
-  };
-
-  // Función para mostrar el diálogo de confirmación para eliminar NDA
-  const handleDeleteNDAConfirm = (
-    companyId: number,
-    isSignedNDA: boolean = false
-  ) => {
-    const company = eligibleCompanies.find((c) => c.id === companyId);
-    if (!company) return;
-
-    if (!company.participantId) {
-      toast.error("No se pudo identificar el registro del participante");
-      return;
-    }
-
-    setCompanyToDeleteNDA({
-      id: company.participantId,
-      companyId: companyId,
-      hasSignedNDA: !!company.ndaSignedFileName,
-      isSignedNDA: isSignedNDA, // Indica si estamos eliminando el NDA firmado
-    });
-    setDeleteDialogOpen(true);
-  };
-
-  // Función para eliminar un NDA
-  const handleDeleteNDA = async () => {
-    if (!companyToDeleteNDA || !requirement?.id) return;
-
-    try {
-      setDeletingNDA(true);
-
-      // Determinar qué tipo de NDA eliminar (original o firmado)
-      // Si isSignedNDA es true, significa que estamos eliminando el NDA firmado
-      // Si isSignedNDA es false o undefined, significa que estamos eliminando el NDA original
-      const isSignedNDA = companyToDeleteNDA.isSignedNDA === true;
-
-      // Si estamos eliminando el NDA firmado, usar el endpoint nda_signed
-      // Si estamos eliminando el NDA original, usar el endpoint nda (que eliminará también el firmado si existe)
-      const endpoint = isSignedNDA
-        ? `/api/project_requests/${requirement.projectRequestId}/requirements/${requirement.id}/participants/${companyToDeleteNDA.id}/nda_signed`
-        : `/api/project_requests/${requirement.projectRequestId}/requirements/${requirement.id}/participants/${companyToDeleteNDA.id}/nda`;
-
-      const response = await fetch(endpoint, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${getToken()}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Error al eliminar el NDA");
-      }
-
-      // Mostrar toast de éxito
-      toast.success("NDA eliminado correctamente");
-      loadEligibleCompanies(false);
-
-      // Llamar al callback de éxito si existe
-      if (onSuccess) {
-        // Llamamos a onSuccess sin mostrar toast adicional
-        onSuccess();
-      }
-    } catch (error) {
-      console.error("Error al eliminar NDA:", error);
-      toast.error("Error al eliminar el NDA");
-    } finally {
-      setDeletingNDA(false);
-      setDeleteDialogOpen(false);
-      setCompanyToDeleteNDA(null);
+      setSelectedCompanies((prev) => prev.filter((id) => id !== companyId));
     }
   };
 
   // Guardar los cambios en las empresas participantes
   const handleSaveParticipants = async () => {
-    if (!requirement?.id) return;
+    if (!requirement?.id || !requirement?.projectRequestId) {
+      toast.error("No se puede guardar: información de requerimiento incompleta");
+      return;
+    }
 
     try {
       setSaving(true);
 
-      // Preparar los datos para enviar
+      // Crear FormData para enviar los datos
       const formData = new FormData();
-
-      // Agregar las empresas seleccionadas
       formData.append("selectedCompanies", JSON.stringify(selectedCompanies));
 
-      // Agregar los archivos NDA si existen
-      Object.entries(ndaFiles).forEach(([companyId, file]) => {
-        if (file) {
-          formData.append(`nda_${companyId}`, file);
-        }
-      });
-
-      // Enviar los datos al servidor
+      // Enviar la solicitud
       const response = await fetch(
         `/api/project_requests/${requirement.projectRequestId}/requirements/${requirement.id}/participants`,
         {
@@ -416,48 +334,54 @@ export function RequirementParticipantsModal({
       );
 
       if (!response.ok) {
-        throw new Error("Error al guardar los participantes");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Error al guardar participantes");
       }
 
-      // Mostrar toast de éxito
       toast.success("Participantes guardados correctamente");
-
+      
       // Recargar los datos
-      loadEligibleCompanies(false);
-
-      // Llamar al callback de éxito si existe
+      await loadEligibleCompanies(false);
+      
+      // Notificar al componente padre si es necesario
       if (onSuccess) {
-        // Llamamos a onSuccess sin mostrar toast adicional
         onSuccess();
       }
     } catch (error) {
       console.error("Error al guardar participantes:", error);
-      toast.error("Error al guardar los participantes");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Error al guardar participantes"
+      );
     } finally {
       setSaving(false);
     }
   };
 
-  // Descargar un archivo NDA
-  const handleDownloadNDA = async (companyId: number, isSigned: boolean) => {
-    if (!requirement?.id) return;
-
+  // Descargar el NDA de una empresa
+  const handleDownloadNDA = async (ndaId: number) => {
     try {
-      const company = eligibleCompanies.find((c) => c.id === companyId);
-      if (!company || !company.participantId) {
-        toast.error("No se pudo identificar el registro del participante");
-        return;
+      const response = await fetch(`/api/nda/${ndaId}/download`, {
+        headers: {
+          Authorization: `Bearer ${getToken()}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Error al descargar el NDA");
       }
 
-      const endpoint = isSigned
-        ? `/api/project_requests/${requirement.projectRequestId}/requirements/${requirement.id}/participants/${company.participantId}/nda_signed/download`
-        : `/api/project_requests/${requirement.projectRequestId}/requirements/${requirement.id}/participants/${company.participantId}/nda/download`;
-
-      // Abrir en una nueva pestaña para descargar
-      window.open(endpoint, "_blank");
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "nda.pdf";
+      a.click();
+      URL.revokeObjectURL(url);
     } catch (error) {
-      console.error("Error al descargar NDA:", error);
-      toast.error("Error al descargar el archivo");
+      console.error("Error al descargar el NDA:", error);
+      toast.error("Error al descargar el NDA");
     }
   };
 
@@ -569,10 +493,7 @@ export function RequirementParticipantsModal({
                           Certificaciones
                         </TableHead>
                         <TableHead className="w-[150px] text-center">
-                          NDA Original
-                        </TableHead>
-                        <TableHead className="w-[150px] text-center">
-                          NDA Firmado
+                          NDA
                         </TableHead>
                       </TableRow>
                     </TableHeader>
@@ -629,163 +550,24 @@ export function RequirementParticipantsModal({
                               ) : null}
                             </div>
                           </TableCell>
-                          {/* NDA Original */}
-                          <TableCell className="w-[150px]">
-                            <div className="flex justify-center">
-                              {company.ndaFileName ? (
+                          <TableCell className="text-center">
+                            <div className="flex flex-col justify-center items-center gap-1">
+                              {company.hasNDA ? (
                                 <Button
-                                  variant="outline"
+                                  variant="ghost"
                                   size="sm"
-                                  className="h-8 w-[120px] text-xs"
-                                  onClick={() =>
-                                    handleDownloadNDA(company.id, false)
-                                  }
+                                  className="h-6 px-3 py-2 text-xs flex items-center gap-1 hover:bg-gray-100 rounded no-underline cursor-pointer"
+                                  onClick={() => handleDownloadNDA(company.ndaId!)}
+                                  title={company.ndaExpirationDate ? `Expira: ${new Date(company.ndaExpirationDate).toLocaleDateString()}` : ""}
                                 >
-                                  <FileText className="mr-1 h-3 w-3" />
-                                  NDA Original
+                                  <FileText className="h-4 w-4 text-green-500" />
+                                  <span className="text-xs font-medium text-green-600 no-underline">Válido</span>
                                 </Button>
-                              ) : selectedCompanies.includes(company.id) ? (
-                                <div>
-                                  <div className="flex justify-center">
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="h-8 w-[120px] text-xs"
-                                      asChild
-                                    >
-                                      <label htmlFor={`nda-file-${company.id}`}>
-                                        <FileText className="mr-1 h-3 w-3" />
-                                        {uploadedNdaFiles[`${company.id}_original`]
-                                          ? "NDA Listo"
-                                          : "Subir NDA"}
-                                      </label>
-                                    </Button>
-                                    <input
-                                      id={`nda-file-${company.id}`}
-                                      type="file"
-                                      accept=".pdf"
-                                      onChange={(e) => {
-                                        const file =
-                                          e.target.files?.[0] || null;
-                                        handleNdaFileChange(company.id, file);
-                                      }}
-                                      className="hidden"
-                                      disabled={!selectedCompanies.includes(company.id)}
-                                    />
-                                  </div>
+                              ) : (
+                                <div className="flex items-center gap-1">
+                                  <XCircle className="h-4 w-4 text-red-500" />
+                                  <span className="text-xs font-medium text-red-600">Sin NDA</span>
                                 </div>
-                              ) : (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-8 w-[120px] text-xs opacity-50"
-                                  disabled
-                                >
-                                  <FileText className="mr-1 h-3 w-3" />
-                                  Subir NDA
-                                </Button>
-                              )}
-                            </div>
-                          </TableCell>
-
-                          {/* NDA Firmado */}
-                          <TableCell className="w-[150px]">
-                            <div className="flex flex-col items-center gap-2">
-                              {company.ndaSignedFileName ? (
-                                <>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-8 w-[120px] text-xs"
-                                    onClick={() =>
-                                      handleDownloadNDA(company.id, true)
-                                    }
-                                  >
-                                    <FileText className="mr-1 h-3 w-3" />
-                                    NDA Firmado
-                                  </Button>
-                                  {selectedCompanies.includes(company.id) ? (
-                                    <>
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="h-8 w-[120px] text-xs"
-                                        asChild
-                                      >
-                                        <label
-                                          htmlFor={`nda-signed-file-${company.id}`}
-                                        >
-                                          <FileText className="mr-1 h-3 w-3" />
-                                          Reemplazar
-                                        </label>
-                                      </Button>
-                                      <input
-                                        id={`nda-signed-file-${company.id}`}
-                                        type="file"
-                                        accept=".pdf"
-                                        onChange={(e) => {
-                                          const file = e.target.files?.[0] || null;
-                                          handleNdaFileChange(
-                                            company.id,
-                                            file,
-                                            true
-                                          );
-                                        }}
-                                        className="hidden"
-                                        disabled={!selectedCompanies.includes(company.id)}
-                                      />
-                                    </>
-                                  ) : (
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="h-8 w-[120px] text-xs opacity-50"
-                                      disabled
-                                    >
-                                      <FileText className="mr-1 h-3 w-3" />
-                                      Reemplazar
-                                    </Button>
-                                  )}
-                                </>
-                              ) : (company.ndaFileName || uploadedNdaFiles[`${company.id}_original`]) && selectedCompanies.includes(company.id) ? (
-                                <>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-8 w-[120px] text-xs"
-                                    asChild
-                                  >
-                                    <label
-                                      htmlFor={`nda-signed-file-${company.id}`}
-                                    >
-                                      <FileText className="mr-1 h-3 w-3" />
-                                      {uploadedNdaFiles[`${company.id}_signed`]
-                                        ? "NDA Listo"
-                                        : "Subir firmado"}
-                                    </label>
-                                  </Button>
-                                  <input
-                                    id={`nda-signed-file-${company.id}`}
-                                    type="file"
-                                    accept=".pdf"
-                                    onChange={(e) => {
-                                      const file = e.target.files?.[0] || null;
-                                      handleNdaFileChange(company.id, file, true);
-                                    }}
-                                    className="hidden"
-                                    disabled={!selectedCompanies.includes(company.id)}
-                                  />
-                                </>
-                              ) : (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-8 w-[120px] text-xs opacity-50"
-                                  disabled
-                                >
-                                  <FileText className="mr-1 h-3 w-3" />
-                                  Subir firmado
-                                </Button>
                               )}
                             </div>
                           </TableCell>
@@ -820,41 +602,11 @@ export function RequirementParticipantsModal({
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>¿Eliminar NDA?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {companyToDeleteNDA?.isSignedNDA
-                ? "¿Está seguro de que desea eliminar el archivo NDA firmado?"
-                : companyToDeleteNDA?.hasSignedNDA
-                  ? "ADVERTENCIA: Al eliminar este archivo NDA, también se eliminará el archivo NDA firmado asociado. ¿Desea continuar?"
-                  : "¿Está seguro de que desea eliminar este archivo NDA?"}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteNDA} disabled={deletingNDA}>
-              {deletingNDA ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Eliminando...
-                </>
-              ) : (
-                "Eliminar"
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
       <AlertDialog open={deselectDialogOpen} onOpenChange={setDeselectDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Deseleccionar empresa?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta empresa tiene archivos NDA subidos. Al deseleccionarla, se eliminarán todos los archivos NDA asociados y tendrá que volver a subirlos si la selecciona nuevamente.
-              <br /><br />
               ¿Está seguro de que desea deseleccionar esta empresa?
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -862,15 +614,8 @@ export function RequirementParticipantsModal({
             <AlertDialogCancel onClick={() => setDeselectDialogOpen(false)}>
               Cancelar
             </AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeselect} disabled={deselecting}>
-              {deselecting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Deseleccionando...
-                </>
-              ) : (
-                "Deseleccionar"
-              )}
+            <AlertDialogAction onClick={() => setDeselectDialogOpen(false)}>
+              Deseleccionar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -497,21 +497,22 @@ model RequirementSpecialty {
 //NDA Asociados-Clientes
 
 model ClientCompanyNDA {
-  id                Int       @id @default(autoincrement())
-  clientId          Int
-  companyId         Int
-  ndaSignedFile     Bytes
-  ndaSignedFileName String
-  ndaExpirationDate DateTime
-  isActive          Boolean   @default(true)
-  isDeleted         Boolean   @default(false)
-  dateDeleted       DateTime?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  userId            Int
-  user              User      @relation(fields: [userId], references: [id])
-  Client            Clients   @relation(fields: [clientId], references: [id])
-  Company           Company   @relation(fields: [companyId], references: [id])
+  id                    Int                     @id @default(autoincrement())
+  clientId              Int
+  companyId             Int
+  ndaSignedFile         Bytes
+  ndaSignedFileName     String
+  ndaExpirationDate     DateTime
+  isActive              Boolean                 @default(true)
+  isDeleted             Boolean                 @default(false)
+  dateDeleted           DateTime?
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+  userId                Int
+  user                  User                    @relation(fields: [userId], references: [id])
+  Client                Clients                 @relation(fields: [clientId], references: [id])
+  Company               Company                 @relation(fields: [companyId], references: [id])
+  ProjectRequestCompany ProjectRequestCompany[]
 
   @@index([isDeleted, isActive])
   @@map("d_client_company_ndas")
@@ -519,19 +520,11 @@ model ClientCompanyNDA {
 
 // Asociados que cumplen los requisitos
 model ProjectRequestCompany {
-  id                    Int                  @id @default(autoincrement())
-  companyId             Int
-  projectRequirementsId Int
-  statusId              Int                  @default(1)
-  status                StatusProjectRequest @relation(fields: [statusId], references: [id])
-  // NDA original y firmado
-  ndaFile               Bytes?
-  ndaFileName           String?
-  ndaDateUploaded       DateTime?            @default(now())
-  ndaSignedFile         Bytes?
-  ndaSignedFileName     String?
-  ndaSignedAt           DateTime?
-
+  id                             Int                                  @id @default(autoincrement())
+  companyId                      Int
+  projectRequirementsId          Int
+  statusId                       Int                                  @default(1)
+  status                         StatusProjectRequest                 @relation(fields: [statusId], references: [id])
   isActive                       Boolean                              @default(true)
   isDeleted                      Boolean                              @default(false)
   dateDeleted                    DateTime?
@@ -545,6 +538,8 @@ model ProjectRequestCompany {
   Documents                      ProjectRequestRequirementDocuments[]
   projectRequestId               Int?
   ProjectRequestCompanyStatusLog ProjectRequestCompanyStatusLog[]
+  ClientCompanyNDA               ClientCompanyNDA?                    @relation(fields: [clientCompanyNDAId], references: [id])
+  clientCompanyNDAId             Int?
 
   @@index([isDeleted, isActive])
   @@map("d_project_request_companies")
