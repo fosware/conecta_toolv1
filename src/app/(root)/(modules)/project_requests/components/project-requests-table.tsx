@@ -99,56 +99,66 @@ export function ProjectRequestsTable({
   const mockData: ProjectRequest[] = [
     {
       id: 1,
-      title: "Proyecto de Ejemplo 1",
-      observation: "Observaciones del proyecto 1",
+      title: "Solicitud de Proyecto 1",
+      observation: "Observación de la solicitud 1",
       isActive: true,
       isDeleted: false,
       clientAreaId: 1,
       userId: 1,
-      requestDate: new Date().toISOString(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      statusId: 1,
+      requestDate: "2023-01-01T00:00:00.000Z",
+      createdAt: "2023-01-01T00:00:00.000Z",
+      updatedAt: "2023-01-01T00:00:00.000Z",
       dateDeleted: null,
       clientArea: {
         id: 1,
-        areaName: "Área de Producción",
+        name: "Área de Cliente 1",
+        isActive: true,
+        isDeleted: false,
         clientId: 1,
         client: {
           id: 1,
-          name: "Cliente A",
+          name: "Cliente 1",
+          isActive: true,
+          isDeleted: false,
         },
       },
       user: {
         id: 1,
-        username: "Usuario Ejemplo",
-        email: "usuario@ejemplo.com",
+        email: "usuario1@example.com",
+        username: "usuario1",
       },
     },
     {
       id: 2,
-      title: "Proyecto de Ejemplo 2",
-      observation: "Observaciones del proyecto 2",
+      title: "Solicitud de Proyecto 2",
+      observation: "Observación de la solicitud 2",
       isActive: false,
       isDeleted: false,
       clientAreaId: 2,
-      userId: 1,
-      requestDate: new Date().toISOString(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      userId: 2,
+      statusId: 2,
+      requestDate: "2023-02-01T00:00:00.000Z",
+      createdAt: "2023-02-01T00:00:00.000Z",
+      updatedAt: "2023-02-01T00:00:00.000Z",
       dateDeleted: null,
       clientArea: {
         id: 2,
-        areaName: "Área de Logística",
+        name: "Área de Cliente 2",
+        isActive: true,
+        isDeleted: false,
         clientId: 2,
         client: {
           id: 2,
-          name: "Cliente B",
+          name: "Cliente 2",
+          isActive: true,
+          isDeleted: false,
         },
       },
       user: {
-        id: 1,
-        username: "Usuario Ejemplo",
-        email: "usuario@ejemplo.com",
+        id: 2,
+        email: "usuario2@example.com",
+        username: "usuario2",
       },
     },
   ];
@@ -176,8 +186,8 @@ export function ProjectRequestsTable({
 
     // Buscar en área del cliente
     if (
-      item.clientArea?.areaName &&
-      item.clientArea.areaName.toLowerCase().includes(searchTermLower)
+      item.clientArea?.name &&
+      item.clientArea.name.toLowerCase().includes(searchTermLower)
     )
       return true;
 
@@ -277,7 +287,7 @@ export function ProjectRequestsTable({
                     </TableCell>
                     <TableCell>{item.title}</TableCell>
                     <TableCell>{item.clientArea.client.name}</TableCell>
-                    <TableCell>{item.clientArea.areaName}</TableCell>
+                    <TableCell>{item.clientArea.name}</TableCell>
                     <TableCell>
                       {formatDateForDisplay(item.requestDate || item.createdAt)}
                     </TableCell>

@@ -72,7 +72,7 @@ export async function DELETE(
 
     await prisma.certifications.update({
       where: {
-        id: parseInt(params.id),
+        id: parseInt((await params).id),
       },
       data: {
         isDeleted: true,

@@ -8,8 +8,8 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    // Extraer el ID correctamente
-    const { id } = params;
+    // Extraer el ID correctamente según las mejores prácticas de Next.js
+    const { id } = await params;
     const parsedId = parseInt(id);
 
     // Verificar autenticación
@@ -27,6 +27,7 @@ export async function POST(
     const materialCost = formData.get("materialCost") as string;
     const directCost = formData.get("directCost") as string;
     const indirectCost = formData.get("indirectCost") as string;
+    const price = formData.get("price") as string;
     const projectTypesId = formData.get("projectTypesId") as string;
     const additionalDetails = formData.get("additionalDetails") as string;
     const segmentsJson = formData.get("segments") as string;
@@ -72,6 +73,7 @@ export async function POST(
           materialCost: materialCost ? parseFloat(materialCost) : undefined,
           directCost: directCost ? parseFloat(directCost) : undefined,
           indirectCost: indirectCost ? parseFloat(indirectCost) : undefined,
+          price: price ? parseFloat(price) : undefined,
           projectTypesId: projectTypesId ? parseInt(projectTypesId) : undefined,
           additionalDetails,
           ...(fileName ? { quotationFileName: fileName } : {}),
@@ -105,6 +107,7 @@ export async function POST(
           materialCost: materialCost ? parseFloat(materialCost) : undefined,
           directCost: directCost ? parseFloat(directCost) : undefined,
           indirectCost: indirectCost ? parseFloat(indirectCost) : undefined,
+          price: price ? parseFloat(price) : undefined,
           projectTypesId: projectTypesId ? parseInt(projectTypesId) : undefined,
           additionalDetails,
           quotationFileName: fileName,

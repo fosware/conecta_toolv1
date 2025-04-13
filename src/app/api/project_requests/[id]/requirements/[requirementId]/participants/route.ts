@@ -75,6 +75,11 @@ export async function POST(
         !currentCompanies.some((company) => company.companyId === companyId)
     );
 
+    // Empresas que ya estaban seleccionadas y siguen seleccionadas
+    const companiesToUpdate = currentCompanies.filter(
+      (company) => selectedCompanies.includes(company.companyId)
+    );
+
     // Transacción para asegurar consistencia
     await prisma.$transaction(async (tx) => {
       // Marcar como eliminadas las empresas que ya no están seleccionadas
@@ -90,6 +95,20 @@ export async function POST(
             dateDeleted: new Date(),
           },
         });
+      }
+
+      // Actualizar el estado de las empresas que ya estaban seleccionadas
+      if (companiesToUpdate.length > 0) {
+        for (const company of companiesToUpdate) {
+          await tx.projectRequestCompany.update({
+            where: {
+              id: company.id,
+            },
+            data: {
+              statusId: 2, // Asociado seleccionado
+            },
+          });
+        }
       }
 
       // Obtener el ID del cliente para esta solicitud de proyecto
@@ -112,96 +131,31 @@ export async function POST(
 
       const clientId = projectRequest.clientArea.client.id;
 
-      // Obtener la fecha actual para verificar NDAs válidos
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      console.log(
-        `POST: Procesando participantes para el cliente ID: ${clientId}`
-      );
+      // Obtener todos los NDAs para este cliente
+      const clientNDAs = await tx.clientCompanyNDA.findMany({
+        where: {
+          clientId: clientId,
+          isActive: true,
+          isDeleted: false,
+        },
+      });
 
       // Agregar nuevas empresas seleccionadas
       for (const companyId of companiesToAdd) {
-        // Buscar si existe un NDA activo para este asociado
-        // Ignoramos el clientId para permitir que un asociado use el mismo NDA con diferentes clientes
-        const validNDA = await tx.clientCompanyNDA.findFirst({
-          where: {
-            // clientId: clientId,  // Comentamos esta línea para ignorar el clientId
-            companyId: companyId,
-            isActive: true,
-            isDeleted: false,
-          },
-          orderBy: {
-            createdAt: "desc",
-          },
-        });
+        // Buscar si existe un NDA activo para este asociado con este cliente
+        const validNDA = clientNDAs.find(nda => nda.companyId === companyId);
 
-        if (validNDA) {
-          console.log(
-            `  ✅ NDA válido encontrado: ID ${validNDA.id}, Expira: ${validNDA.ndaExpirationDate}`
-          );
-        } else {
-          console.log(
-            `  ❌ No se encontró NDA válido para el asociado ${companyId}`
-          );
-        }
-
-        // Crear el registro de participante con o sin NDA
+        // Crear el registro de participante (sin referencia al NDA)
         await tx.projectRequestCompany.create({
           data: {
             companyId: companyId,
             projectRequirementsId: projectRequirementId,
-            statusId: validNDA ? 4 : 2, // Estado inicial (por definir)
+            statusId: 2, // Asociado seleccionado (según la tabla de la base de datos)
             userId: userId,
-            clientCompanyNDAId: validNDA?.id || null,
-          },
-        });
-      }
-
-      // Actualizar el estado de cada asociado individualmente para empresas existentes
-      const existingCompanies = selectedCompanies.filter(
-        (companyId) => !companiesToAdd.includes(companyId)
-      );
-
-      for (const companyId of existingCompanies) {
-        // Buscar si existe un NDA activo para este asociado
-        // Ignoramos el clientId para permitir que un asociado use el mismo NDA con diferentes clientes
-        const validNDA = await tx.clientCompanyNDA.findFirst({
-          where: {
-            // clientId: clientId,  // Comentamos esta línea para ignorar el clientId
-            companyId: companyId,
             isActive: true,
-            isDeleted: false,
-          },
-          orderBy: {
-            createdAt: "desc",
+            projectRequestId: projectRequestId,
           },
         });
-
-        // Buscar el registro del asociado
-        const associateRecord = await tx.projectRequestCompany.findFirst({
-          where: {
-            companyId: companyId,
-            projectRequirementsId: projectRequirementId,
-            isDeleted: false,
-          },
-        });
-
-        if (associateRecord) {
-          // Determinar el estado basado en si existe un NDA
-          const newStatusId = validNDA ? 4 : 2; // Estado inicial (por definir)
-
-          // Actualizar el estado del asociado
-          await tx.projectRequestCompany.update({
-            where: {
-              id: associateRecord.id,
-            },
-            data: {
-              statusId: newStatusId,
-              clientCompanyNDAId: validNDA?.id || null,
-            },
-          });
-        }
       }
     });
 
@@ -263,21 +217,12 @@ export async function GET(
 
     const clientId = projectRequest.clientArea.client.id;
 
-    // Obtener la fecha actual para verificar NDAs válidos
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    // Obtener todos los NDAs disponibles para referencia
-    const allNDAs = await prisma.clientCompanyNDA.findMany({
+    // Obtener todos los NDAs para este cliente
+    const clientNDAs = await prisma.clientCompanyNDA.findMany({
       where: {
-        isDeleted: false,
-      },
-      select: {
-        id: true,
-        clientId: true,
-        companyId: true,
+        clientId: clientId,
         isActive: true,
-        ndaExpirationDate: true,
+        isDeleted: false,
       },
     });
 
@@ -301,37 +246,24 @@ export async function GET(
       },
     });
 
-    // Buscar NDAs válidos para cada participante
-    const participantsWithNDA = await Promise.all(
-      participants.map(async (participant) => {
-        // Buscar directamente en la base de datos si existe un NDA válido para este asociado
-        // Ignoramos el clientId para permitir que un asociado use el mismo NDA con diferentes clientes
-        const validNDA = await prisma.clientCompanyNDA.findFirst({
-          where: {
-            // clientId: clientId,  // Comentamos esta línea para ignorar el clientId
-            companyId: participant.companyId,
-            isActive: true,
-            isDeleted: false,
-          },
-          orderBy: {
-            createdAt: "desc",
-          },
-        });
+    // Verificar NDAs para cada participante
+    const participantsWithNDA = participants.map(participant => {
+      // Buscar si existe un NDA válido para este asociado con este cliente
+      const validNDA = clientNDAs.find(nda => nda.companyId === participant.companyId);
+      
+      // Determinar si tiene un NDA válido
+      const hasValidNDA = !!validNDA;
 
-        // Determinar si tiene un NDA válido
-        const hasValidNDA = !!validNDA;
-
-        return {
-          id: participant.id,
-          company: participant.Company,
-          status: participant.status,
-          hasNDA: hasValidNDA,
-          ndaId: validNDA?.id || null,
-          ndaExpirationDate: validNDA?.ndaExpirationDate || null,
-          ndaFileName: validNDA?.ndaSignedFileName || null,
-        };
-      })
-    );
+      return {
+        id: participant.id,
+        company: participant.Company,
+        status: participant.status,
+        hasNDA: hasValidNDA,
+        ndaId: validNDA?.id || null,
+        ndaExpirationDate: validNDA?.ndaExpirationDate || null,
+        ndaFileName: validNDA?.ndaSignedFileName || null,
+      };
+    });
 
     return NextResponse.json({
       participants: participantsWithNDA,

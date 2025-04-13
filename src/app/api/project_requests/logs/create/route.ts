@@ -7,7 +7,6 @@ export async function POST(request: NextRequest) {
   try {
     // Verificar autenticación
     const userId = await getUserFromToken();
-    console.log("userId:", userId);
     if (!userId) {
       return NextResponse.json(
         { error: "No autorizado" },
@@ -17,12 +16,10 @@ export async function POST(request: NextRequest) {
 
     // Obtener datos del cuerpo de la solicitud
     const body = await request.json();
-    console.log("Datos recibidos:", JSON.stringify(body));
     
     // Validar datos con el esquema
     const validationResult = projectRequestLogSchema.safeParse(body);
     if (!validationResult.success) {
-      console.error("Error de validación:", JSON.stringify(validationResult.error.format()));
       return NextResponse.json(
         { error: "Datos inválidos", details: validationResult.error.format() },
         { status: 400 }
@@ -30,7 +27,6 @@ export async function POST(request: NextRequest) {
     }
     
     const { message, projectRequestCompanyId } = validationResult.data;
-    console.log("Datos validados:", { message, projectRequestCompanyId });
 
     // Verificar que la relación proyecto-compañía existe
     const projectRequestCompany = await prisma.projectRequestCompany.findUnique({
@@ -41,7 +37,6 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log("Relación encontrada:", !!projectRequestCompany);
     if (!projectRequestCompany) {
       return NextResponse.json(
         { error: "Relación entre proyecto y compañía no encontrada" },
@@ -59,7 +54,6 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log("Log creado:", newLog.id);
     return NextResponse.json(newLog, { status: 201 });
   } catch (error) {
     console.error("Error al crear log:", error);

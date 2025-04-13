@@ -28,6 +28,30 @@ export async function GET(
       );
     }
 
+    // Obtener el proyecto para saber el cliente
+    const projectRequest = await prisma.projectRequest.findUnique({
+      where: {
+        id: projectRequestId,
+        isDeleted: false,
+      },
+      include: {
+        clientArea: {
+          include: {
+            client: true,
+          },
+        },
+      },
+    });
+
+    if (!projectRequest || !projectRequest.clientArea || !projectRequest.clientArea.client) {
+      return NextResponse.json(
+        { error: "Proyecto no encontrado o sin cliente asociado" },
+        { status: 404 }
+      );
+    }
+
+    const clientId = projectRequest.clientArea.client.id;
+
     // Verificar que exista el requerimiento y pertenezca a la solicitud
     const requirement = await prisma.projectRequirements.findFirst({
       where: {
@@ -71,7 +95,16 @@ export async function GET(
       where: {
         projectRequirementsId: projectRequirementId,
         isDeleted: false,
-      },
+      }
+    });
+
+    // Obtener todos los NDAs para este cliente
+    const ndas = await prisma.clientCompanyNDA.findMany({
+      where: {
+        clientId: clientId,
+        isDeleted: false,
+        isActive: true,
+      }
     });
 
     // Obtener todas las empresas activas
@@ -124,7 +157,7 @@ export async function GET(
     });
 
     // Para cada empresa, verificar si cumple con los requisitos
-    const eligibleCompanies = companies.map((company) => {
+    const eligibleCompanies = await Promise.all(companies.map(async (company) => {
       // Filtrar las especialidades de esta empresa
       const companySpecialtiesFiltered = companySpecialties.filter(
         (cs) => cs.companyId === company.id && cs.company.isActive
@@ -167,6 +200,17 @@ export async function GET(
         (rc) => rc.companyId === company.id
       );
 
+      // Verificar si existe un NDA entre el cliente y la empresa
+      const nda = ndas.find(n => n.companyId === company.id);
+      
+      // Construir información del NDA
+      const ndaInfo = {
+        hasNDA: !!nda,
+        ndaId: nda?.id || null,
+        ndaFileName: nda?.ndaSignedFileName || null,
+        ndaExpirationDate: nda?.ndaExpirationDate || null
+      };
+
       // Construir objeto de respuesta
       return {
         ...company,
@@ -174,13 +218,13 @@ export async function GET(
         matchingCertifications: matchingCertifications.length,
         isParticipant: !!existingParticipant,
         participantId: existingParticipant?.id || null,
-        ndaFile: existingParticipant?.ndaFile ? true : null,
-        ndaFileName: existingParticipant?.ndaFileName || null,
-        hasSignedNDA: !!existingParticipant?.ndaSignedFile,
-        ndaSignedFileName: existingParticipant?.ndaSignedFileName || null,
+        hasNDA: ndaInfo.hasNDA,
+        ndaId: ndaInfo.ndaId,
+        ndaFileName: ndaInfo.ndaFileName,
+        ndaExpirationDate: ndaInfo.ndaExpirationDate,
         statusId: existingParticipant?.statusId || null,
       };
-    });
+    }));
 
     return NextResponse.json({
       companies: eligibleCompanies,

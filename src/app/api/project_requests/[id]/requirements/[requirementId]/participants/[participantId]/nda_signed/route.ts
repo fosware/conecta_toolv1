@@ -30,12 +30,15 @@ export async function POST(
     }
 
     // Buscar el participante
-    const participant = await prisma.projectRequestCompany.findFirst({
+    const participant = await prisma.projectRequestCompany.findUnique({
       where: {
         id: participantIdNum,
         projectRequirementsId: projectRequirementId,
         isDeleted: false,
       },
+      include: {
+        ClientCompanyNDA: true
+      }
     });
 
     if (!participant) {
@@ -45,10 +48,18 @@ export async function POST(
       );
     }
 
-    // Procesar el archivo subido
+    // Verificar si ya existe un NDA asociado
+    if (!participant.clientCompanyNDAId) {
+      return NextResponse.json(
+        { error: "No hay un NDA asociado a este participante" },
+        { status: 400 }
+      );
+    }
+
+    // Obtener el archivo del formulario
     const formData = await request.formData();
-    const file = formData.get('file') as File | null;
-    
+    const file = formData.get("file") as File;
+
     if (!file) {
       return NextResponse.json(
         { error: "No se proporcionó ningún archivo" },
@@ -56,9 +67,21 @@ export async function POST(
       );
     }
 
-    // Convertir el archivo a un array de bytes
-    const fileBuffer = await file.arrayBuffer();
-    const fileBytes = new Uint8Array(fileBuffer);
+    // Leer el archivo como un ArrayBuffer
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    // Actualizar el NDA con el archivo firmado
+    const updatedNDA = await prisma.clientCompanyNDA.update({
+      where: {
+        id: participant.clientCompanyNDAId
+      },
+      data: {
+        ndaSignedFile: buffer,
+        ndaSignedFileName: file.name,
+        ndaExpirationDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 año desde ahora
+      }
+    });
 
     // Actualizar el registro con el archivo NDA firmado y cambiar el estado a "Firmado por Asociado"
     await prisma.projectRequestCompany.update({
@@ -66,9 +89,6 @@ export async function POST(
         id: participantIdNum,
       },
       data: {
-        ndaSignedFile: fileBytes,
-        ndaSignedFileName: file.name,
-        ndaSignedAt: new Date(),
         statusId: 4, // "Firmado por Asociado"
         userId: userId,
       },
@@ -114,12 +134,15 @@ export async function DELETE(
     }
 
     // Buscar el participante
-    const participant = await prisma.projectRequestCompany.findFirst({
+    const participant = await prisma.projectRequestCompany.findUnique({
       where: {
         id: participantIdNum,
         projectRequirementsId: projectRequirementId,
         isDeleted: false,
       },
+      include: {
+        ClientCompanyNDA: true
+      }
     });
 
     if (!participant) {
@@ -129,8 +152,28 @@ export async function DELETE(
       );
     }
 
+    // Verificar si ya existe un NDA asociado
+    if (!participant.clientCompanyNDAId) {
+      return NextResponse.json(
+        { error: "No hay un NDA asociado a este participante" },
+        { status: 400 }
+      );
+    }
+
+    // Eliminar el archivo NDA firmado del NDA
+    await prisma.clientCompanyNDA.update({
+      where: {
+        id: participant.clientCompanyNDAId
+      },
+      data: {
+        ndaSignedFile: Buffer.from([]), // Buffer vacío en lugar de null
+        ndaSignedFileName: "", // String vacío en lugar de null
+        ndaExpirationDate: new Date(0), // Fecha mínima en lugar de null
+      }
+    });
+
     // Verificar si el participante tiene un NDA original
-    const hasOriginalNDA = participant.ndaFile !== null;
+    const hasOriginalNDA = !!participant.ClientCompanyNDA?.ndaSignedFile;
     
     // Determinar el nuevo estado basado en si tiene NDA original
     const newStatusId = hasOriginalNDA ? 3 : 2; // 3: En espera de firma NDA, 2: Asociado seleccionado
@@ -141,9 +184,6 @@ export async function DELETE(
         id: participantIdNum,
       },
       data: {
-        ndaSignedFile: null,
-        ndaSignedFileName: null,
-        ndaSignedAt: null,
         statusId: newStatusId,
         userId: userId,
       },

@@ -61,7 +61,9 @@ export async function GET(
       // Buscar las cotizaciones de proveedores seleccionadas
       const selectedQuotations = await prisma.projectRequestCompany.findMany({
         where: {
-          projectRequestId: projectRequestId,
+          ProjectRequirements: {
+            projectRequestId: projectRequestId
+          },
           Quotation: {
             isClientSelected: true,
           },
@@ -162,7 +164,9 @@ export async function POST(
       // 1. Obtener el estado actual de las cotizaciones seleccionadas para preservar sus estados
       const currentSelectedQuotations = await tx.projectRequestCompany.findMany({
         where: {
-          projectRequestId: projectRequestId,
+          ProjectRequirements: {
+            projectRequestId: projectRequestId
+          },
           Quotation: {
             isClientSelected: true,
           },
@@ -187,7 +191,9 @@ export async function POST(
       await tx.projectRequestRequirementQuotation.updateMany({
         where: {
           ProjectRequestCompany: {
-            projectRequestId: projectRequestId,
+            ProjectRequirements: {
+              projectRequestId: projectRequestId
+            },
             id: {
               notIn: selectedCompanyIds,
             },

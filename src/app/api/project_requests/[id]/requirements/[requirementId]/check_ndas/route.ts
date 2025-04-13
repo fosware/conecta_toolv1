@@ -1,18 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getUserFromToken } from "@/lib/get-user-from-token";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string; requirementId: string } }
 ) {
   try {
-    // Obtener IDs del proyecto y requerimiento
+    // Verificar autenticación
+    const userId = await getUserFromToken();
+    if (!userId) {
+      return NextResponse.json(
+        { error: "No autorizado" },
+        { status: 401 }
+      );
+    }
+
+    // Obtener los IDs de la URL
     const { id, requirementId } = await params;
     const projectRequestId = parseInt(id);
     const projectRequirementId = parseInt(requirementId);
 
     if (isNaN(projectRequestId) || isNaN(projectRequirementId)) {
-      return NextResponse.json({ error: "IDs inválidos" }, { status: 400 });
+      return NextResponse.json(
+        { error: "IDs inválidos" },
+        { status: 400 }
+      );
     }
 
     // Obtener el proyecto para saber el cliente
@@ -30,14 +43,16 @@ export async function GET(
       },
     });
 
-    if (!projectRequest) {
+    if (!projectRequest || !projectRequest.clientArea || !projectRequest.clientArea.client) {
       return NextResponse.json(
-        { error: "Solicitud de proyecto no encontrada" },
+        { error: "Proyecto no encontrado o sin cliente asociado" },
         { status: 404 }
       );
     }
 
-    // Obtener todas las empresas (asociados)
+    const clientId = projectRequest.clientArea.client.id;
+
+    // Obtener todas las empresas activas
     const companies = await prisma.company.findMany({
       where: {
         isDeleted: false,
@@ -45,57 +60,46 @@ export async function GET(
       },
       select: {
         id: true,
+        companyName: true,
         comercialName: true,
-      },
+      }
     });
 
-    const clientId = projectRequest.clientArea.client.id;
+    // Obtener todos los NDAs para este cliente
+    const ndas = await prisma.clientCompanyNDA.findMany({
+      where: {
+        clientId: clientId,
+        isDeleted: false,
+        isActive: true,
+      },
+      select: {
+        id: true,
+        companyId: true,
+        ndaSignedFileName: true,
+        ndaExpirationDate: true,
+      }
+    });
     
-    // Obtener la fecha actual para verificar NDAs válidos
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Verificar si hay NDAs para cada empresa
+    const result = companies.map(company => {
+      // Buscar si la empresa tiene un NDA con este cliente
+      const nda = ndas.find(n => n.companyId === company.id);
+      const hasNDA = !!nda;
+      
+      return {
+        companyId: company.id,
+        hasNDA: hasNDA,
+        ndaId: nda?.id || null,
+        ndaExpirationDate: nda?.ndaExpirationDate || null,
+        ndaFileName: nda?.ndaSignedFileName || null
+      };
+    });
 
-    // Verificar NDAs para cada empresa
-    const ndaResults = await Promise.all(
-      companies.map(async (company) => {
-        // Buscar directamente en la base de datos si existe un NDA válido para este asociado
-        const validNDA = await prisma.clientCompanyNDA.findFirst({
-          where: {
-            // Ignoramos el clientId para permitir que un asociado use el mismo NDA con diferentes clientes
-            companyId: company.id,
-            isActive: true,
-            isDeleted: false,
-          },
-          orderBy: {
-            createdAt: "desc",
-          },
-        });
-
-        if (validNDA) {
-          return {
-            companyId: company.id,
-            hasNDA: true,
-            ndaId: validNDA.id,
-            ndaExpirationDate: validNDA.ndaExpirationDate,
-            ndaFileName: validNDA.ndaSignedFileName,
-          };
-        } else {
-          return {
-            companyId: company.id,
-            hasNDA: false,
-            ndaId: null,
-            ndaExpirationDate: null,
-            ndaFileName: null,
-          };
-        }
-      })
-    );
-
-    return NextResponse.json({ ndaResults });
+    return NextResponse.json({ ndaResults: result });
   } catch (error) {
     console.error("Error al verificar NDAs:", error);
     return NextResponse.json(
-      { error: "Error al verificar NDAs" },
+      { error: "Error al procesar la solicitud" },
       { status: 500 }
     );
   }

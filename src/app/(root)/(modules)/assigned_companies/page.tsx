@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Plus, Search, FileText } from "lucide-react";
 import { AssignedCompaniesTable } from "./components/assigned-companies-table";
 import { AssignedCompany } from "@/lib/schemas/assigned_company";
-import { UploadNdaDialog } from "./components/upload-nda-dialog";
 import { ViewDocumentsDialog } from "./components/view-documents-dialog";
 import {
   AlertDialog,
@@ -31,7 +30,6 @@ export default function AssignedCompaniesPage() {
   const [selectedRequestDetails, setSelectedRequestDetails] = useState<
     any | null
   >(null);
-  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<AssignedCompany | null>(
     null
   );
@@ -68,9 +66,26 @@ export default function AssignedCompaniesPage() {
 
       // Asegurarse de que tenemos un array de items y filtrar los eliminados
       const items = responseData.items || [];
+
+      // Filtrar registros eliminados y aquellos que no tienen información mínima necesaria
       const filteredItems = items.filter(
-        (item: AssignedCompany) => !item.isDeleted
+        (item: AssignedCompany) => {
+          // Verificar que no esté eliminado
+          if (item.isDeleted) return false;
+
+          // Verificar que tenga información de la empresa
+          if (!item.Company) return false;
+
+          // Verificar que tenga información de la solicitud de proyecto
+          if (!item.ProjectRequest) return false;
+
+          return true;
+        }
       );
+
+      // Imprimir en consola para depuración
+      console.log("Total de registros cargados:", items.length);
+      console.log("Registros después de filtrar:", filteredItems.length);
 
       setData(filteredItems);
       setFilteredData(filteredItems);
@@ -94,14 +109,14 @@ export default function AssignedCompaniesPage() {
       const lowercasedFilter = searchTerm.toLowerCase();
       const filtered = data.filter((item) => {
         const companyName =
-          item.Company?.companyName?.toLowerCase() ||
+          item.Company?.name?.toLowerCase() ||
           item.Company?.comercialName?.toLowerCase() ||
           "";
         const projectTitle = item.ProjectRequest?.title?.toLowerCase() || "";
         const clientName =
-          item.ProjectRequest?.Client?.name?.toLowerCase() || "";
+          item.ProjectRequest?.clientArea?.client?.name?.toLowerCase() || "";
         const areaName =
-          item.ProjectRequest?.ClientArea?.areaName?.toLowerCase() || "";
+          item.ProjectRequest?.clientArea?.areaName?.toLowerCase() || "";
 
         return (
           companyName.includes(lowercasedFilter) ||
@@ -122,11 +137,6 @@ export default function AssignedCompaniesPage() {
       setExpandedId(item.id);
       setSelectedRequestDetails(item.ProjectRequest || null);
     }
-  };
-
-  const handleUploadNda = (item: AssignedCompany) => {
-    setSelectedItem(item);
-    setUploadDialogOpen(true);
   };
 
   const handleViewDocuments = (item: AssignedCompany) => {
@@ -225,7 +235,6 @@ export default function AssignedCompaniesPage() {
             data={filteredData}
             loading={loading}
             onRowClick={handleRowClick}
-            onUploadNda={handleUploadNda}
             onViewDocuments={handleViewDocuments}
             onDeleteItem={handleDeleteItem}
             onRefreshData={loadData}
@@ -234,18 +243,6 @@ export default function AssignedCompaniesPage() {
           />
         </CardContent>
       </Card>
-
-      {selectedItem && (
-        <UploadNdaDialog
-          open={uploadDialogOpen}
-          onOpenChange={setUploadDialogOpen}
-          item={selectedItem}
-          onSuccess={() => {
-            loadData(false);
-            setUploadDialogOpen(false);
-          }}
-        />
-      )}
 
       {selectedItem && (
         <ViewDocumentsDialog

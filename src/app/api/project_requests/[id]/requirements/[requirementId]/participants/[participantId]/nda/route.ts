@@ -29,13 +29,16 @@ export async function DELETE(
       );
     }
 
-    // Buscar el participante
-    const participant = await prisma.projectRequestCompany.findFirst({
+    // Verificar que exista el participante
+    const participant = await prisma.projectRequestCompany.findUnique({
       where: {
         id: participantIdNum,
         projectRequirementsId: projectRequirementId,
         isDeleted: false,
       },
+      include: {
+        ClientCompanyNDA: true
+      }
     });
 
     if (!participant) {
@@ -52,11 +55,7 @@ export async function DELETE(
         id: participantIdNum,
       },
       data: {
-        ndaFile: null,
-        ndaFileName: null,
-        ndaSignedFile: null,
-        ndaSignedFileName: null,
-        ndaSignedAt: null,
+        clientCompanyNDAId: null,
         statusId: 2, // "Asociado seleccionado"
         userId: userId,
       },

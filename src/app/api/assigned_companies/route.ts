@@ -41,7 +41,27 @@ export async function GET(request: NextRequest) {
         status: true,
         Documents: true,
         Quotation: true,
-        ProjectRequirements: true, // Incluir la relación con el requerimiento
+        ProjectRequirements: {
+          include: {
+            ProjectRequest: true,
+            RequirementCertification: {
+              where: {
+                isDeleted: false,
+              },
+              include: {
+                certification: true,
+              },
+            },
+            RequirementSpecialty: {
+              where: {
+                isDeleted: false,
+              },
+              include: {
+                specialty: true,
+              },
+            },
+          }
+        }, // Incluir la relación con el requerimiento y su proyecto
       },
       orderBy: {
         updatedAt: "desc",
@@ -50,51 +70,29 @@ export async function GET(request: NextRequest) {
 
     // Obtener los projectRequests asociados en una consulta separada
     const projectRequestIds = items
-      .map((item) => item.projectRequestId)
-      .filter(Boolean);
+      .map((item) => item.ProjectRequirements?.ProjectRequest?.id)
+      .filter(Boolean) as number[];
 
     // Obtener los requerimientos para cada ProjectRequestCompany
     const requirementsIds = items.map((item) => item.projectRequirementsId);
     
-    // Obtener los requerimientos
-    const requirementsData = await prisma.projectRequirements.findMany({
-      where: {
-        id: {
-          in: requirementsIds,
-        },
-        isDeleted: false,
-      },
-      include: {
-        RequirementCertification: {
-          where: {
-            isDeleted: false,
-          },
-          include: {
-            certification: true,
-          },
-        },
-        RequirementSpecialty: {
-          where: {
-            isDeleted: false,
-          },
-          include: {
-            specialty: true,
-          },
-        },
-      },
-    });
-
     // Crear un mapa de requerimientos por ID
     const requirementsMap = new Map();
-    requirementsData.forEach((req) => {
-      requirementsMap.set(req.id, req);
+    items.forEach((item) => {
+      if (item.ProjectRequirements) {
+        requirementsMap.set(item.projectRequirementsId, item.ProjectRequirements);
+      }
     });
 
+    // Obtener todos los projectRequests asociados con sus áreas de cliente
+    let projectRequests: any[] = [];
+    let clientIds: number[] = [];
+    
     if (projectRequestIds.length > 0) {
-      const projectRequests = await prisma.projectRequest.findMany({
+      projectRequests = await prisma.projectRequest.findMany({
         where: {
           id: {
-            in: projectRequestIds as number[],
+            in: projectRequestIds,
           },
           isDeleted: false,
         },
@@ -108,40 +106,79 @@ export async function GET(request: NextRequest) {
         },
       });
 
-      // Asociar manualmente los projectRequests a los items
-      const projectRequestsMap = new Map();
-      projectRequests.forEach((pr) => {
-        projectRequestsMap.set(pr.id, pr);
-      });
+      // Extraer los IDs de los clientes para buscar NDAs
+      clientIds = projectRequests
+        .map(pr => pr.clientArea?.client?.id)
+        .filter(Boolean) as number[];
+    }
 
-      // Procesar los items para incluir la información necesaria
-      items.forEach((item) => {
-        if (item.projectRequestId) {
-          // Añadimos manualmente la propiedad
-          (item as any).ProjectRequest = projectRequestsMap.get(
-            item.projectRequestId
-          );
+    // Obtener todos los NDAs para los clientes asociados
+    const ndas = await prisma.clientCompanyNDA.findMany({
+      where: {
+        clientId: {
+          in: clientIds,
+        },
+        isDeleted: false,
+        isActive: true,
+      },
+    });
 
-          // Obtener el requerimiento asociado a este ProjectRequestCompany
-          const requirement = requirementsMap.get(item.projectRequirementsId);
+    // Crear mapas para acceso rápido
+    const projectRequestsMap = new Map();
+    projectRequests.forEach((pr) => {
+      projectRequestsMap.set(pr.id, pr);
+    });
 
-          // Añadir la información de requerimientos
-          if (requirement) {
-            (item as any).requirements = [
-              {
-                id: requirement.id,
-                name: requirement.requirementName,
-                projectRequestId: requirement.projectRequestId,
-                certifications: requirement.RequirementCertification || [],
-                specialties: requirement.RequirementSpecialty || [],
-              },
-            ];
+    // Procesar los items para incluir la información necesaria
+    items.forEach((item) => {
+      // Obtener el projectRequest a través del requerimiento
+      const projectRequestId = item.ProjectRequirements?.ProjectRequest?.id;
+      
+      if (projectRequestId) {
+        // Añadimos manualmente la propiedad ProjectRequest
+        const projectRequest = projectRequestsMap.get(projectRequestId);
+        (item as any).ProjectRequest = projectRequest;
+
+        // Obtener el requerimiento asociado a este ProjectRequestCompany
+        const requirement = requirementsMap.get(item.projectRequirementsId);
+
+        // Añadir la información de requerimientos
+        if (requirement) {
+          (item as any).requirements = [
+            {
+              id: requirement.id,
+              name: requirement.requirementName,
+              projectRequestId: requirement.ProjectRequest?.id,
+              certifications: requirement.RequirementCertification || [],
+              specialties: requirement.RequirementSpecialty || [],
+              observation: requirement.observation || null,
+              piecesNumber: requirement.piecesNumber || null,
+            },
+          ];
+        } else {
+          (item as any).requirements = [];
+        }
+
+        // Verificar si existe un NDA para esta empresa y cliente
+        if (projectRequest?.clientArea?.client?.id) {
+          const clientId = projectRequest.clientArea.client.id;
+          const companyId = item.companyId;
+          
+          // Buscar el NDA correspondiente
+          const nda = ndas.find(n => n.clientId === clientId && n.companyId === companyId);
+          
+          if (nda) {
+            // Añadir información del NDA al item
+            (item as any).ndaId = nda.id;
+            (item as any).ndaFileName = nda.ndaSignedFileName;
+            (item as any).ndaExpirationDate = nda.ndaExpirationDate;
+            (item as any).hasNDA = true;
           } else {
-            (item as any).requirements = [];
+            (item as any).hasNDA = false;
           }
         }
-      });
-    }
+      }
+    });
 
     return NextResponse.json({
       items,

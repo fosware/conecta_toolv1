@@ -7,57 +7,64 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    // Extraer el ID correctamente según las prácticas de Next.js 15
+    // Verificar autenticación
+    const userId = await getUserFromToken();
+    if (!userId) {
+      return NextResponse.json(
+        { error: "No autorizado" },
+        { status: 401 }
+      );
+    }
+
+    // Obtener el ID del participante
     const { id } = await params;
-    const parsedId = parseInt(id);
-    
-    // Verificar que el ID sea válido
-    if (isNaN(parsedId)) {
+    const participantId = parseInt(id);
+
+    if (isNaN(participantId)) {
       return NextResponse.json(
         { error: "ID inválido" },
         { status: 400 }
       );
     }
 
-    // Obtener el usuario desde el token (opcional)
-    const userId = await getUserFromToken();
-
-    // Buscar el registro de la empresa participante
-    const projectRequestCompany = await prisma.projectRequestCompany.findFirst({
+    // Buscar el participante y su NDA asociado
+    const projectRequestCompany = await prisma.projectRequestCompany.findUnique({
       where: {
-        id: parsedId,
-        isActive: true,
-        isDeleted: false,
+        id: participantId,
       },
-      select: {
-        ndaFile: true,
-        ndaFileName: true,
-      },
+      include: {
+        ClientCompanyNDA: true
+      }
     });
 
-    if (!projectRequestCompany || !projectRequestCompany.ndaFile) {
+    // Verificar que exista el participante y tenga un NDA asociado
+    if (!projectRequestCompany || !projectRequestCompany.ClientCompanyNDA) {
       return NextResponse.json(
-        { error: "Archivo NDA no encontrado" },
+        { error: "NDA no encontrado" },
         { status: 404 }
       );
     }
 
-    // Crear headers para la descarga
+    // Obtener el archivo del NDA
+    const ndaFile = projectRequestCompany.ClientCompanyNDA.ndaSignedFile;
+    const ndaFileName = projectRequestCompany.ClientCompanyNDA.ndaSignedFileName;
+
+    // Configurar la respuesta con el archivo
     const headers = new Headers();
     headers.set(
       "Content-Disposition",
-      `attachment; filename="${projectRequestCompany.ndaFileName || 'nda.pdf'}"`
+      `attachment; filename="${ndaFileName || 'nda.pdf'}"`
     );
-    headers.set("Content-Type", "application/octet-stream");
+    headers.set("Content-Type", "application/pdf");
 
-    // Devolver el archivo como respuesta
-    return new NextResponse(projectRequestCompany.ndaFile, {
+    return new NextResponse(ndaFile, {
+      status: 200,
       headers,
     });
   } catch (error) {
-    console.error("Error:", error);
+    console.error("Error al descargar NDA:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Error al descargar el archivo NDA" },
+      { error: "Error al descargar NDA" },
       { status: 500 }
     );
   }

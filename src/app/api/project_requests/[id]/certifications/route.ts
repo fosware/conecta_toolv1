@@ -167,7 +167,7 @@ export async function POST(
     // Crear la certificación requerida
     const newRequirementCertification = await prisma.requirementCertification.create({
       data: {
-        projectRequestId: parsedId,
+        projectRequirementsId: parsedId, // Usar projectRequirementsId en lugar de projectRequestId
         certificationId: validatedData.certificationId,
         observation: validatedData.observation,
         userId,

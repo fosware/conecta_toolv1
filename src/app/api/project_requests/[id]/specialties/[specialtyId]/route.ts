@@ -13,12 +13,11 @@ export async function DELETE(
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
-    // Extraer los IDs correctamente
+    // Obtener los IDs de la URL siguiendo las mejores prácticas de Next.js 15
     const { id, specialtyId } = await params;
-
     const parsedProjectId = parseInt(id);
     const parsedSpecialtyId = parseInt(specialtyId);
-    
+
     if (isNaN(parsedProjectId) || isNaN(parsedSpecialtyId)) {
       return NextResponse.json(
         { error: "IDs inválidos" },
@@ -26,10 +25,11 @@ export async function DELETE(
       );
     }
 
-    // Verificar que la solicitud existe
+    // Verificar que existe la solicitud de proyecto
     const projectRequest = await prisma.projectRequest.findUnique({
       where: {
         id: parsedProjectId,
+        isDeleted: false,
       },
     });
 
@@ -40,16 +40,46 @@ export async function DELETE(
       );
     }
 
-    // Verificar que la especialidad requerida existe
-    const requirementSpecialty = await prisma.requirementSpecialty.findFirst({
+    // Verificar que existe la especialidad
+    const specialty = await prisma.specialties.findUnique({
       where: {
         id: parsedSpecialtyId,
-        projectRequestId: parsedProjectId,
         isDeleted: false,
       },
     });
 
-    if (!requirementSpecialty) {
+    if (!specialty) {
+      return NextResponse.json(
+        { error: "Especialidad no encontrada" },
+        { status: 404 }
+      );
+    }
+
+    // Buscar todos los requerimientos de la solicitud
+    const requirements = await prisma.projectRequirements.findMany({
+      where: {
+        projectRequestId: parsedProjectId,
+        isDeleted: false,
+      },
+      select: {
+        id: true
+      }
+    });
+
+    const requirementIds = requirements.map(req => req.id);
+
+    // Verificar si ya existe la especialidad en algún requerimiento
+    const existingSpecialty = await prisma.requirementSpecialty.findFirst({
+      where: {
+        specialtyId: parsedSpecialtyId,
+        projectRequirementsId: {
+          in: requirementIds
+        },
+        isDeleted: false,
+      },
+    });
+
+    if (!existingSpecialty) {
       return NextResponse.json(
         { error: "Especialidad requerida no encontrada" },
         { status: 404 }
@@ -59,7 +89,7 @@ export async function DELETE(
     // Eliminar la especialidad requerida (soft delete)
     await prisma.requirementSpecialty.update({
       where: {
-        id: parsedSpecialtyId,
+        id: existingSpecialty.id,
       },
       data: {
         isDeleted: true,

@@ -22,9 +22,27 @@ export async function GET(
     }
 
     // Buscar el ProjectRequestCompany
-    const projectRequestCompany = await prisma.projectRequestCompany.findFirst({
+    // Primero, obtenemos los requerimientos del proyecto
+    const projectRequirements = await prisma.projectRequirements.findMany({
       where: {
         projectRequestId: parsedProjectId,
+        isActive: true,
+        isDeleted: false,
+      },
+      select: {
+        id: true
+      }
+    });
+
+    // Extraemos los IDs de los requerimientos
+    const requirementIds = projectRequirements.map(req => req.id);
+
+    // Ahora buscamos el ProjectRequestCompany que coincida con alguno de estos requerimientos
+    const projectRequestCompany = await prisma.projectRequestCompany.findFirst({
+      where: {
+        projectRequirementsId: {
+          in: requirementIds
+        },
         companyId: parsedCompanyId,
         isActive: true,
         isDeleted: false,

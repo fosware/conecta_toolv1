@@ -1,65 +1,71 @@
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-// import { getServerSession } from "next-auth";
-// import { authOptions } from "@/lib/auth";
+import { getUserFromToken } from "@/lib/get-user-from-token";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    // Extraer el ID correctamente según las prácticas de Next.js 15
-    const { id } = params;
-    const parsedId = parseInt(id);
-
     // Verificar autenticación
-    // const session = await getServerSession(authOptions);
-    if (false) { // Autenticación deshabilitada temporalmente
+    const userId = await getUserFromToken();
+    if (!userId) {
       return NextResponse.json(
         { error: "No autorizado" },
         { status: 401 }
       );
     }
 
-    // Obtener el registro
-    const projectRequestCompany = await prisma.projectRequestCompany.findUnique({
+    // Obtener el ID de la empresa asignada siguiendo las mejores prácticas de Next.js 15
+    const { id } = await params;
+    const assignedCompanyId = parseInt(id);
+
+    if (isNaN(assignedCompanyId)) {
+      return NextResponse.json(
+        { error: "ID inválido" },
+        { status: 400 }
+      );
+    }
+
+    // Buscar la empresa asignada y su NDA asociado
+    const assignedCompany = await prisma.projectRequestCompany.findUnique({
       where: {
-        id: parsedId,
+        id: assignedCompanyId,
         isDeleted: false,
       },
+      include: {
+        ClientCompanyNDA: true
+      }
     });
 
-    if (!projectRequestCompany) {
+    // Verificar que exista la empresa asignada y tenga un NDA firmado asociado
+    if (!assignedCompany || !assignedCompany.ClientCompanyNDA?.ndaSignedFile) {
       return NextResponse.json(
-        { error: "Registro no encontrado" },
+        { error: "NDA firmado no encontrado" },
         { status: 404 }
       );
     }
 
-    // Verificar que existe un archivo NDA firmado
-    if (!projectRequestCompany.ndaSignedFile) {
-      return NextResponse.json(
-        { error: "No hay un NDA firmado disponible para descargar" },
-        { status: 404 }
-      );
-    }
+    // Obtener el archivo del NDA firmado
+    const ndaSignedFile = assignedCompany.ClientCompanyNDA.ndaSignedFile;
+    const ndaSignedFileName = assignedCompany.ClientCompanyNDA.ndaSignedFileName;
 
-    // Crear respuesta con el archivo
-    const response = new NextResponse(projectRequestCompany.ndaSignedFile);
-    
-    // Establecer encabezados para la descarga
-    response.headers.set("Content-Type", "application/pdf");
-    response.headers.set(
+    // Configurar la respuesta con el archivo
+    const headers = new Headers();
+    headers.set(
       "Content-Disposition",
-      `attachment; filename="${projectRequestCompany.ndaSignedFileName || 'nda-firmado.pdf'}"`
+      `attachment; filename="${ndaSignedFileName || 'nda_signed.pdf'}"`
     );
+    headers.set("Content-Type", "application/pdf");
 
-    return response;
+    return new NextResponse(ndaSignedFile, {
+      status: 200,
+      headers,
+    });
   } catch (error) {
-    console.error("Error en GET /api/assigned_companies/[id]/download-signed-nda:", error);
+    console.error("Error al descargar NDA firmado:", error);
     return NextResponse.json(
-      { error: "Error al descargar el NDA firmado" },
+      { error: "Error al descargar NDA firmado" },
       { status: 500 }
     );
   }

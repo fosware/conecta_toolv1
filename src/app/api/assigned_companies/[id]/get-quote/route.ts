@@ -8,7 +8,7 @@ export async function GET(
 ) {
   try {
     // Extraer el ID correctamente según las mejores prácticas de Next.js
-    const { id } = params;
+    const { id } = await params;
     const parsedId = parseInt(id);
 
     // Verificar autenticación
@@ -30,6 +30,7 @@ export async function GET(
         materialCost: true,
         directCost: true,
         indirectCost: true,
+        price: true,
         projectTypesId: true,
         additionalDetails: true,
         quotationFileName: true,

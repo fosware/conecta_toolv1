@@ -37,7 +37,6 @@ interface AssignedCompaniesTableProps {
   data: AssignedCompany[];
   loading: boolean;
   onRowClick: (item: AssignedCompany) => void;
-  onUploadNda: (item: AssignedCompany) => void;
   onViewDocuments: (item: AssignedCompany) => void;
   onDeleteItem: (item: AssignedCompany) => void;
   onRefreshData: (showLoading: boolean) => void;
@@ -49,17 +48,12 @@ export function AssignedCompaniesTable({
   data,
   loading,
   onRowClick,
-  onUploadNda,
   onViewDocuments,
   onDeleteItem,
   onRefreshData,
   expandedId,
   onOpenLogs,
 }: AssignedCompaniesTableProps) {
-  const [downloadingNda, setDownloadingNda] = useState<number | null>(null);
-  const [downloadingSignedNda, setDownloadingSignedNda] = useState<
-    number | null
-  >(null);
   const [downloadingQuote, setDownloadingQuote] = useState<number | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<AssignedCompany | null>(
@@ -70,91 +64,10 @@ export function AssignedCompaniesTable({
     null
   );
 
-  const handleDownloadNda = async (
-    item: AssignedCompany,
-    e: React.MouseEvent
-  ) => {
-    e.stopPropagation();
-    if (!item.ndaFile) {
-      return;
-    }
-
-    try {
-      setDownloadingNda(item.id);
-      const response = await fetch(
-        `/api/assigned_companies/${item.id}/download-nda`,
-        {
-          headers: {
-            // Usamos cookies para autenticación
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Error al descargar el NDA");
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = window.document.createElement("a");
-      a.href = url;
-      a.download = item.ndaFileName || "nda.pdf";
-      window.document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      window.document.body.removeChild(a);
-    } catch (error) {
-      console.error("Error downloading NDA:", error);
-    } finally {
-      setDownloadingNda(null);
-    }
-  };
-
-  const handleDownloadSignedNda = async (
-    item: AssignedCompany,
-    e: React.MouseEvent
-  ) => {
-    e.stopPropagation();
-    if (!item.ndaSignedFile) {
-      return;
-    }
-
-    try {
-      setDownloadingSignedNda(item.id);
-      const response = await fetch(
-        `/api/assigned_companies/${item.id}/download-signed-nda`,
-        {
-          headers: {
-            // Usamos cookies para autenticación
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Error al descargar el NDA firmado");
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = window.document.createElement("a");
-      a.href = url;
-      a.download = item.ndaSignedFileName || "nda_signed.pdf";
-      window.document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      window.document.body.removeChild(a);
-    } catch (error: any) {
-      console.error("Error downloading signed NDA:", error);
-      toast.error(`Error al descargar el NDA firmado: ${error.message || 'Error desconocido'}`);
-    } finally {
-      setDownloadingSignedNda(null);
-    }
-  };
-
   const handleDownloadQuote = async (item: AssignedCompany) => {
     try {
       setDownloadingQuote(item.id);
-
+      
       // Primero, obtener el nombre del archivo de la cotización
       const quoteInfoResponse = await fetch(
         `/api/assigned_companies/${item.id}/quotation-info`
@@ -172,8 +85,7 @@ export function AssignedCompaniesTable({
         return;
       }
 
-      const fileName =
-        quoteInfo.quotationFileName || `cotizacion-${item.id}.xlsx`;
+      const fileName = quoteInfo.quotationFileName || `cotizacion-${item.id}.xlsx`;
 
       // Luego, descargar el archivo
       const response = await fetch(
@@ -186,7 +98,6 @@ export function AssignedCompaniesTable({
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-
       const a = window.document.createElement("a");
       a.href = url;
       a.download = fileName;
@@ -195,7 +106,7 @@ export function AssignedCompaniesTable({
       window.URL.revokeObjectURL(url);
       window.document.body.removeChild(a);
     } catch (error) {
-      console.error("Error downloading quote:", error);
+      console.error("Error downloading quotation:", error);
       toast.error("Error al descargar la cotización");
     } finally {
       setDownloadingQuote(null);
@@ -411,34 +322,21 @@ export function AssignedCompaniesTable({
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end space-x-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      title="Subir NDA"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onUploadNda(item);
-                      }}
-                      className="h-8 w-8"
-                    >
-                      <Upload className="h-4 w-4 text-muted-foreground" />
-                    </Button>
-
                     {item.status && shouldShowQuoteButton(item.status.id) && (
                       <Button
                         variant="ghost"
                         size="icon"
-                        title="Cotizar"
+                        title="Subir cotización"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleUploadQuote(item);
                         }}
                         className="h-8 w-8"
                       >
-                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        <Upload className="h-4 w-4 text-muted-foreground" />
                       </Button>
                     )}
-
+                    
                     <Button
                       variant="ghost"
                       size="icon"
@@ -550,6 +448,25 @@ export function AssignedCompaniesTable({
                                       {req.name || "N/A"}
                                     </p>
 
+                                    {req.piecesNumber !== null && 
+                                     req.piecesNumber !== undefined && (
+                                      <p className="mt-1">
+                                        <span className="font-semibold">
+                                          Número de piezas:
+                                        </span>{" "}
+                                        {req.piecesNumber}
+                                      </p>
+                                    )}
+
+                                    {req.observation && (
+                                      <p className="mt-1">
+                                        <span className="font-semibold">
+                                          Observaciones:
+                                        </span>{" "}
+                                        {req.observation}
+                                      </p>
+                                    )}
+
                                     {/* Certificaciones */}
                                     {req.certifications &&
                                       req.certifications.length > 0 && (
@@ -589,8 +506,7 @@ export function AssignedCompaniesTable({
                                             {req.specialties.map(
                                               (spec: any, idx: number) => (
                                                 <li key={idx}>
-                                                  {spec.specialty?.name ||
-                                                    "N/A"}
+                                                  {spec.specialty?.name || "N/A"}
                                                   {spec.observation && (
                                                     <p className="text-xs text-muted-foreground mt-1">
                                                       <span className="font-semibold">
@@ -608,97 +524,37 @@ export function AssignedCompaniesTable({
                                   </div>
                                 ))
                               ) : (
-                                <p>No hay requerimientos disponibles</p>
+                                <p className="text-muted-foreground">
+                                  No hay requerimientos disponibles
+                                </p>
                               )}
                             </div>
                           </div>
                           <div>
                             <h3 className="font-semibold mb-2 border-b p-1 text-center bg-slate-500 text-slate-100 dark:bg-slate-800">
-                              NDA
-                            </h3>
-                            <div className="space-y-1 text-sm p-1">
-                              {item.ndaFileName && (
-                                <p>
-                                  <span className="font-semibold">
-                                    NDA Original:
-                                  </span>{" "}
-                                  {item.ndaFileName}
-                                </p>
-                              )}
-                              {item.ndaSignedFileName && (
-                                <p>
-                                  <span className="font-semibold">
-                                    NDA Firmado:
-                                  </span>{" "}
-                                  {item.ndaSignedFileName}
-                                </p>
-                              )}
-                            </div>
-                            <div className="flex flex-col space-y-2 mt-3">
-                              {item.ndaFileName && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={(e) => handleDownloadNda(item, e)}
-                                  disabled={downloadingNda === item.id}
-                                  className="text-xs"
-                                >
-                                  {downloadingNda === item.id ? (
-                                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                                  ) : (
-                                    <Download className="h-3 w-3 mr-1" />
-                                  )}
-                                  Descargar NDA
-                                </Button>
-                              )}
-                              {item.ndaSignedFileName && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={(e) =>
-                                    handleDownloadSignedNda(item, e)
-                                  }
-                                  disabled={downloadingSignedNda === item.id}
-                                  className="text-xs"
-                                >
-                                  {downloadingSignedNda === item.id ? (
-                                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                                  ) : (
-                                    <Download className="h-3 w-3 mr-1" />
-                                  )}
-                                  Descargar NDA Firmado
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Cotización */}
-                          <div className="col-span-3 mt-4 pt-4 border-t">
-                            <h3 className="font-bold mb-2 text-center bg-slate-500 text-slate-100 dark:bg-slate-800 p-1">
                               Cotización
                             </h3>
-                            <div className="flex justify-between items-center">
-                              <div className="space-y-1 text-sm">
-                                {item.status && item.status.id >= 5 ? (
-                                  <p>
-                                    <span className="font-semibold">
-                                      Estado:
-                                    </span>{" "}
-                                    Cotización disponible
-                                  </p>
-                                ) : (
-                                  <p className="text-muted-foreground">
-                                    Pendiente de cotización
-                                  </p>
-                                )}
-                              </div>
-                              <div>
+                            <div className="space-y-1 text-sm p-1">
+                              {item.status && item.status.id >= 5 ? (
+                                <p>
+                                  <span className="font-semibold">
+                                    Estado:
+                                  </span>{" "}
+                                  Cotización disponible
+                                </p>
+                              ) : (
+                                <p className="text-muted-foreground">
+                                  Pendiente de cotización
+                                </p>
+                              )}
+                              <div className="mt-4">
                                 {item.status && item.status.id >= 5 && (
                                   <Button
                                     variant="outline"
                                     size="sm"
                                     onClick={() => handleDownloadQuote(item)}
                                     disabled={downloadingQuote === item.id}
+                                    className="w-full"
                                   >
                                     {downloadingQuote === item.id ? (
                                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />

@@ -50,14 +50,18 @@ export interface ProjectRequestWithRelations extends Omit<ProjectRequest, "reque
   };
   clientArea: {
     id: number;
-    areaName: string;
+    name: string;
     clientId: number;
+    isActive: boolean;
+    isDeleted: boolean;
     contactName?: string;
     contactEmail?: string;
     contactPhone?: string;
     client: {
       id: number;
       name: string;
+      isActive: boolean;
+      isDeleted: boolean;
     };
   };
   user: {

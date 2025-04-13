@@ -2,11 +2,25 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
@@ -56,6 +70,7 @@ export function UploadQuoteDialog({
   const [materialCost, setMaterialCost] = useState<string>("");
   const [directCost, setDirectCost] = useState<string>("");
   const [indirectCost, setIndirectCost] = useState<string>("");
+  const [price, setPrice] = useState<string>("");
   const [additionalDetails, setAdditionalDetails] = useState<string>("");
   const [segments, setSegments] = useState<any[]>([]);
   const [newSegmentDate, setNewSegmentDate] = useState<string>("");
@@ -66,8 +81,12 @@ export function UploadQuoteDialog({
   const [existingQuotation, setExistingQuotation] = useState<any>(null);
   const [existingFileName, setExistingFileName] = useState<string>("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [segmentToDeleteIndex, setSegmentToDeleteIndex] = useState<number | null>(null);
-  const [editingSegmentIndex, setEditingSegmentIndex] = useState<number | null>(null);
+  const [segmentToDeleteIndex, setSegmentToDeleteIndex] = useState<
+    number | null
+  >(null);
+  const [editingSegmentIndex, setEditingSegmentIndex] = useState<number | null>(
+    null
+  );
 
   useEffect(() => {
     if (open && item) {
@@ -76,6 +95,10 @@ export function UploadQuoteDialog({
       }
     }
   }, [open, item]);
+
+  useEffect(() => {
+    setPrice(calculateTotalCost().toString());
+  }, [materialCost, directCost, indirectCost]);
 
   const loadExistingQuote = async (id: number) => {
     try {
@@ -86,33 +109,41 @@ export function UploadQuoteDialog({
           Authorization: `Bearer ${token}`,
         },
       });
-      
+
       if (response.ok) {
         const data = await response.json();
-        
+
         if (data.quotation) {
           setExistingQuotation(true);
           setExistingFileName(data.quotation.quotationFileName || "");
           setMaterialCost(data.quotation.materialCost?.toString() || "");
           setDirectCost(data.quotation.directCost?.toString() || "");
           setIndirectCost(data.quotation.indirectCost?.toString() || "");
+          setPrice(data.quotation.price?.toString() || "");
           setAdditionalDetails(data.quotation.additionalDetails || "");
-          
+
           // Establecer el tipo de cotización basado en projectTypesId
           const isSegmentedQuote = data.quotation.projectTypesId === 2;
           setIsSegmented(isSegmentedQuote);
-          
+
           // Cargar los segmentos
-          if (data.quotation.QuotationSegment && data.quotation.QuotationSegment.length > 0) {
+          if (
+            data.quotation.QuotationSegment &&
+            data.quotation.QuotationSegment.length > 0
+          ) {
             // Mapear los segmentos para el formato correcto
-            const mappedSegments = data.quotation.QuotationSegment.map((segment: any) => ({
-              id: segment.id,
-              estimatedDeliveryDate: new Date(segment.estimatedDeliveryDate).toISOString().split('T')[0],
-              description: segment.description || "",
-            }));
-            
+            const mappedSegments = data.quotation.QuotationSegment.map(
+              (segment: any) => ({
+                id: segment.id,
+                estimatedDeliveryDate: new Date(segment.estimatedDeliveryDate)
+                  .toISOString()
+                  .split("T")[0],
+                description: segment.description || "",
+              })
+            );
+
             setSegments(mappedSegments);
-            
+
             // Si es una cotización total (solo un segmento), establecer los valores para el formulario de cotización total
             if (!isSegmentedQuote && mappedSegments.length === 1) {
               setSingleDeliveryDate(mappedSegments[0].estimatedDeliveryDate);
@@ -136,9 +167,11 @@ export function UploadQuoteDialog({
 
   const handleReset = () => {
     setFile(null);
+    setFileName("");
     setMaterialCost("");
     setDirectCost("");
     setIndirectCost("");
+    setPrice("");
     setAdditionalDetails("");
     setSegments([]);
     setNewSegmentDate("");
@@ -153,7 +186,7 @@ export function UploadQuoteDialog({
     if (!dateString) return "";
     const date = new Date(dateString);
     date.setMinutes(date.getMinutes() + date.getTimezoneOffset());
-    return date.toISOString().split('T')[0];
+    return date.toISOString().split("T")[0];
   };
 
   const handleAddSegment = () => {
@@ -183,7 +216,11 @@ export function UploadQuoteDialog({
   };
 
   const handleUpdateSegment = () => {
-    if (editingSegmentIndex === null || !newSegmentDate || !newSegmentDescription) {
+    if (
+      editingSegmentIndex === null ||
+      !newSegmentDate ||
+      !newSegmentDescription
+    ) {
       toast.error("Por favor complete la fecha y descripción del segmento");
       return;
     }
@@ -250,9 +287,10 @@ export function UploadQuoteDialog({
       formData.append("materialCost", materialCost);
       formData.append("directCost", directCost);
       formData.append("indirectCost", indirectCost);
+      formData.append("price", price);
       formData.append("projectTypesId", isSegmented ? "2" : "1"); // 1=Total, 2=Segmentada
       formData.append("additionalDetails", additionalDetails);
-      
+
       // Segmentos según el tipo de cotización
       if (isSegmented) {
         // Múltiples segmentos para cotización segmentada
@@ -312,10 +350,10 @@ export function UploadQuoteDialog({
 
   // Formatear número como moneda
   const formatCurrency = (amount: number): string => {
-    return new Intl.NumberFormat('es-MX', {
-      style: 'currency',
-      currency: 'MXN',
-      minimumFractionDigits: 2
+    return new Intl.NumberFormat("es-MX", {
+      style: "currency",
+      currency: "MXN",
+      minimumFractionDigits: 2,
     }).format(amount);
   };
 
@@ -323,25 +361,33 @@ export function UploadQuoteDialog({
     <>
       <Dialog open={open} onOpenChange={handleReset}>
         <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader className="space-y-2">
+          <DialogHeader className="space-y-4">
             <DialogTitle>
               {existingQuotation ? "Editar Cotización" : "Subir Cotización"}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="mb-2">
               {item.Company?.comercialName || item.Company?.name || "N/A"}
             </DialogDescription>
-            
+
             {/* Información de solicitud y requerimientos */}
-            <div className="grid grid-cols-2 gap-4 mt-4 mb-2">
+            <div className="grid grid-cols-2 gap-4">
               <div className="text-left">
                 <h3 className="font-semibold text-foreground">Solicitud</h3>
-                <div className="text-sm">{item.ProjectRequest?.title || item.ProjectRequest?.name || "N/A"}</div>
+                <div className="text-sm">
+                  {item.ProjectRequest?.title ||
+                    item.ProjectRequest?.name ||
+                    "N/A"}
+                </div>
               </div>
               <div className="text-left">
-                <h3 className="font-semibold text-foreground">Requerimientos</h3>
-                <div className="text-sm">{item.requirements && item.requirements.length > 0
-                  ? `${item.requirements.map((req) => req.name).join(", ")}`
-                  : "Sin requerimientos"}</div>
+                <h3 className="font-semibold text-foreground">
+                  Requerimientos
+                </h3>
+                <div className="text-sm">
+                  {item.requirements && item.requirements.length > 0
+                    ? `${item.requirements.map((req) => req.name).join(", ")}`
+                    : "Sin requerimientos"}
+                </div>
               </div>
             </div>
           </DialogHeader>
@@ -367,7 +413,9 @@ export function UploadQuoteDialog({
                 <div className="space-y-2">
                   <Label htmlFor="materialCost">Costo de Materiales</Label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+                      $
+                    </span>
                     <Input
                       id="materialCost"
                       type="number"
@@ -383,7 +431,9 @@ export function UploadQuoteDialog({
                 <div className="space-y-2">
                   <Label htmlFor="directCost">Costo Directo</Label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+                      $
+                    </span>
                     <Input
                       id="directCost"
                       type="number"
@@ -399,7 +449,9 @@ export function UploadQuoteDialog({
                 <div className="space-y-2">
                   <Label htmlFor="indirectCost">Costo Indirecto</Label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+                      $
+                    </span>
                     <Input
                       id="indirectCost"
                       type="number"
@@ -412,34 +464,56 @@ export function UploadQuoteDialog({
                   </div>
                 </div>
               </div>
-                
-              {/* Cálculo de costos totales */}
-              <div className="w-full text-right border-t pt-2">
-                <p className="font-medium text-lg">
-                  Costos totales: {formatCurrency(calculateTotalCost())} MXN
-                </p>
+
+              {/* Línea de separación y totales */}
+              <div className="w-full border-t pt-2 mt-1">
+                <div className="flex justify-between items-center">
+                  <div className="space-y-2">
+                    <Label htmlFor="price">Precio</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+                        $
+                      </span>
+                      <Input
+                        id="price"
+                        type="number"
+                        placeholder="0.00"
+                        value={price}
+                        onChange={(e) => setPrice(e.target.value)}
+                        disabled={uploading}
+                        className="pl-7 w-48"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <p className="font-medium text-lg mt-1">
+                      Costos totales: {formatCurrency(calculateTotalCost())} MXN
+                    </p>
+                  </div>
+                </div>
               </div>
 
-              <div className="flex items-center space-x-2 pt-2">
+              <div className="flex items-center space-x-2 pt-4">
                 <Switch
                   id="isSegmented"
                   checked={isSegmented}
                   onCheckedChange={setIsSegmented}
                   disabled={uploading}
                 />
-                <Label htmlFor="isSegmented">
-                  Cotización Segmentada
-                </Label>
+                <Label htmlFor="isSegmented">Cotización Segmentada</Label>
               </div>
 
               {!isSegmented ? (
                 // Cotización Total (una sola fecha y descripción)
-                <div className="mt-4 border rounded-lg p-4 bg-slate-50">
+                <div className="mt-4 border rounded-lg p-4 bg-background">
                   <h3 className="text-lg font-medium mb-4">Entrega Total</h3>
 
                   <div className="space-y-4">
                     <div>
-                      <Label htmlFor="singleDeliveryDate">Fecha Estimada de Entrega</Label>
+                      <Label htmlFor="singleDeliveryDate">
+                        Fecha Estimada de Entrega
+                      </Label>
                       <Input
                         id="singleDeliveryDate"
                         type="date"
@@ -465,14 +539,18 @@ export function UploadQuoteDialog({
                 </div>
               ) : (
                 // Cotización Segmentada (múltiples fechas y descripciones)
-                <div className="mt-4 border rounded-lg p-4 bg-slate-50">
-                  <h3 className="text-lg font-medium mb-4">Segmentos de Entrega</h3>
+                <div className="mt-4 border rounded-lg p-4 bg-background">
+                  <h3 className="text-lg font-medium mb-4">
+                    Segmentos de Entrega
+                  </h3>
 
                   {/* Formulario para agregar nuevo segmento */}
                   <div className="space-y-4 mb-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="newSegmentDate">Fecha Estimada de Entrega</Label>
+                        <Label htmlFor="newSegmentDate">
+                          Fecha Estimada de Entrega
+                        </Label>
                         <Input
                           id="newSegmentDate"
                           type="date"
@@ -499,7 +577,11 @@ export function UploadQuoteDialog({
                               variant="default"
                               size="sm"
                               onClick={handleUpdateSegment}
-                              disabled={uploading || !newSegmentDate || !newSegmentDescription}
+                              disabled={
+                                uploading ||
+                                !newSegmentDate ||
+                                !newSegmentDescription
+                              }
                               className="h-10"
                             >
                               Actualizar Segmento
@@ -511,7 +593,11 @@ export function UploadQuoteDialog({
                             variant="outline"
                             size="sm"
                             onClick={handleAddSegment}
-                            disabled={uploading || !newSegmentDate || !newSegmentDescription}
+                            disabled={
+                              uploading ||
+                              !newSegmentDate ||
+                              !newSegmentDescription
+                            }
                             className="h-10 ml-auto"
                           >
                             <Plus className="h-4 w-4 mr-2" />
@@ -526,7 +612,9 @@ export function UploadQuoteDialog({
                       <Textarea
                         id="newSegmentDescription"
                         value={newSegmentDescription}
-                        onChange={(e) => setNewSegmentDescription(e.target.value)}
+                        onChange={(e) =>
+                          setNewSegmentDescription(e.target.value)
+                        }
                         disabled={uploading}
                         placeholder="Descripción del segmento"
                         rows={3}
@@ -538,21 +626,27 @@ export function UploadQuoteDialog({
                   {/* Tabla de segmentos existentes */}
                   {segments.length > 0 && (
                     <div>
-                      <ScrollArea className={`${segments.length <= 3 ? 'h-auto' : 'h-[300px]'}`}>
+                      <ScrollArea
+                        className={`${segments.length <= 3 ? "h-auto" : "h-[300px]"}`}
+                      >
                         <Table>
                           <TableHeader>
                             <TableRow>
                               <TableHead>Fecha Estimada de Entrega</TableHead>
                               <TableHead>Descripción</TableHead>
-                              <TableHead className="w-[100px]">Acciones</TableHead>
+                              <TableHead className="w-[100px]">
+                                Acciones
+                              </TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {segments.map((segment, index) => (
                               <TableRow key={index}>
                                 <TableCell>
-                                  {new Date(segment.estimatedDeliveryDate).toLocaleDateString('es-MX', {
-                                    timeZone: 'UTC' // Esto evita el ajuste de zona horaria
+                                  {new Date(
+                                    segment.estimatedDeliveryDate
+                                  ).toLocaleDateString("es-MX", {
+                                    timeZone: "UTC", // Esto evita el ajuste de zona horaria
                                   })}
                                 </TableCell>
                                 <TableCell>{segment.description}</TableCell>
@@ -562,9 +656,23 @@ export function UploadQuoteDialog({
                                       variant="ghost"
                                       size="icon"
                                       onClick={() => handleEditSegment(index)}
-                                      disabled={uploading || editingSegmentIndex !== null}
+                                      disabled={
+                                        uploading ||
+                                        editingSegmentIndex !== null
+                                      }
                                     >
-                                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500">
+                                      <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        className="text-blue-500"
+                                      >
                                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                                       </svg>

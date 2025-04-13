@@ -8,9 +8,16 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    // Extraer el ID correctamente según las mejores prácticas de Next.js 15
-    const { id } = params;
-    const parsedId = parseInt(id);
+    // Obtener el ID de la empresa asignada siguiendo las mejores prácticas de Next.js 15
+    const { id } = await params;
+    const assignedCompanyId = parseInt(id);
+
+    if (isNaN(assignedCompanyId)) {
+      return NextResponse.json(
+        { error: "ID inválido" },
+        { status: 400 }
+      );
+    }
 
     // Verificar autenticación
     const userId = await getUserFromToken();
@@ -21,54 +28,111 @@ export async function POST(
       );
     }
 
-    // Verificar que el registro existe
-    const projectRequestCompany = await prisma.projectRequestCompany.findUnique({
+    // Buscar la empresa asignada
+    const assignedCompany = await prisma.projectRequestCompany.findUnique({
       where: {
-        id: parsedId,
+        id: assignedCompanyId,
         isDeleted: false,
       },
+      include: {
+        Company: true,
+        ProjectRequirements: {
+          include: {
+            ProjectRequest: {
+              include: {
+                clientArea: {
+                  include: {
+                    client: true
+                  }
+                }
+              }
+            }
+          }
+        },
+        ClientCompanyNDA: true
+      }
     });
 
-    if (!projectRequestCompany) {
+    if (!assignedCompany) {
       return NextResponse.json(
-        { error: "Registro no encontrado" },
+        { error: "Empresa asignada no encontrada" },
         { status: 404 }
       );
     }
 
-    // Procesar el archivo
-    const formData = await request.formData();
-    const ndaSignedFile = formData.get("ndaSignedFile") as File;
+    // Obtener el cliente asociado a esta solicitud de proyecto
+    const clientId = assignedCompany.ProjectRequirements?.ProjectRequest?.clientArea?.client?.id;
 
-    if (!ndaSignedFile) {
+    if (!clientId) {
       return NextResponse.json(
-        { error: "No se proporcionó un archivo" },
+        { error: "No se pudo determinar el cliente asociado" },
         { status: 400 }
       );
     }
 
-    // Leer el archivo como ArrayBuffer
-    const arrayBuffer = await ndaSignedFile.arrayBuffer();
+    // Obtener el archivo del formulario
+    const formData = await request.formData();
+    const file = formData.get("file") as File;
+
+    if (!file) {
+      return NextResponse.json(
+        { error: "No se proporcionó ningún archivo" },
+        { status: 400 }
+      );
+    }
+
+    // Leer el archivo como un ArrayBuffer
+    const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Actualizar el registro con el archivo firmado
-    const updated = await prisma.projectRequestCompany.update({
+    // Verificar si ya existe un NDA asociado o crear uno nuevo
+    let ndaId: number;
+    
+    if (assignedCompany.clientCompanyNDAId) {
+      // Actualizar el NDA existente
+      const updatedNDA = await prisma.clientCompanyNDA.update({
+        where: {
+          id: assignedCompany.clientCompanyNDAId
+        },
+        data: {
+          ndaSignedFile: buffer,
+          ndaSignedFileName: file.name,
+          ndaExpirationDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 año desde ahora
+          isActive: true
+        }
+      });
+      ndaId = updatedNDA.id;
+    } else {
+      // Crear un nuevo NDA
+      const newNDA = await prisma.clientCompanyNDA.create({
+        data: {
+          clientId: clientId,
+          companyId: assignedCompany.companyId,
+          userId: userId,
+          ndaSignedFile: buffer,
+          ndaSignedFileName: file.name,
+          ndaExpirationDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 año desde ahora
+          isActive: true,
+          isDeleted: false
+        }
+      });
+      ndaId = newNDA.id;
+    }
+
+    // Actualizar el registro de la empresa asignada con el ID del NDA
+    await prisma.projectRequestCompany.update({
       where: {
-        id: parsedId,
+        id: assignedCompanyId,
       },
       data: {
-        ndaSignedFile: buffer,
-        ndaSignedFileName: ndaSignedFile.name,
-        ndaSignedAt: new Date(),
-        statusId: 4, // Actualizar al estado "Firmado por Asociado"
-        updatedAt: new Date(),
-        userId: userId,
+        clientCompanyNDAId: ndaId,
+        statusId: 3, // "En espera de firma NDA"
       },
     });
 
     // Crear un log automático del sistema
     await ProjectRequestLogsService.createSystemLog(
-      parsedId,
+      assignedCompanyId,
       "NDA_SIGNED",
       userId
     );

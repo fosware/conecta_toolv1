@@ -219,7 +219,20 @@ export function RequirementParticipantsModal({
         );
         
         // Verificar si existe un NDA válido entre el cliente y la empresa
-        const nda = ndasData.ndaResults.find((n: any) => n.companyId === company.id);
+        const nda = ndasData.ndaResults.find((n: any) => {
+          // Asegurarse de que ambos valores sean números para la comparación
+          const nCompanyId = typeof n.companyId === 'string' ? parseInt(n.companyId) : n.companyId;
+          const companyId = typeof company.id === 'string' ? parseInt(company.id) : company.id;
+          return nCompanyId === companyId;
+        });
+        
+        // Para depuración
+        if (company.id === 1 || company.id === 2) {
+          console.log("Verificando NDA para empresa:", company.id, company.comercialName);
+          console.log("NDAs disponibles:", ndasData.ndaResults);
+          console.log("NDA encontrado:", nda);
+        }
+        
         const hasNDA = nda?.hasNDA || false;
         
         return {

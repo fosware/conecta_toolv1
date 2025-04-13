@@ -100,6 +100,8 @@ export async function GET(
           select: {
             id: true,
             requirementName: true,
+            piecesNumber: true,
+            observation: true,
             statusId: true,
             status: true,
             isActive: true,
@@ -429,8 +431,9 @@ export async function DELETE(
     }
 
     // Acceder directamente a la propiedad id
-    const id = parseInt(params.id);
-    if (isNaN(id)) {
+    const { id } = await params;
+    const parsedId = parseInt(id);
+    if (isNaN(parsedId)) {
       return NextResponse.json(
         { error: "ID de solicitud inválido" },
         { status: 400 }
@@ -440,7 +443,7 @@ export async function DELETE(
     // Verificar que la solicitud existe
     const existingRequest = await prisma.projectRequest.findFirst({
       where: {
-        id,
+        id: parsedId,
         isDeleted: false,
       },
     });
@@ -479,7 +482,7 @@ export async function DELETE(
 
     // Soft delete de la solicitud
     const deletedProjectRequest = await prisma.projectRequest.update({
-      where: { id },
+      where: { id: parsedId },
       data: {
         isDeleted: true,
         dateDeleted: new Date(),

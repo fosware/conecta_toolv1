@@ -169,7 +169,7 @@ export default function ProjectRequestLogsModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-hidden">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {requirementName && (
@@ -179,9 +179,13 @@ export default function ProjectRequestLogsModal({
           )}
         </DialogHeader>
         
-        <div className="flex flex-col h-full overflow-hidden">
-          {/* Área de mensajes */}
-          <div className="flex-1 overflow-y-auto mb-4 border rounded-md">
+        {/* Contenedor principal con altura fija */}
+        <div className="flex flex-col" style={{ height: 'calc(70vh - 100px)' }}>
+          {/* Área de mensajes con altura fija y scroll */}
+          <div 
+            className="flex-1 border rounded-md mb-4 overflow-y-scroll" 
+            style={{ height: 'calc(100% - 120px)', minHeight: '200px' }}
+          >
             {loading ? (
               <div className="flex justify-center items-center h-full p-4">
                 <p>Cargando mensajes...</p>
@@ -227,7 +231,7 @@ export default function ProjectRequestLogsModal({
           
           {/* Área de entrada de mensaje */}
           {companyId && (
-            <div className="space-y-2 pt-2">
+            <div className="space-y-2 pt-2" style={{ height: '120px' }}>
               <Textarea
                 placeholder="Escribe un mensaje..."
                 value={newMessage}

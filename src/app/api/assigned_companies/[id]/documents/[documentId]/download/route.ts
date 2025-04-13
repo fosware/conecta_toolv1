@@ -1,44 +1,47 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { cookies } from "next/headers";
+import { getUserFromToken } from "@/lib/get-user-from-token";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string; documentId: string } }
 ) {
   try {
-    // Extraer los IDs correctamente según las mejores prácticas de Next.js 15
+    // Obtener los IDs de la URL siguiendo las mejores prácticas de Next.js 15
     const { id, documentId } = await params;
     const parsedId = parseInt(id);
     const parsedDocumentId = parseInt(documentId);
 
-    // Verificar autenticación
-    const cookieStore = await cookies();
-    const token = cookieStore.get("token");
+    if (isNaN(parsedId) || isNaN(parsedDocumentId)) {
+      return NextResponse.json(
+        { error: "IDs inválidos" },
+        { status: 400 }
+      );
+    }
 
-    if (!token || !token.value) {
+    // Verificar autenticación
+    const userId = await getUserFromToken();
+    if (!userId) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
-    // Obtener el registro de ProjectRequestCompany
-    const projectRequestCompany = await prisma.projectRequestCompany.findUnique(
-      {
-        where: {
-          id: parsedId,
-          isDeleted: false,
-        },
+    // Buscar la empresa asignada
+    const projectRequestCompany = await prisma.projectRequestCompany.findUnique({
+      where: {
+        id: parsedId,
+        isDeleted: false,
       }
-    );
+    });
 
     if (!projectRequestCompany) {
       return NextResponse.json(
-        { error: "Registro no encontrado" },
+        { error: "Empresa asignada no encontrada" },
         { status: 404 }
       );
     }
 
     // Verificar que el NDA esté firmado
-    if (!projectRequestCompany.ndaSignedFile) {
+    if (!projectRequestCompany.clientCompanyNDAId) {
       return NextResponse.json(
         { error: "No se puede acceder a los documentos sin un NDA firmado" },
         { status: 403 }
@@ -46,16 +49,12 @@ export async function GET(
     }
 
     // Obtener el documento
-    const document = await prisma.projectRequestRequirementDocuments.findUnique(
-      {
-        where: {
-          id: parsedDocumentId,
-          projectRequestCompanyId: parsedId,
-          isDeleted: false,
-          isActive: true,
-        },
+    const document = await prisma.projectRequestRequirementDocuments.findUnique({
+      where: {
+        id: parsedDocumentId,
+        isDeleted: false,
       }
-    );
+    });
 
     if (!document) {
       return NextResponse.json(
@@ -77,22 +76,15 @@ export async function GET(
 
     // Determinar el tipo de contenido basado en la extensión del archivo
     let contentType = "application/octet-stream"; // Por defecto
-    const fileName =
+    const fileName = 
       document.documentFileName || `documento-${parsedDocumentId}`;
 
     if (fileName.endsWith(".pdf")) {
       contentType = "application/pdf";
-    } else if (fileName.endsWith(".docx")) {
-      contentType =
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-    } else if (fileName.endsWith(".xlsx")) {
-      contentType =
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-    } else if (fileName.endsWith(".pptx")) {
-      contentType =
-        "application/vnd.openxmlformats-officedocument.presentationml.presentation";
-    } else if (fileName.endsWith(".txt")) {
-      contentType = "text/plain";
+    } else if (fileName.endsWith(".doc") || fileName.endsWith(".docx")) {
+      contentType = "application/msword";
+    } else if (fileName.endsWith(".xls") || fileName.endsWith(".xlsx")) {
+      contentType = "application/vnd.ms-excel";
     } else if (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")) {
       contentType = "image/jpeg";
     } else if (fileName.endsWith(".png")) {
@@ -108,10 +100,7 @@ export async function GET(
 
     return response;
   } catch (error) {
-    console.error(
-      "Error en GET /api/assigned_companies/[id]/documents/[documentId]/download:",
-      error
-    );
+    console.error("Error al descargar documento:", error);
     return NextResponse.json(
       { error: "Error al descargar el documento" },
       { status: 500 }

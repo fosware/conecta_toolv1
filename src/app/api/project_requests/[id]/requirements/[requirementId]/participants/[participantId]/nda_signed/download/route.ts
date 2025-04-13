@@ -15,13 +15,13 @@ export async function GET(
         { status: 401 }
       );
     }
-    
+
     // Obtener los IDs de la URL
-    const { id, requirementId, participantId } = await params;
+    const { id, requirementId, participantId } = params;
     const projectRequestId = parseInt(id);
     const projectRequirementId = parseInt(requirementId);
     const participantIdNum = parseInt(participantId);
-    
+
     if (isNaN(projectRequestId) || isNaN(projectRequirementId) || isNaN(participantIdNum)) {
       return NextResponse.json(
         { error: "IDs inválidos" },
@@ -30,15 +30,18 @@ export async function GET(
     }
 
     // Buscar el participante
-    const participant = await prisma.projectRequestCompany.findFirst({
+    const participant = await prisma.projectRequestCompany.findUnique({
       where: {
         id: participantIdNum,
         projectRequirementsId: projectRequirementId,
         isDeleted: false,
       },
+      include: {
+        ClientCompanyNDA: true
+      }
     });
 
-    if (!participant || !participant.ndaSignedFile) {
+    if (!participant || !participant.ClientCompanyNDA?.ndaSignedFile) {
       return NextResponse.json(
         { error: "Archivo NDA firmado no encontrado" },
         { status: 404 }
@@ -46,17 +49,17 @@ export async function GET(
     }
 
     // Crear un blob con el archivo
-    const blob = new Blob([participant.ndaSignedFile]);
+    const blob = new Blob([participant.ClientCompanyNDA.ndaSignedFile]);
     
     // Crear una respuesta con el archivo
     return new NextResponse(blob, {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${participant.ndaSignedFileName || 'nda_signed.pdf'}"`,
+        "Content-Disposition": `attachment; filename="${participant.ClientCompanyNDA.ndaSignedFileName || 'nda_signed.pdf'}"`,
       },
     });
   } catch (error) {
-    console.error("Error al descargar NDA firmado:", error);
+    console.error("Error:", error);
     return NextResponse.json(
       { error: "Error al procesar la solicitud" },
       { status: 500 }

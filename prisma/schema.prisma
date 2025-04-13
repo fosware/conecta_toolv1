@@ -429,6 +429,8 @@ model ProjectRequirements {
   id                       Int                        @id @default(autoincrement())
   projectRequestId         Int
   requirementName          String
+  piecesNumber             Int?
+  observation              String?
   statusId                 Int                        @default(1)
   status                   StatusProjectRequest       @relation(fields: [statusId], references: [id])
   isActive                 Boolean                    @default(true)
@@ -497,22 +499,21 @@ model RequirementSpecialty {
 //NDA Asociados-Clientes
 
 model ClientCompanyNDA {
-  id                    Int                     @id @default(autoincrement())
-  clientId              Int
-  companyId             Int
-  ndaSignedFile         Bytes
-  ndaSignedFileName     String
-  ndaExpirationDate     DateTime
-  isActive              Boolean                 @default(true)
-  isDeleted             Boolean                 @default(false)
-  dateDeleted           DateTime?
-  createdAt             DateTime                @default(now())
-  updatedAt             DateTime                @updatedAt
-  userId                Int
-  user                  User                    @relation(fields: [userId], references: [id])
-  Client                Clients                 @relation(fields: [clientId], references: [id])
-  Company               Company                 @relation(fields: [companyId], references: [id])
-  ProjectRequestCompany ProjectRequestCompany[]
+  id                Int       @id @default(autoincrement())
+  clientId          Int
+  companyId         Int
+  ndaSignedFile     Bytes
+  ndaSignedFileName String
+  ndaExpirationDate DateTime
+  isActive          Boolean   @default(true)
+  isDeleted         Boolean   @default(false)
+  dateDeleted       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  userId            Int
+  user              User      @relation(fields: [userId], references: [id])
+  Client            Clients   @relation(fields: [clientId], references: [id])
+  Company           Company   @relation(fields: [companyId], references: [id])
 
   @@index([isDeleted, isActive])
   @@map("d_client_company_ndas")
@@ -536,10 +537,7 @@ model ProjectRequestCompany {
   ProjectRequirements            ProjectRequirements                  @relation(fields: [projectRequirementsId], references: [id])
   Quotation                      ProjectRequestRequirementQuotation?
   Documents                      ProjectRequestRequirementDocuments[]
-  projectRequestId               Int?
   ProjectRequestCompanyStatusLog ProjectRequestCompanyStatusLog[]
-  ClientCompanyNDA               ClientCompanyNDA?                    @relation(fields: [clientCompanyNDAId], references: [id])
-  clientCompanyNDAId             Int?
 
   @@index([isDeleted, isActive])
   @@map("d_project_request_companies")
@@ -573,6 +571,7 @@ model ProjectRequestRequirementQuotation {
   materialCost            Float?
   directCost              Float?
   indirectCost            Float?
+  price                   Float?
   projectTypesId          Int       @default(1)
   additionalDetails       String?
   quotationFile           Bytes?

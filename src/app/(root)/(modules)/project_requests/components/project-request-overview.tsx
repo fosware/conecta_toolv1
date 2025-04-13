@@ -48,12 +48,31 @@ import {
 } from "@/components/ui/alert-dialog";
 import ProjectRequestLogsModal from "../../project_request_logs/components/project-request-logs-modal";
 
+// Interfaz para los requerimientos con los nuevos campos
+interface ProjectRequirement {
+  id: number;
+  projectRequestId: number;
+  requirementName: string;
+  piecesNumber?: number | null;
+  observation?: string | null;
+  statusId: number;
+  status: { id: number; name: string };
+  isActive: boolean;
+  isDeleted?: boolean;
+  createdAt: string;
+  updatedAt: string;
+  RequirementSpecialty?: any[];
+  RequirementCertification?: any[];
+  ProjectRequestCompany?: any[];
+  [key: string]: any; // Para otras propiedades que puedan existir
+}
+
 interface ProjectRequestOverviewProps {
   data: ProjectRequestWithRelations;
   onManageRequirements?: (data: ProjectRequestWithRelations) => void;
-  onManageSpecialties?: (requirement: any) => void;
-  onManageCertifications?: (requirement: any) => void;
-  onManageParticipants?: (requirement: any) => void;
+  onManageSpecialties?: (requirement: ProjectRequirement) => void;
+  onManageCertifications?: (requirement: ProjectRequirement) => void;
+  onManageParticipants?: (requirement: ProjectRequirement) => void;
   onRefreshData?: () => void; // Nuevo prop para refrescar los datos
 }
 
@@ -143,19 +162,141 @@ export default function ProjectRequestOverview({
     description: string;
   } | null>(null);
 
+  // Estado para almacenar información de NDAs válidos
+  const [validNdas, setValidNdas] = useState<Record<number, boolean>>({});
+
+  // Estado para controlar si ya se verificaron los NDAs
+  const [ndasChecked, setNdasChecked] = useState<boolean>(false);
+
+  // Estado para evitar múltiples verificaciones simultáneas
+  const [isCheckingNdas, setIsCheckingNdas] = useState<boolean>(false);
+
   // Estado para el modal de documentos técnicos
   const [technicalDocsOpen, setTechnicalDocsOpen] = useState(false);
 
   // Estado para el modal de cotizaciones para cliente
   const [clientQuotationOpen, setClientQuotationOpen] = useState(false);
   const [clientQuotationData, setClientQuotationData] = useState<any>(null);
-  const [downloadingClientQuotation, setDownloadingClientQuotation] = useState(false);
+  const [downloadingClientQuotation, setDownloadingClientQuotation] =
+    useState(false);
   const [sendingClientQuotation, setSendingClientQuotation] = useState(false);
   const [sendQuotationDialogOpen, setSendQuotationDialogOpen] = useState(false);
 
   // Estado para el modal de logs de seguimiento
   const [logsModalOpen, setLogsModalOpen] = useState(false);
-  const [selectedCompanyForLogs, setSelectedCompanyForLogs] = useState<{ id: number, name: string, requirementName: string } | null>(null);
+  const [selectedCompanyForLogs, setSelectedCompanyForLogs] = useState<{
+    id: number;
+    name: string;
+    requirementName: string;
+  } | null>(null);
+
+  // Función para verificar NDAs para todos los requerimientos
+  const checkNdasForAllRequirements = async () => {
+    // Evitar verificaciones múltiples simultáneas
+    if (isCheckingNdas) return;
+
+    try {
+      setIsCheckingNdas(true);
+
+      if (!data || !data.id || !requirements || requirements.length === 0) {
+        // No hay datos o requerimientos para verificar NDAs
+        setIsCheckingNdas(false);
+        return;
+      }
+
+      // Crear un nuevo objeto para almacenar el estado actualizado
+      const newNdaState: Record<number, boolean> = { ...validNdas }; // Mantener el estado anterior
+
+      // Procesar los requerimientos de forma secuencial para evitar sobrecarga
+      for (const requirement of requirements) {
+        try {
+          const token = await getToken();
+          const response = await fetch(
+            `/api/project_requests/${data.id}/requirements/${requirement.id}/check_ndas`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+              // Añadir un timeout para evitar solicitudes que nunca terminen
+              signal: AbortSignal.timeout(10000), // 10 segundos de timeout
+            }
+          );
+
+          if (response.ok) {
+            const ndaData = await response.json();
+
+            // Para cada asociado en el requerimiento, verificar si tiene un NDA válido
+            if (
+              ndaData &&
+              ndaData.ndaResults &&
+              ndaData.ndaResults.length > 0
+            ) {
+              ndaData.ndaResults.forEach((item: any) => {
+                if (item.companyId && item.hasNDA) {
+                  newNdaState[item.companyId] = true;
+                } else if (item.companyId) {
+                  newNdaState[item.companyId] = false;
+                }
+              });
+            }
+          } else {
+            console.error(
+              `Error al verificar NDAs para requerimiento ${requirement.id}:`,
+              response.statusText
+            );
+          }
+
+          // Añadir un pequeño retraso entre solicitudes para evitar sobrecarga
+          await new Promise((resolve) => setTimeout(resolve, 300));
+        } catch (error) {
+          // Capturar errores por requerimiento para que un error no detenga todo el proceso
+          if (error instanceof DOMException && error.name === "AbortError") {
+            console.error(
+              `Timeout al verificar NDAs para requerimiento ${requirement.id}`
+            );
+          } else {
+            console.error(
+              `Error al verificar NDAs para requerimiento ${requirement.id}:`,
+              error
+            );
+          }
+          // Continuar con el siguiente requerimiento
+          continue;
+        }
+      }
+
+      setValidNdas(newNdaState);
+      setNdasChecked(true); // Marcar que ya se verificaron los NDAs
+    } catch (error) {
+      console.error("Error general al verificar NDAs:", error);
+      // No modificar el estado en caso de error para mantener los valores anteriores
+    } finally {
+      setIsCheckingNdas(false);
+    }
+  };
+
+  // Extraer los requerimientos para facilitar su uso
+  const requirements =
+    (data?.ProjectRequirements?.filter(
+      (req) => req.isActive && !req.isDeleted
+    ) as ProjectRequirement[]) || [];
+
+  // Ejecutar la verificación de NDAs cuando cambian los requerimientos
+  useEffect(() => {
+    // Si no hay requerimientos, no es necesario verificar NDAs
+    if (!requirements || requirements.length === 0) return;
+
+    // Si ya se verificaron los NDAs y no han cambiado los datos, no volver a verificar
+    if (ndasChecked && !isCheckingNdas) return;
+
+    // Usar un temporizador para evitar múltiples llamadas
+    const timer = setTimeout(() => {
+      checkNdasForAllRequirements();
+    }, 1500);
+
+    // Limpiar el temporizador si el componente se desmonta o los datos cambian
+    return () => clearTimeout(timer);
+  }, [data, requirements]);
 
   // Depuración: Imprimir los datos recibidos para verificar su estructura
 
@@ -163,11 +304,6 @@ export default function ProjectRequestOverview({
     // console.log("ProjectRequestOverview - Datos recibidos:", data);
     // console.log("ProjectRequirements:", data.ProjectRequirements);
   }, [data]);
-
-  // Obtener los requerimientos si existen, filtrando solo los eliminados
-  const requirements = (data.ProjectRequirements || []).filter(
-    (r: { isDeleted?: boolean }) => r.isDeleted !== true
-  );
 
   // Depuración: Verificar los requerimientos filtrados
   useEffect(() => {
@@ -199,6 +335,15 @@ export default function ProjectRequestOverview({
   const handleRefreshData = () => {
     if (onRefreshData) {
       onRefreshData();
+      // Resetear el estado de verificación para forzar una nueva verificación
+      setNdasChecked(false);
+    }
+
+    // Verificar NDAs después de refrescar los datos solo si no se están verificando ya
+    if (!isCheckingNdas) {
+      setTimeout(() => {
+        checkNdasForAllRequirements();
+      }, 1200);
     }
   };
 
@@ -386,11 +531,13 @@ export default function ProjectRequestOverview({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Error al enviar la cotización al cliente");
+        throw new Error(
+          errorData.error || "Error al enviar la cotización al cliente"
+        );
       }
 
       toast.success("Cotización enviada al cliente correctamente");
-      
+
       // Refrescar los datos si existe la función
       if (onRefreshData) {
         onRefreshData();
@@ -430,8 +577,12 @@ export default function ProjectRequestOverview({
 
   // Cargar los datos de la cotización para cliente al montar el componente
   useEffect(() => {
-    loadClientQuotationData();
-  }, [data.id]);
+    if (data?.id) {
+      loadClientQuotationData();
+      // Verificar NDAs para todos los requerimientos al cargar la página
+      checkNdasForAllRequirements();
+    }
+  }, [data?.id]);
 
   // Función para manejar el éxito al guardar la cotización para cliente
   const handleClientQuotationSuccess = () => {
@@ -480,9 +631,7 @@ export default function ProjectRequestOverview({
               </span>
             </div>
             <div className="flex items-center space-x-2 text-sm pl-7">
-              <span>
-                Área: {data.clientArea?.areaName || "No especificada"}
-              </span>
+              <span>Área: {data.clientArea?.name || "No especificada"}</span>
               {data.clientArea?.contactName && (
                 <>
                   <span className="mx-1">|</span>
@@ -553,11 +702,36 @@ export default function ProjectRequestOverview({
                     className="border-b pb-4 mb-4 last:border-b-0 last:pb-0 last:mb-0"
                   >
                     <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center space-x-2">
-                        <ClipboardList className="w-5 h-5 text-primary" />
-                        <h4 className="text-base font-medium">
-                          {requirement.requirementName}
-                        </h4>
+                      <div className="flex flex-col">
+                        <div className="flex items-center space-x-2">
+                          <ClipboardList className="w-5 h-5 text-primary" />
+                          <h4 className="text-base font-medium">
+                            {requirement.requirementName}
+                          </h4>
+                        </div>
+
+                        {(requirement.piecesNumber ||
+                          requirement.observation) && (
+                          <div className="mt-4 ml-7 text-sm text-muted-foreground">
+                            {requirement.piecesNumber !== null &&
+                              requirement.piecesNumber !== undefined && (
+                                <div className="mb-2">
+                                  <span className="text-sm font-medium">
+                                    Número de piezas:
+                                  </span>{" "}
+                                  {requirement.piecesNumber}
+                                </div>
+                              )}
+                            {requirement.observation && (
+                              <div className="mb-2">
+                                <span className="text-sm font-medium">
+                                  Observación:{" "}
+                                </span>
+                                {requirement.observation}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                       <div className="flex space-x-1">
                         {onManageSpecialties && (
@@ -569,7 +743,9 @@ export default function ProjectRequestOverview({
                                 ...requirement,
                                 projectRequestId: data.id,
                               };
-                              onManageSpecialties(requirementWithProjectId);
+                              onManageSpecialties(
+                                requirementWithProjectId as ProjectRequirement
+                              );
                             }}
                             title="Gestionar especialidades"
                             className="h-8 px-2 flex items-center gap-1"
@@ -587,7 +763,9 @@ export default function ProjectRequestOverview({
                                 ...requirement,
                                 projectRequestId: data.id,
                               };
-                              onManageCertifications(requirementWithProjectId);
+                              onManageCertifications(
+                                requirementWithProjectId as ProjectRequirement
+                              );
                             }}
                             title="Gestionar certificaciones"
                             className="h-8 px-2 flex items-center gap-1"
@@ -687,7 +865,9 @@ export default function ProjectRequestOverview({
                                   ...requirement,
                                   projectRequestId: data.id,
                                 };
-                                onManageParticipants(requirementWithProjectId);
+                                onManageParticipants(
+                                  requirementWithProjectId as ProjectRequirement
+                                );
                               }}
                               title="Gestionar asociados"
                               className="h-8 px-2 flex items-center gap-1"
@@ -738,34 +918,40 @@ export default function ProjectRequestOverview({
                                     variant="outline"
                                     size="sm"
                                     className="flex items-center gap-1"
-                                    onClick={() => handleOpenLogsModal(participant, requirement.requirementName)}
+                                    onClick={() =>
+                                      handleOpenLogsModal(
+                                        participant,
+                                        requirement.requirementName
+                                      )
+                                    }
                                   >
                                     <MessageSquare className="h-3 w-3" />
+                                    <span className="text-xs">Bitácora</span>
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="flex items-center gap-1"
+                                    onClick={() =>
+                                      handleOpenTechnicalDocs(
+                                        participant,
+                                        requirement.id
+                                      )
+                                    }
+                                    title={
+                                      validNdas[participant.Company.id]
+                                        ? "Ver documentos técnicos"
+                                        : "Se requiere un NDA válido"
+                                    }
+                                    disabled={
+                                      !validNdas[participant.Company.id]
+                                    }
+                                  >
+                                    <File className="h-3 w-3" />
                                     <span className="text-xs">
-                                      Bitácora
+                                      Documentos técnicos
                                     </span>
                                   </Button>
-                                  {participant.status &&
-                                    (participant.status.id === 4 ||
-                                      participant.status.id === 5 ||
-                                      participant.status.id === 6) && (
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="flex items-center gap-1"
-                                        onClick={() =>
-                                          handleOpenTechnicalDocs(
-                                            participant,
-                                            requirement.id
-                                          )
-                                        }
-                                      >
-                                        <File className="h-3 w-3" />
-                                        <span className="text-xs">
-                                          Documentos técnicos
-                                        </span>
-                                      </Button>
-                                    )}
                                   {participant.status &&
                                     [7, 8, 9].includes(
                                       participant.status.id
@@ -781,8 +967,7 @@ export default function ProjectRequestOverview({
                                           downloadingQuote === participant.id
                                         }
                                       >
-                                        {downloadingQuote ===
-                                        participant.id ? (
+                                        {downloadingQuote === participant.id ? (
                                           <Loader2 className="h-3 w-3 animate-spin" />
                                         ) : (
                                           <Download className="h-3 w-3" />
@@ -811,8 +996,7 @@ export default function ProjectRequestOverview({
                                             updatingStatus === participant.id
                                           }
                                         >
-                                          {updatingStatus ===
-                                          participant.id &&
+                                          {updatingStatus === participant.id &&
                                           confirmAction?.action ===
                                             "approve" ? (
                                             <Loader2 className="h-3 w-3 animate-spin" />
@@ -838,10 +1022,8 @@ export default function ProjectRequestOverview({
                                             updatingStatus === participant.id
                                           }
                                         >
-                                          {updatingStatus ===
-                                          participant.id &&
-                                          confirmAction?.action ===
-                                            "reject" ? (
+                                          {updatingStatus === participant.id &&
+                                          confirmAction?.action === "reject" ? (
                                             <Loader2 className="h-3 w-3 animate-spin" />
                                           ) : (
                                             <X className="h-3 w-3" />
@@ -889,23 +1071,25 @@ export default function ProjectRequestOverview({
                   {data.statusId === 11 ? (
                     <Send className="h-4 w-4 text-purple-600" />
                   ) : (
-                    <Clock className={`h-4 w-4 ${
-                      data.statusId === 10 
-                        ? "text-blue-600" 
-                        : data.statusId >= 12 
-                          ? "text-green-600" 
-                          : "text-muted-foreground"
-                    }`} />
+                    <Clock
+                      className={`h-4 w-4 ${
+                        data.statusId === 10
+                          ? "text-blue-600"
+                          : data.statusId >= 12
+                            ? "text-green-600"
+                            : "text-muted-foreground"
+                      }`}
+                    />
                   )}
-                  <Badge 
+                  <Badge
                     variant="outline"
                     className={
-                      data.statusId === 10 
-                        ? "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100" 
-                        : data.statusId === 11 
-                          ? "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100" 
-                          : data.statusId >= 12 
-                            ? "bg-green-50 text-green-700 border-green-200 hover:bg-green-100" 
+                      data.statusId === 10
+                        ? "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
+                        : data.statusId === 11
+                          ? "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100"
+                          : data.statusId >= 12
+                            ? "bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
                             : ""
                     }
                   >
@@ -935,7 +1119,9 @@ export default function ProjectRequestOverview({
                         <div className="flex items-center space-x-2">
                           <Calendar className="h-4 w-4 text-muted-foreground" />
                           <span>
-                            <span className="font-semibold">Fecha de creación:</span>{" "}
+                            <span className="font-semibold">
+                              Fecha de creación:
+                            </span>{" "}
                             {formatDateForDisplay(
                               clientQuotationData.dateQuotationClient
                             )}
@@ -945,7 +1131,9 @@ export default function ProjectRequestOverview({
                           <div className="flex items-center space-x-2">
                             <Send className="h-4 w-4 text-purple-600" />
                             <span>
-                              <span className="font-semibold">Cotización enviada al Cliente:</span>{" "}
+                              <span className="font-semibold">
+                                Cotización enviada al Cliente:
+                              </span>{" "}
                               {formatDateForDisplay(
                                 clientQuotationData.dateQuotationSent
                               )}
@@ -985,7 +1173,7 @@ export default function ProjectRequestOverview({
                             )}
                             <span>{clientQuotationData.quotationFileName}</span>
                           </Button>
-                          
+
                           {data.statusId === 10 && (
                             <Button
                               variant="outline"
@@ -1000,7 +1188,9 @@ export default function ProjectRequestOverview({
                                 <Send className="h-4 w-4" />
                               )}
                               <span>
-                                {sendingClientQuotation ? "Enviando..." : "Enviar Cotización"}
+                                {sendingClientQuotation
+                                  ? "Enviando..."
+                                  : "Enviar Cotización"}
                               </span>
                             </Button>
                           )}
@@ -1081,7 +1271,10 @@ export default function ProjectRequestOverview({
       </AlertDialog>
 
       {/* Diálogo de confirmación para enviar cotización */}
-      <AlertDialog open={sendQuotationDialogOpen} onOpenChange={setSendQuotationDialogOpen}>
+      <AlertDialog
+        open={sendQuotationDialogOpen}
+        onOpenChange={setSendQuotationDialogOpen}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
@@ -1089,7 +1282,8 @@ export default function ProjectRequestOverview({
               Enviar Cotización
             </AlertDialogTitle>
             <AlertDialogDescription>
-              ¿Está seguro de enviar la cotización al cliente? Esto cambiará el estado del proyecto.
+              ¿Está seguro de enviar la cotización al cliente? Esto cambiará el
+              estado del proyecto.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1100,7 +1294,10 @@ export default function ProjectRequestOverview({
             >
               Cancelar
             </AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmSendQuotation} className="flex items-center gap-2">
+            <AlertDialogAction
+              onClick={handleConfirmSendQuotation}
+              className="flex items-center gap-2"
+            >
               <Send className="h-4 w-4" />
               Enviar
             </AlertDialogAction>
@@ -1118,7 +1315,7 @@ export default function ProjectRequestOverview({
         projectRequestId={data.id}
         companyId={selectedCompanyForLogs?.id}
         requirementName={selectedCompanyForLogs?.requirementName}
-        title={`Bitácora - ${selectedCompanyForLogs?.name || 'Asociado'}`}
+        title={`Bitácora - ${selectedCompanyForLogs?.name || "Asociado"}`}
       />
     </>
   );

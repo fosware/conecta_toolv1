@@ -9,6 +9,8 @@ const createRequirementSchema = z.object({
     .string()
     .min(1, "El nombre del requerimiento es obligatorio"),
   projectRequestId: z.number().int().positive(),
+  piecesNumber: z.number().int().optional().nullable(),
+  observation: z.string().optional(),
 });
 
 // GET: Obtener todos los requerimientos de una solicitud de proyecto
@@ -158,6 +160,8 @@ export async function POST(
       data: {
         requirementName: validationResult.data.requirementName,
         projectRequestId: parsedId,
+        piecesNumber: validationResult.data.piecesNumber,
+        observation: validationResult.data.observation,
         userId: userId,
       },
     });

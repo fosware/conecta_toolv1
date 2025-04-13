@@ -10,6 +10,7 @@ interface FormattedQuotation {
   materialCost: number;
   directCost: number;
   indirectCost: number;
+  price: number;
   totalCost: number;
   isSelected: boolean;
 }
@@ -42,7 +43,17 @@ export async function GET(
     // Obtener todas las cotizaciones con status "Revisión Ok" (statusId = 9)
     const quotations = await prisma.projectRequestCompany.findMany({
       where: {
-        projectRequestId: projectRequestId,
+        projectRequirementsId: {
+          in: await prisma.projectRequirements.findMany({
+            where: {
+              projectRequestId: projectRequestId,
+              isDeleted: false,
+            },
+            select: {
+              id: true,
+            },
+          }).then(reqs => reqs.map(req => req.id)),
+        },
         statusId: 9, // Status "Revisión Ok"
         isActive: true,
         isDeleted: false,
@@ -66,7 +77,8 @@ export async function GET(
       materialCost: item.Quotation?.materialCost || 0,
       directCost: item.Quotation?.directCost || 0,
       indirectCost: item.Quotation?.indirectCost || 0,
-      totalCost: (item.Quotation?.materialCost || 0) + (item.Quotation?.directCost || 0) + (item.Quotation?.indirectCost || 0),
+      price: item.Quotation?.price || 0,
+      totalCost: (item.Quotation?.materialCost || 0) + (item.Quotation?.directCost || 0) + (item.Quotation?.indirectCost || 0) + (item.Quotation?.price || 0),
       isSelected: item.Quotation?.isClientSelected || false,
     }));
 

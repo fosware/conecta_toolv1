@@ -40,6 +40,7 @@ interface CompanyQuotation {
   materialCost: number | null;
   directCost: number | null;
   indirectCost: number | null;
+  price: number | null;
   isClientSelected: boolean;
   statusId: number;
 }
@@ -75,6 +76,10 @@ export function ClientQuotationModal({
     .filter((company) => company.isClientSelected)
     .reduce((sum, company) => sum + (company.indirectCost || 0), 0);
 
+  const totalPrice = companies
+    .filter((company) => company.isClientSelected)
+    .reduce((sum, company) => sum + (company.price || 0), 0);
+
   const totalCost = totalMaterialCost + totalDirectCost + totalIndirectCost;
 
   // Función para formatear un número a 2 decimales
@@ -108,7 +113,8 @@ export function ClientQuotationModal({
 
   // Actualizar el precio al cliente cuando cambia el costo total
   useEffect(() => {
-    if (!existingQuotation || clientPrice === "") {
+    // Solo actualizar el precio automáticamente si está vacío, es 0, o no es una cotización existente
+    if (!existingQuotation || clientPrice === "" || clientPrice === "0" || parseFloat(clientPrice) === 0) {
       setClientPrice(formatToTwoDecimals(totalCost));
     }
   }, [totalCost, existingQuotation]);
@@ -348,6 +354,7 @@ export function ClientQuotationModal({
                         <TableHead className="text-center">
                           Costo Indirecto
                         </TableHead>
+                        <TableHead className="text-center">Precio</TableHead>
                         <TableHead className="text-center">Total</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -388,6 +395,11 @@ export function ClientQuotationModal({
                             <TableCell className="text-center">
                               {company.indirectCost
                                 ? formatCurrency(company.indirectCost)
+                                : "$0.00"}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {company.price
+                                ? formatCurrency(company.price)
                                 : "$0.00"}
                             </TableCell>
                             <TableCell className="text-center font-medium">
@@ -433,23 +445,31 @@ export function ClientQuotationModal({
                     </div>
                   </div>
                 </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label className="text-sm text-center font-medium">
+                      Precio Total
+                    </Label>
+                    <div className="text-left font-medium mt-1">
+                      {formatCurrency(totalPrice)}
+                    </div>
+                  </div>
+                  <div />
+                  <div>
+                    <Label className="text-sm text-center font-medium">
+                      Costo Total
+                    </Label>
+                    <div className="text-left font-medium mt-1">
+                      {formatCurrency(totalCost)}
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div className="border-t pt-3">
                 <div className="flex justify-between items-center mb-4">
                   <div className="flex items-center">
                     <Label className="text-base font-semibold mr-4">
-                      Costo Total:
-                    </Label>
-                    <div className="font-bold text-lg">
-                      {formatCurrency(totalCost)} MXN
-                    </div>
-                  </div>
-                  <div className="flex items-center">
-                    <Label
-                      htmlFor="clientPrice"
-                      className="text-base font-semibold mr-4"
-                    >
                       Precio al Cliente:
                     </Label>
                     <div className="relative w-56">

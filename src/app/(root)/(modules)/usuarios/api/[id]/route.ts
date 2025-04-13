@@ -71,27 +71,29 @@ export async function PATCH(
       });
 
       return NextResponse.json(
-        { message: "Usuario actualizado exitosamente" },
+        { message: "Usuario actualizado correctamente" },
         { status: 200 }
       );
     } catch (error) {
-      if (error.code === 'P2002') {
+      console.error("Error al actualizar usuario:", error);
+      
+      // Verificar si es un error de Prisma
+      if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
         return NextResponse.json(
-          { message: "El correo electrónico o nombre de usuario ya está siendo utilizado por otro usuario activo" },
+          { error: "El correo electrónico o nombre de usuario ya está en uso" },
           { status: 400 }
         );
       }
       
-      console.error("Error al actualizar usuario:", error);
       return NextResponse.json(
-        { message: "Error al actualizar el usuario" },
+        { error: "Error al actualizar el usuario" },
         { status: 500 }
       );
     }
   } catch (error) {
     console.error("Error al actualizar usuario:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Error al actualizar usuario" },
+      { error: "Error al actualizar el usuario" },
       { status: 500 }
     );
   }

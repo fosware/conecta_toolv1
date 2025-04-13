@@ -1,41 +1,47 @@
 import { NextRequest, NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+import bcrypt from "bcrypt";
+import { z } from "zod";
 
-const prisma = new PrismaClient();
+// Esquema de validación para el registro
+const registerSchema = z.object({
+  email: z.string().email(),
+  username: z.string().min(3),
+  password: z.string().min(8),
+  name: z.string().min(2),
+});
 
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    const { email, password, username } = await req.json();
-
-    // Validar que todos los campos están presentes
-    if (!email || !password || !username) {
-      return NextResponse.json(
-        { message: "Faltan campos obligatorios" },
-        { status: 400 }
-      );
-    }
+    const body = await request.json();
+    const { email, username, password, name } = registerSchema.parse(body);
 
     // Verificar si el correo ya está registrado
-    const existingEmail = await prisma.user.findUnique({
-      where: { email },
+    const existingUserByEmail = await prisma.user.findFirst({
+      where: { 
+        email: email,
+        isDeleted: false
+      },
     });
 
-    if (existingEmail) {
+    if (existingUserByEmail) {
       return NextResponse.json(
-        { message: "El correo electrónico ya está registrado" },
+        { error: "El correo electrónico ya está registrado" },
         { status: 400 }
       );
     }
 
-    // Verificar si el nombre de usuario ya existe
-    const existingUsername = await prisma.user.findUnique({
-      where: { username },
+    // Verificar si el nombre de usuario ya está registrado
+    const existingUserByUsername = await prisma.user.findFirst({
+      where: { 
+        username: username,
+        isDeleted: false
+      },
     });
 
-    if (existingUsername) {
+    if (existingUserByUsername) {
       return NextResponse.json(
-        { message: "El nombre de usuario ya está en uso" },
+        { error: "El nombre de usuario ya está en uso" },
         { status: 400 }
       );
     }
@@ -43,21 +49,40 @@ export async function POST(req: NextRequest) {
     // Encriptar la contraseña
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Crear el nuevo usuario
+    // Crear el usuario
     const user = await prisma.user.create({
       data: {
         email,
-        password: hashedPassword,
         username,
-        roles: ["user"], // Asignar rol predeterminado
+        password: hashedPassword,
+        roleId: 1, // ID del rol "user"
+        isActive: true,
+        isDeleted: false,
       },
     });
 
-    return NextResponse.json(user, { status: 201 });
-  } catch (error) {
-    console.error("Error en el endpoint de registro:", error);
+    // Excluir la contraseña de la respuesta
+    const { password: _, ...userWithoutPassword } = user;
+
     return NextResponse.json(
-      { message: "Error interno del servidor" },
+      {
+        message: "Usuario registrado exitosamente",
+        user: userWithoutPassword,
+      },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error("Error en el registro:", error);
+    
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Datos de registro inválidos", details: error.errors },
+        { status: 400 }
+      );
+    }
+    
+    return NextResponse.json(
+      { error: "Error al registrar el usuario" },
       { status: 500 }
     );
   }

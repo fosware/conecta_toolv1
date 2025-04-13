@@ -64,11 +64,6 @@ export interface AssignedCompany {
   companyId: number;
   projectRequestId: number;
   statusId?: number;
-  ndaFile?: string;
-  ndaFileName?: string;
-  ndaSignedFile?: string;
-  ndaSignedFileName?: string;
-  ndaSignedAt?: string;
   isActive?: boolean;
   isDeleted?: boolean;
   createdAt?: string;

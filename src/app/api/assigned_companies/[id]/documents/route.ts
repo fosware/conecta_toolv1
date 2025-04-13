@@ -4,10 +4,10 @@ import { getUserFromToken } from "@/lib/get-user-from-token";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Extraer el ID correctamente según las prácticas de Next.js 15
+    // Extraer el ID correctamente
     const { id } = await params;
     const parsedId = parseInt(id);
 

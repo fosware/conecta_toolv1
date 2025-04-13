@@ -18,9 +18,10 @@ export async function DELETE(
     }
 
     // Validar parámetros
-    const parsedId = parseInt(params.id);
-    const parsedRequirementId = parseInt(params.requirementId);
-    const parsedSpecialtyId = parseInt(params.specialtyId);
+    const { id, requirementId, specialtyId } = await params;
+    const parsedId = parseInt(id);
+    const parsedRequirementId = parseInt(requirementId);
+    const parsedSpecialtyId = parseInt(specialtyId);
 
     if (isNaN(parsedId) || isNaN(parsedRequirementId) || isNaN(parsedSpecialtyId)) {
       return NextResponse.json(

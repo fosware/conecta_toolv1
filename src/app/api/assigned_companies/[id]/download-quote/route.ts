@@ -4,11 +4,11 @@ import { getUserFromToken } from "@/lib/get-user-from-token";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Extraer el ID correctamente
-    const { id } = params;
+    const { id } = await params;
     const parsedId = parseInt(id);
 
     // Verificar autenticación
