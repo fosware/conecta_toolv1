@@ -128,7 +128,7 @@ function getStatusBadgeStyles(statusId: number) {
       return "bg-blue-100 text-blue-800";
     case 7: // Cotización enviada
       return "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300";
-    case 8: // Cotización rechazada
+    case 8: // No seleccionado
       return "bg-red-100 text-red-800";
     case 9: // Revisión Ok
       return "bg-green-100 text-green-800";
@@ -407,8 +407,8 @@ export default function ProjectRequestOverview({
       setConfirmAction({
         participantId: participant.id,
         action: "reject",
-        title: "Rechazar cotización",
-        description: `¿Está seguro que desea rechazar la cotización de ${participant.Company?.comercialName || "la empresa seleccionada"}?`,
+        title: "No seleccionar cotización",
+        description: `¿Está seguro que desea marcar como no seleccionada la cotización de ${participant.Company?.comercialName || "la empresa seleccionada"}?`,
       });
     }
 
@@ -423,7 +423,7 @@ export default function ProjectRequestOverview({
       setUpdatingStatus(confirmAction.participantId);
 
       // Determinar el nuevo estado según la acción
-      const newStatusId = confirmAction.action === "approve" ? 9 : 8; // 9: Revisión Ok, 8: Cotización rechazada
+      const newStatusId = confirmAction.action === "approve" ? 9 : 8; // 9: Revisión Ok, 8: No seleccionado
 
       // Llamar a la API para actualizar el estado
       const response = await fetch(
@@ -441,13 +441,13 @@ export default function ProjectRequestOverview({
 
       if (!response.ok) {
         throw new Error(
-          `Error al ${confirmAction.action === "approve" ? "aprobar" : "rechazar"} la cotización`
+          `Error al ${confirmAction.action === "approve" ? "aprobar" : "marcar como no seleccionada"} la cotización`
         );
       }
 
       // Mostrar mensaje de éxito
       toast.success(
-        `Cotización ${confirmAction.action === "approve" ? "aprobada" : "rechazada"} correctamente`
+        `Cotización ${confirmAction.action === "approve" ? "aprobada" : "marcada como no seleccionada"} correctamente`
       );
 
       // Refrescar los datos sin mostrar el indicador de carga
@@ -457,7 +457,7 @@ export default function ProjectRequestOverview({
     } catch (error) {
       console.error("Error updating quotation status:", error);
       toast.error(
-        `Error al ${confirmAction.action === "approve" ? "aprobar" : "rechazar"} la cotización`
+        `Error al ${confirmAction.action === "approve" ? "aprobar" : "marcar como no seleccionada"} la cotización`
       );
     } finally {
       setUpdatingStatus(null);
@@ -979,61 +979,6 @@ export default function ProjectRequestOverview({
                                         </span>
                                       </Button>
                                     )}
-                                  {participant.status &&
-                                    participant.status.id === 7 && (
-                                      <>
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          className="flex items-center gap-1 bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
-                                          onClick={() =>
-                                            handleConfirmAction(
-                                              participant,
-                                              "approve"
-                                            )
-                                          }
-                                          disabled={
-                                            updatingStatus === participant.id
-                                          }
-                                        >
-                                          {updatingStatus === participant.id &&
-                                          confirmAction?.action ===
-                                            "approve" ? (
-                                            <Loader2 className="h-3 w-3 animate-spin" />
-                                          ) : (
-                                            <Check className="h-3 w-3" />
-                                          )}
-                                          <span className="text-xs">
-                                            Aprobar
-                                          </span>
-                                        </Button>
-
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          className="flex items-center gap-1 bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
-                                          onClick={() =>
-                                            handleConfirmAction(
-                                              participant,
-                                              "reject"
-                                            )
-                                          }
-                                          disabled={
-                                            updatingStatus === participant.id
-                                          }
-                                        >
-                                          {updatingStatus === participant.id &&
-                                          confirmAction?.action === "reject" ? (
-                                            <Loader2 className="h-3 w-3 animate-spin" />
-                                          ) : (
-                                            <X className="h-3 w-3" />
-                                          )}
-                                          <span className="text-xs">
-                                            Rechazar
-                                          </span>
-                                        </Button>
-                                      </>
-                                    )}
                                 </div>
                               </div>
                             )
@@ -1245,7 +1190,7 @@ export default function ProjectRequestOverview({
         onSuccess={handleClientQuotationSuccess}
       />
 
-      {/* Diálogo de confirmación para aprobar/rechazar cotización */}
+      {/* Diálogo de confirmación para aprobar/no seleccionar cotización */}
       <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -1264,7 +1209,7 @@ export default function ProjectRequestOverview({
               Cancelar
             </AlertDialogCancel>
             <AlertDialogAction onClick={handleUpdateQuotationStatus}>
-              {confirmAction?.action === "approve" ? "Aprobar" : "Rechazar"}
+              {confirmAction?.action === "approve" ? "Aprobar" : "No seleccionar"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

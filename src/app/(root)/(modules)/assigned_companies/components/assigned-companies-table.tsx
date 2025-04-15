@@ -129,7 +129,7 @@ export function AssignedCompaniesTable({
         return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300";
       case 7: // Cotización enviada
         return "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300";
-      case 8: // Cotización rechazada
+      case 8: // No seleccionado
         return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300";
       case 9: // Revisión Ok
         return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300";
@@ -216,7 +216,7 @@ export function AssignedCompaniesTable({
   };
 
   const shouldShowQuoteButton = (statusId: number) => {
-    // Mostrar el botón para los estados: "Documentos técnicos enviados", "Cotización enviada", "Cotización rechazada", "Cotización aprobada"
+    // Mostrar el botón para los estados: "Documentos técnicos enviados", "Cotización enviada", "No seleccionado", "Cotización aprobada"
     return [6, 7, 8, 9].includes(statusId);
   };
 

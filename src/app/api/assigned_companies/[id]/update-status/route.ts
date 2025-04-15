@@ -68,7 +68,7 @@ export async function PUT(
     });
 
     // Crear un log automático del sistema
-    const messageType = statusId === 8 ? "QUOTATION_REJECTED" : "QUOTATION_APPROVED";
+    const messageType = statusId === 8 ? "QUOTATION_NOT_SELECTED" : "QUOTATION_APPROVED";
     await ProjectRequestLogsService.createSystemLog(
       parsedId,
       messageType as any,
@@ -76,7 +76,7 @@ export async function PUT(
     );
 
     return NextResponse.json({
-      message: `Estado actualizado correctamente a ${statusId === 8 ? "Cotización rechazada" : "Revisión Ok"}`,
+      message: `Estado actualizado correctamente a ${statusId === 8 ? "No seleccionado" : "Revisión Ok"}`,
       data: updatedAssignedCompany,
     });
   } catch (error) {

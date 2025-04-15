@@ -5,7 +5,7 @@ import { ProjectRequestLogsService } from "@/lib/services/project-request-logs";
 
 /**
  * Endpoint para aprobar una cotización por parte del cliente
- * Actualiza el estado del proyecto a "Cotización aprobada por Cliente" (statusId: 12)
+ * Actualiza el estado del proyecto a "Cotización seleccionada" (statusId: 13)
  */
 export async function POST(
   request: NextRequest,
@@ -47,7 +47,7 @@ export async function POST(
       );
     }
 
-    // Verificar que la cotización no haya sido ya aprobada
+    // Verificar que la cotización no haya sido ya seleccionada
     const projectRequest = await prisma.projectRequest.findUnique({
       where: {
         id: projectRequestId,
@@ -61,50 +61,50 @@ export async function POST(
       );
     }
 
-    if (projectRequest.statusId === 12) {
+    if (projectRequest.statusId === 13) {
       return NextResponse.json(
-        { error: "La cotización ya ha sido aprobada por el cliente" },
+        { error: "La cotización ya ha sido seleccionada" },
         { status: 400 }
       );
     }
 
-    // Actualizar el estado del proyecto a "Cotización aprobada por Cliente" (statusId: 12)
+    // Actualizar el estado del proyecto a "Cotización seleccionada" (statusId: 13)
     await prisma.projectRequest.update({
       where: {
         id: projectRequestId,
       },
       data: {
-        statusId: 12, // ID del estado "Cotización aprobada por Cliente"
+        statusId: 13, // ID del estado "Cotización seleccionada"
       },
     });
 
-    // Actualizar la cotización del cliente con una observación sobre la aprobación
+    // Actualizar la cotización del cliente con una observación sobre la selección
     // Ya que no existe el campo dateQuotationApproved en el modelo
     await prisma.clientQuotationSummary.update({
       where: {
         id: clientQuotation.id,
       },
       data: {
-        observations: `Cotización aprobada el ${new Date().toISOString()}`,
+        observations: `Cotización seleccionada el ${new Date().toISOString()}`,
       },
     });
 
-    // Crear un log automático del sistema para registrar la aprobación de la cotización por el cliente
+    // Crear un log automático del sistema para registrar la selección de la cotización por el cliente
     await ProjectRequestLogsService.createSystemLog(
       projectRequestId,
-      "CLIENT_QUOTATION_APPROVED",
+      "CLIENT_QUOTATION_SELECTED",
       userId,
       true // Indicar que es un log a nivel de proyecto
     );
 
     return NextResponse.json({
-      message: "Cotización aprobada por el cliente correctamente",
+      message: "Cotización seleccionada correctamente",
       success: true,
     });
   } catch (error) {
-    console.error("Error al aprobar cotización:", error);
+    console.error("Error al seleccionar cotización:", error);
     return NextResponse.json(
-      { error: "Error al aprobar la cotización" },
+      { error: "Error al seleccionar la cotización" },
       { status: 500 }
     );
   }
