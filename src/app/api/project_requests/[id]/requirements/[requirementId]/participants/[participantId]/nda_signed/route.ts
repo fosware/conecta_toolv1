@@ -37,7 +37,7 @@ export async function POST(
         isDeleted: false,
       },
       include: {
-        ClientCompanyNDA: true
+        Company: true
       }
     });
 
@@ -48,8 +48,17 @@ export async function POST(
       );
     }
 
+    // Buscar el NDA asociado a la compañía
+    const clientCompanyNDA = await prisma.clientCompanyNDA.findFirst({
+      where: {
+        companyId: participant.companyId,
+        isActive: true,
+        isDeleted: false
+      }
+    });
+
     // Verificar si ya existe un NDA asociado
-    if (!participant.clientCompanyNDAId) {
+    if (!clientCompanyNDA) {
       return NextResponse.json(
         { error: "No hay un NDA asociado a este participante" },
         { status: 400 }
@@ -74,7 +83,7 @@ export async function POST(
     // Actualizar el NDA con el archivo firmado
     const updatedNDA = await prisma.clientCompanyNDA.update({
       where: {
-        id: participant.clientCompanyNDAId
+        id: clientCompanyNDA.id
       },
       data: {
         ndaSignedFile: buffer,
@@ -141,7 +150,7 @@ export async function DELETE(
         isDeleted: false,
       },
       include: {
-        ClientCompanyNDA: true
+        Company: true
       }
     });
 
@@ -152,8 +161,17 @@ export async function DELETE(
       );
     }
 
+    // Buscar el NDA asociado a la compañía
+    const clientCompanyNDA = await prisma.clientCompanyNDA.findFirst({
+      where: {
+        companyId: participant.companyId,
+        isActive: true,
+        isDeleted: false
+      }
+    });
+
     // Verificar si ya existe un NDA asociado
-    if (!participant.clientCompanyNDAId) {
+    if (!clientCompanyNDA) {
       return NextResponse.json(
         { error: "No hay un NDA asociado a este participante" },
         { status: 400 }
@@ -163,7 +181,7 @@ export async function DELETE(
     // Eliminar el archivo NDA firmado del NDA
     await prisma.clientCompanyNDA.update({
       where: {
-        id: participant.clientCompanyNDAId
+        id: clientCompanyNDA.id
       },
       data: {
         ndaSignedFile: Buffer.from([]), // Buffer vacío en lugar de null
@@ -173,7 +191,7 @@ export async function DELETE(
     });
 
     // Verificar si el participante tiene un NDA original
-    const hasOriginalNDA = !!participant.ClientCompanyNDA?.ndaSignedFile;
+    const hasOriginalNDA = !!clientCompanyNDA.ndaSignedFile;
     
     // Determinar el nuevo estado basado en si tiene NDA original
     const newStatusId = hasOriginalNDA ? 3 : 2; // 3: En espera de firma NDA, 2: Asociado seleccionado

@@ -100,14 +100,28 @@ export async function POST(
       // Actualizar el estado de las empresas que ya estaban seleccionadas
       if (companiesToUpdate.length > 0) {
         for (const company of companiesToUpdate) {
-          await tx.projectRequestCompany.update({
+          // Obtener el estado actual de la empresa
+          const currentCompanyData = await tx.projectRequestCompany.findUnique({
             where: {
               id: company.id,
             },
-            data: {
-              statusId: 2, // Asociado seleccionado
+            select: {
+              statusId: true,
             },
           });
+
+          // Solo actualizar a "Asociado seleccionado" si el estado actual es menor
+          // (es decir, si no tiene un estado más avanzado)
+          if (currentCompanyData && currentCompanyData.statusId < 2) {
+            await tx.projectRequestCompany.update({
+              where: {
+                id: company.id,
+              },
+              data: {
+                statusId: 2, // Asociado seleccionado
+              },
+            });
+          }
         }
       }
 
@@ -153,7 +167,6 @@ export async function POST(
             statusId: 2, // Asociado seleccionado (según la tabla de la base de datos)
             userId: userId,
             isActive: true,
-            projectRequestId: projectRequestId,
           },
         });
       }

@@ -14,4 +14,7 @@ export const SYSTEM_MESSAGES = {
   CLIENT_QUOTATION_SELECTED: "Cotización seleccionada",
   CLIENT_QUOTATION_REJECTED: "Cotización rechazada por el cliente",
   CLIENT_QUOTATION_RESENT: "Cotización reenviada al cliente",
+  // Nuevos tipos para aprobación/rechazo por requerimiento
+  REQUIREMENT_QUOTATION_APPROVED: "Cotización de requerimiento aprobada",
+  REQUIREMENT_QUOTATION_REJECTED: "Cotización de requerimiento no seleccionada",
 };

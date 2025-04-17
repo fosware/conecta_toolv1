@@ -17,7 +17,7 @@ export async function DELETE(
     }
     
     // Obtener los IDs de la URL
-    const { id, requirementId, participantId } = await params;
+    const { id, requirementId, participantId } = params;
     const projectRequestId = parseInt(id);
     const projectRequirementId = parseInt(requirementId);
     const participantIdNum = parseInt(participantId);
@@ -37,7 +37,7 @@ export async function DELETE(
         isDeleted: false,
       },
       include: {
-        ClientCompanyNDA: true
+        Company: true
       }
     });
 
@@ -48,14 +48,34 @@ export async function DELETE(
       );
     }
 
-    // Actualizar el registro para eliminar tanto el NDA original como el firmado (si existe)
-    // y cambiar el estado a "Asociado seleccionado" (statusId: 2)
+    // Buscar el NDA asociado a la compañía para eliminarlo si existe
+    const clientCompanyNDA = await prisma.clientCompanyNDA.findFirst({
+      where: {
+        companyId: participant.companyId,
+        isActive: true,
+        isDeleted: false
+      }
+    });
+
+    // Si existe un NDA, lo marcamos como eliminado
+    if (clientCompanyNDA) {
+      await prisma.clientCompanyNDA.update({
+        where: {
+          id: clientCompanyNDA.id
+        },
+        data: {
+          isDeleted: true,
+          dateDeleted: new Date()
+        }
+      });
+    }
+
+    // Actualizar el registro para cambiar el estado a "Asociado seleccionado" (statusId: 2)
     await prisma.projectRequestCompany.update({
       where: {
         id: participantIdNum,
       },
       data: {
-        clientCompanyNDAId: null,
         statusId: 2, // "Asociado seleccionado"
         userId: userId,
       },

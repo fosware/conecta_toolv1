@@ -37,11 +37,27 @@ export async function GET(
         isDeleted: false,
       },
       include: {
-        ClientCompanyNDA: true
+        Company: true
       }
     });
 
-    if (!participant || !participant.ClientCompanyNDA?.ndaSignedFile) {
+    if (!participant) {
+      return NextResponse.json(
+        { error: "Participante no encontrado" },
+        { status: 404 }
+      );
+    }
+
+    // Buscar el NDA asociado a la compañía
+    const clientCompanyNDA = await prisma.clientCompanyNDA.findFirst({
+      where: {
+        companyId: participant.companyId,
+        isActive: true,
+        isDeleted: false
+      }
+    });
+
+    if (!clientCompanyNDA || !clientCompanyNDA.ndaSignedFile) {
       return NextResponse.json(
         { error: "Archivo NDA firmado no encontrado" },
         { status: 404 }
@@ -49,13 +65,13 @@ export async function GET(
     }
 
     // Crear un blob con el archivo
-    const blob = new Blob([participant.ClientCompanyNDA.ndaSignedFile]);
+    const blob = new Blob([clientCompanyNDA.ndaSignedFile]);
     
     // Crear una respuesta con el archivo
     return new NextResponse(blob, {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${participant.ClientCompanyNDA.ndaSignedFileName || 'nda_signed.pdf'}"`,
+        "Content-Disposition": `attachment; filename="${clientCompanyNDA.ndaSignedFileName || 'nda_signed.pdf'}"`,
       },
     });
   } catch (error) {

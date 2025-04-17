@@ -577,6 +577,7 @@ model ProjectRequestRequirementQuotation {
   quotationFile           Bytes?
   quotationFileName       String?
   isClientSelected        Boolean   @default(false)
+  isClientApproved        Boolean   @default(false)
   isActive                Boolean   @default(true)
   isDeleted               Boolean   @default(false)
   dateDeleted             DateTime?

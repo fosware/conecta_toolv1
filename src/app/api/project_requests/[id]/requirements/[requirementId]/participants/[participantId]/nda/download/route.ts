@@ -17,7 +17,7 @@ export async function GET(
     }
 
     // Obtener los IDs de la URL
-    const { id, requirementId, participantId } = await params;
+    const { id, requirementId, participantId } = params;
     const projectRequestId = parseInt(id);
     const projectRequirementId = parseInt(requirementId);
     const parsedParticipantId = parseInt(participantId);
@@ -29,7 +29,7 @@ export async function GET(
       );
     }
 
-    // Buscar el participante y su NDA asociado
+    // Buscar el participante
     const projectRequestCompany = await prisma.projectRequestCompany.findUnique({
       where: {
         id: parsedParticipantId,
@@ -37,12 +37,28 @@ export async function GET(
         isDeleted: false,
       },
       include: {
-        ClientCompanyNDA: true
+        Company: true
       }
     });
 
-    // Verificar que exista el participante y tenga un NDA asociado
-    if (!projectRequestCompany || !projectRequestCompany.ClientCompanyNDA) {
+    if (!projectRequestCompany) {
+      return NextResponse.json(
+        { error: "Participante no encontrado" },
+        { status: 404 }
+      );
+    }
+
+    // Buscar el NDA asociado a la compañía
+    const clientCompanyNDA = await prisma.clientCompanyNDA.findFirst({
+      where: {
+        companyId: projectRequestCompany.companyId,
+        isActive: true,
+        isDeleted: false
+      }
+    });
+
+    // Verificar que exista el NDA
+    if (!clientCompanyNDA || !clientCompanyNDA.ndaSignedFile) {
       return NextResponse.json(
         { error: "NDA no encontrado" },
         { status: 404 }
@@ -50,8 +66,8 @@ export async function GET(
     }
 
     // Obtener el archivo del NDA
-    const ndaFile = projectRequestCompany.ClientCompanyNDA.ndaSignedFile;
-    const ndaFileName = projectRequestCompany.ClientCompanyNDA.ndaSignedFileName;
+    const ndaFile = clientCompanyNDA.ndaSignedFile;
+    const ndaFileName = clientCompanyNDA.ndaSignedFileName;
 
     // Configurar la respuesta con el archivo
     const headers = new Headers();

@@ -9,7 +9,7 @@ export async function POST(
 ) {
   try {
     // Obtener el ID de la empresa asignada siguiendo las mejores prácticas de Next.js 15
-    const { id } = await params;
+    const { id } = params;
     const assignedCompanyId = parseInt(id);
 
     if (isNaN(assignedCompanyId)) {
@@ -48,8 +48,7 @@ export async function POST(
               }
             }
           }
-        },
-        ClientCompanyNDA: true
+        }
       }
     });
 
@@ -85,14 +84,22 @@ export async function POST(
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Verificar si ya existe un NDA asociado o crear uno nuevo
+    // Buscar si ya existe un NDA asociado a esta compañía y cliente
+    const existingNDA = await prisma.clientCompanyNDA.findFirst({
+      where: {
+        clientId: clientId,
+        companyId: assignedCompany.companyId,
+        isDeleted: false
+      }
+    });
+    
     let ndaId: number;
     
-    if (assignedCompany.clientCompanyNDAId) {
+    if (existingNDA) {
       // Actualizar el NDA existente
       const updatedNDA = await prisma.clientCompanyNDA.update({
         where: {
-          id: assignedCompany.clientCompanyNDAId
+          id: existingNDA.id
         },
         data: {
           ndaSignedFile: buffer,
@@ -119,13 +126,12 @@ export async function POST(
       ndaId = newNDA.id;
     }
 
-    // Actualizar el registro de la empresa asignada con el ID del NDA
+    // Actualizar el registro de la empresa asignada con el estado de NDA
     await prisma.projectRequestCompany.update({
       where: {
         id: assignedCompanyId,
       },
       data: {
-        clientCompanyNDAId: ndaId,
         statusId: 3, // "En espera de firma NDA"
       },
     });

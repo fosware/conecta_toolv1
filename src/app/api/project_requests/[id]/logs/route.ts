@@ -8,7 +8,7 @@ export async function GET(
 ) {
   try {
     // Extraer el ID correctamente según Next.js 15
-    const { id } = await params;
+    const { id } = params;
     const projectRequestId = parseInt(id);
 
     // Verificar autenticación
@@ -36,7 +36,9 @@ export async function GET(
     // Obtener todas las relaciones proyecto-compañía para este proyecto
     const projectCompanies = await prisma.projectRequestCompany.findMany({
       where: {
-        projectRequestId: projectRequestId,
+        ProjectRequirements: {
+          projectRequestId: projectRequestId
+        },
         isActive: true,
         isDeleted: false,
       },

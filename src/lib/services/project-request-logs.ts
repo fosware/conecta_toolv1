@@ -56,7 +56,10 @@ export const ProjectRequestLogsService = {
         // Buscar todas las relaciones proyecto-compañía para este proyecto
         const projectCompanies = await prisma.projectRequestCompany.findMany({
           where: {
-            projectRequestId: projectRequestCompanyId,
+            // Usamos el ID del proyecto como filtro
+            ProjectRequirements: {
+              projectRequestId: projectRequestCompanyId
+            },
             isActive: true,
             isDeleted: false,
           },
@@ -104,7 +107,9 @@ export const ProjectRequestLogsService = {
       const logs = await prisma.projectRequestCompanyStatusLog.findMany({
         where: {
           ProjectRequestCompany: {
-            projectRequestId,
+            ProjectRequirements: {
+              projectRequestId
+            },
             isActive: true,
             isDeleted: false,
           },
@@ -139,7 +144,7 @@ export const ProjectRequestLogsService = {
       });
 
       // Formatear la respuesta
-      return logs.map((log) => ({
+      return logs.map((log: any) => ({
         id: log.id,
         projectRequestCompanyId: log.projectRequestCompanyId,
         message: log.message,

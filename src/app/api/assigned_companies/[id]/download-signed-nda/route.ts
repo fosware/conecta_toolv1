@@ -17,7 +17,7 @@ export async function GET(
     }
 
     // Obtener el ID de la empresa asignada siguiendo las mejores prácticas de Next.js 15
-    const { id } = await params;
+    const { id } = params;
     const assignedCompanyId = parseInt(id);
 
     if (isNaN(assignedCompanyId)) {
@@ -27,19 +27,35 @@ export async function GET(
       );
     }
 
-    // Buscar la empresa asignada y su NDA asociado
+    // Buscar la empresa asignada
     const assignedCompany = await prisma.projectRequestCompany.findUnique({
       where: {
         id: assignedCompanyId,
         isDeleted: false,
       },
       include: {
-        ClientCompanyNDA: true
+        Company: true
       }
     });
 
-    // Verificar que exista la empresa asignada y tenga un NDA firmado asociado
-    if (!assignedCompany || !assignedCompany.ClientCompanyNDA?.ndaSignedFile) {
+    if (!assignedCompany) {
+      return NextResponse.json(
+        { error: "Empresa asignada no encontrada" },
+        { status: 404 }
+      );
+    }
+
+    // Buscar el NDA asociado a la compañía
+    const clientCompanyNDA = await prisma.clientCompanyNDA.findFirst({
+      where: {
+        companyId: assignedCompany.companyId,
+        isActive: true,
+        isDeleted: false
+      }
+    });
+
+    // Verificar que exista el NDA firmado
+    if (!clientCompanyNDA || !clientCompanyNDA.ndaSignedFile) {
       return NextResponse.json(
         { error: "NDA firmado no encontrado" },
         { status: 404 }
@@ -47,8 +63,8 @@ export async function GET(
     }
 
     // Obtener el archivo del NDA firmado
-    const ndaSignedFile = assignedCompany.ClientCompanyNDA.ndaSignedFile;
-    const ndaSignedFileName = assignedCompany.ClientCompanyNDA.ndaSignedFileName;
+    const ndaSignedFile = clientCompanyNDA.ndaSignedFile;
+    const ndaSignedFileName = clientCompanyNDA.ndaSignedFileName;
 
     // Configurar la respuesta con el archivo
     const headers = new Headers();

@@ -8,7 +8,7 @@ export async function GET(
 ) {
   try {
     // Obtener los IDs de la URL siguiendo las mejores prácticas de Next.js 15
-    const { id, documentId } = await params;
+    const { id, documentId } = params;
     const parsedId = parseInt(id);
     const parsedDocumentId = parseInt(documentId);
 
@@ -30,6 +30,9 @@ export async function GET(
       where: {
         id: parsedId,
         isDeleted: false,
+      },
+      include: {
+        Company: true
       }
     });
 
@@ -40,8 +43,17 @@ export async function GET(
       );
     }
 
+    // Buscar si existe un NDA firmado para esta compañía
+    const clientCompanyNDA = await prisma.clientCompanyNDA.findFirst({
+      where: {
+        companyId: projectRequestCompany.companyId,
+        isActive: true,
+        isDeleted: false
+      }
+    });
+
     // Verificar que el NDA esté firmado
-    if (!projectRequestCompany.clientCompanyNDAId) {
+    if (!clientCompanyNDA) {
       return NextResponse.json(
         { error: "No se puede acceder a los documentos sin un NDA firmado" },
         { status: 403 }

@@ -135,7 +135,9 @@ export async function POST(request: NextRequest) {
       // Obtener la relación proyecto-compañía recién creada
       const projectCompany = await prisma.projectRequestCompany.findFirst({
         where: {
-          projectRequestId: projectRequestId,
+          ProjectRequirements: {
+            projectRequestId: projectRequestId
+          },
           companyId: companyId,
           isDeleted: false
         }
@@ -154,7 +156,7 @@ export async function POST(request: NextRequest) {
         if (ndaFile) {
           await ProjectRequestLogsService.createSystemLog(
             projectCompany.id,
-            "NDA_SENT",
+            "NDA_SIGNED", // Cambiado de "NDA_SENT" a "NDA_SIGNED" que sí está definido
             userId
           );
         }

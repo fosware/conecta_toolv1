@@ -55,7 +55,9 @@ export async function POST(
       // 1. Obtener el estado actual de las cotizaciones seleccionadas para preservar sus estados
       const currentSelectedQuotations = await tx.projectRequestCompany.findMany({
         where: {
-          projectRequestId: projectRequestId,
+          ProjectRequirements: {
+            projectRequestId: projectRequestId
+          },
           Quotation: {
             isClientSelected: true,
           },
@@ -80,7 +82,9 @@ export async function POST(
       await tx.projectRequestRequirementQuotation.updateMany({
         where: {
           ProjectRequestCompany: {
-            projectRequestId: projectRequestId,
+            ProjectRequirements: {
+              projectRequestId: projectRequestId
+            },
             id: {
               notIn: selectedQuotationIds,
             },
@@ -121,7 +125,9 @@ export async function POST(
     // Obtener las cotizaciones actualizadas para devolver en la respuesta
     const updatedQuotations = await prisma.projectRequestCompany.findMany({
       where: {
-        projectRequestId: projectRequestId,
+        ProjectRequirements: {
+          projectRequestId: projectRequestId
+        },
         statusId: 9, // Status "Revisión Ok"
         isActive: true,
         isDeleted: false,
@@ -138,14 +144,16 @@ export async function POST(
     });
 
     // Transformar los datos para la respuesta
-    const formattedQuotations: FormattedQuotation[] = updatedQuotations.map((item) => ({
+    const formattedQuotations: FormattedQuotation[] = updatedQuotations.map((item: any) => ({
       id: item.id,
       companyId: item.Company?.id || 0,
       companyName: item.Company?.comercialName || "Empresa sin nombre",
       materialCost: item.Quotation?.materialCost || 0,
       directCost: item.Quotation?.directCost || 0,
       indirectCost: item.Quotation?.indirectCost || 0,
-      totalCost: (item.Quotation?.materialCost || 0) + (item.Quotation?.directCost || 0) + (item.Quotation?.indirectCost || 0),
+      totalCost: (item.Quotation?.materialCost || 0) + 
+                (item.Quotation?.directCost || 0) + 
+                (item.Quotation?.indirectCost || 0),
       isSelected: item.Quotation?.isClientSelected || false,
     }));
 

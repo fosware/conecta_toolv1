@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getToken } from "@/lib/auth";
+import { getUserFromToken } from "@/lib/get-user-from-token";
 
 // Definir la interfaz para los datos de las empresas seleccionadas
 interface SelectedCompany {
@@ -18,9 +19,9 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    // Validar el token de autenticación
-    const token = request.headers.get("authorization")?.split(" ")[1];
-    if (!token) {
+    // Verificar autenticación
+    const userId = await getUserFromToken();
+    if (!userId) {
       return NextResponse.json(
         { error: "No autorizado" },
         { status: 401 }
@@ -55,28 +56,24 @@ export async function GET(
       },
     });
 
-    // Obtener las empresas seleccionadas si existe una cotización
-    let selectedCompanies: SelectedCompany[] = [];
-    if (clientQuotation) {
-      // Buscar las cotizaciones de proveedores seleccionadas
-      const selectedQuotations = await prisma.projectRequestCompany.findMany({
-        where: {
-          ProjectRequirements: {
-            projectRequestId: projectRequestId
-          },
-          Quotation: {
-            isClientSelected: true,
-          },
-          isActive: true,
-          isDeleted: false,
+    // Obtener las empresas participantes con sus cotizaciones
+    const participatingCompanies = await prisma.projectRequestCompany.findMany({
+      where: {
+        ProjectRequirements: {
+          projectRequestId: projectRequestId
         },
-        include: {
-          Company: true,
-          Quotation: true,
-        },
-      });
+        isActive: true,
+        isDeleted: false,
+      },
+      include: {
+        Company: true,
+        Quotation: true,
+      },
+    });
 
-      selectedCompanies = selectedQuotations.map((item) => ({
+    const selectedCompanies = participatingCompanies
+      .filter(item => item.Quotation)
+      .map((item) => ({
         id: item.id,
         companyId: item.Company?.id || 0,
         companyName: item.Company?.comercialName || "Empresa sin nombre",
@@ -84,7 +81,6 @@ export async function GET(
         directCost: item.Quotation?.directCost || 0,
         indirectCost: item.Quotation?.indirectCost || 0,
       }));
-    }
 
     return NextResponse.json({
       quotation: clientQuotation,
@@ -105,18 +101,14 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    // Validar el token de autenticación
-    const token = request.headers.get("authorization")?.split(" ")[1];
-    if (!token) {
+    // Verificar autenticación
+    const userId = await getUserFromToken();
+    if (!userId) {
       return NextResponse.json(
         { error: "No autorizado" },
         { status: 401 }
       );
     }
-
-    // Para pruebas, usamos un ID de usuario fijo
-    // En producción, esto debería obtenerse del token decodificado
-    const userId = 1; // ID de usuario para pruebas
 
     // Obtener y validar el ID del proyecto
     const { id } = await params;
@@ -134,11 +126,9 @@ export async function POST(
     const clientPrice = parseFloat(formData.get("clientPrice") as string);
     const dateQuotationClient = formData.get("dateQuotationClient") as string;
     const observations = formData.get("observations") as string;
-    const selectedCompanyIdsStr = formData.get("selectedCompanyIds") as string;
-    const selectedCompanyIds = JSON.parse(selectedCompanyIdsStr);
 
-    // Validar datos
-    if (isNaN(clientPrice)) {
+    // Validar los datos del formulario
+    if (isNaN(clientPrice) || clientPrice <= 0) {
       return NextResponse.json(
         { error: "El precio para el cliente es inválido" },
         { status: 400 }
@@ -152,23 +142,13 @@ export async function POST(
       );
     }
 
-    if (!Array.isArray(selectedCompanyIds)) {
-      return NextResponse.json(
-        { error: "El formato de los IDs de cotizaciones seleccionadas es inválido" },
-        { status: 400 }
-      );
-    }
-
     // Iniciar una transacción para asegurar que todas las operaciones se completen o ninguna
     const result = await prisma.$transaction(async (tx) => {
-      // 1. Obtener el estado actual de las cotizaciones seleccionadas para preservar sus estados
-      const currentSelectedQuotations = await tx.projectRequestCompany.findMany({
+      // Obtener todas las cotizaciones de los participantes
+      const participatingCompanies = await tx.projectRequestCompany.findMany({
         where: {
           ProjectRequirements: {
             projectRequestId: projectRequestId
-          },
-          Quotation: {
-            isClientSelected: true,
           },
           isActive: true,
           isDeleted: false,
@@ -178,38 +158,12 @@ export async function POST(
         },
       });
 
-      // Crear un mapa de los IDs y sus estados actuales para referencia rápida
-      const currentStatusMap = new Map();
-      currentSelectedQuotations.forEach(item => {
-        if (!selectedCompanyIds.includes(item.id)) {
-          // Solo guardamos los que ya no estarán seleccionados
-          currentStatusMap.set(item.id, item.statusId);
-        }
-      });
-
-      // 2. Restablecer isClientSelected solo para las cotizaciones que no están en la nueva selección
-      await tx.projectRequestRequirementQuotation.updateMany({
-        where: {
-          ProjectRequestCompany: {
-            ProjectRequirements: {
-              projectRequestId: projectRequestId
-            },
-            id: {
-              notIn: selectedCompanyIds,
-            },
-          },
-        },
-        data: {
-          isClientSelected: false,
-        },
-      });
-
-      // 3. Marcar las cotizaciones seleccionadas como isClientSelected = true
-      if (selectedCompanyIds.length > 0) {
-        for (const quotationId of selectedCompanyIds) {
+      // Marcar todas las cotizaciones como seleccionadas
+      for (const company of participatingCompanies) {
+        if (company.Quotation) {
           await tx.projectRequestRequirementQuotation.update({
             where: {
-              projectRequestCompanyId: quotationId,
+              projectRequestCompanyId: company.id,
             },
             data: {
               isClientSelected: true,
@@ -218,19 +172,7 @@ export async function POST(
         }
       }
 
-      // 4. Restaurar los estados originales de las cotizaciones que fueron deseleccionadas
-      for (const [id, statusId] of currentStatusMap.entries()) {
-        await tx.projectRequestCompany.update({
-          where: {
-            id: id,
-          },
-          data: {
-            statusId: statusId,
-          },
-        });
-      }
-
-      // 5. Procesar el archivo si se proporcionó uno
+      // Procesar el archivo si se proporcionó uno
       let quotationFile = null;
       let quotationFileName = null;
 
@@ -240,7 +182,7 @@ export async function POST(
         quotationFileName = file.name;
       }
 
-      // 6. Buscar si ya existe una cotización para cliente
+      // Buscar si ya existe una cotización para cliente
       const existingQuotation = await tx.clientQuotationSummary.findFirst({
         where: {
           projectRequestId: projectRequestId,
@@ -249,7 +191,7 @@ export async function POST(
         },
       });
 
-      // 7. Crear o actualizar la cotización para cliente
+      // Crear o actualizar la cotización para cliente
       let clientQuotation;
       if (existingQuotation) {
         // Actualizar la cotización existente
@@ -264,12 +206,11 @@ export async function POST(
             ...(quotationFile && { quotationFile: quotationFile }),
             ...(quotationFileName && { quotationFileName: quotationFileName }),
             updatedAt: new Date(),
-            userId: userId, // Agregar el ID del usuario
+            userId: userId,
           },
         });
         
         // Actualizar el estado del proyecto a "Cotización generada para Cliente" (statusId: 10)
-        // cuando se edita una cotización existente
         await tx.projectRequest.update({
           where: {
             id: projectRequestId,
@@ -292,7 +233,7 @@ export async function POST(
             updatedAt: new Date(),
             isActive: true,
             isDeleted: false,
-            userId: userId, // Agregar el ID del usuario
+            userId: userId,
           },
         });
 
