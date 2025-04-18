@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import { cookies } from "next/headers";
+import { handleRouteParams } from "@/lib/route-params";
 
 const prisma = new PrismaClient();
 

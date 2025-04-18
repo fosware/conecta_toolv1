@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { companyCreateSchema } from "@/lib/schemas/company";
 import { Prisma } from "@prisma/client";
+import { handleRouteParams } from "@/lib/route-params";
 
 export async function GET(request: NextRequest) {
   try {

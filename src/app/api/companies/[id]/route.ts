@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserFromToken } from "@/lib/get-user-from-token";
 import { z } from "zod";
+import { handleRouteParams } from "@/lib/route-params";
 
 const updateCompanySchema = z.object({
   companyName: z.string().optional(),

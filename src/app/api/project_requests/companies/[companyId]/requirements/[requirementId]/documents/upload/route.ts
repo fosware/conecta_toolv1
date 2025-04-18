@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserFromToken } from "@/lib/get-user-from-token";
+import { handleRouteParams } from "@/lib/route-params";
 
 // Tamaño máximo de archivo: 10MB
 const MAX_FILE_SIZE = 10 * 1024 * 1024;

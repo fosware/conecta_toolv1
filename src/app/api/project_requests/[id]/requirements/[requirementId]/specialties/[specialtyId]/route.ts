@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserFromToken } from "@/lib/get-user-from-token";
+import { handleRouteParams } from "@/lib/route-params";
 
 // DELETE: Eliminar una especialidad de un requerimiento
 export async function DELETE(

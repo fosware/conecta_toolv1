@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { clientAreaUpdateSchema } from "@/lib/schemas/client";
+import { handleRouteParams } from "@/lib/route-params";
 
 export async function PUT(
   request: Request,
   { params }: { params: { id: string; areaId: string } }
 ) {
   try {
-    const paramsValue = await params;
-    const { id, areaId } = paramsValue;
+    const routeParams = handleRouteParams(params);
+    const { id, areaId } = routeParams;
     const clientId = parseInt(id);
     const areaIdInt = parseInt(areaId);
 
@@ -61,8 +62,8 @@ export async function DELETE(
   { params }: { params: { id: string; areaId: string } }
 ) {
   try {
-    const paramsValue = await params;
-    const { id, areaId } = paramsValue;
+    const routeParams = handleRouteParams(params);
+    const { id, areaId } = routeParams;
     const clientId = parseInt(id);
     const areaIdInt = parseInt(areaId);
 
@@ -93,8 +94,8 @@ export async function PATCH(
   { params }: { params: { id: string; areaId: string } }
 ) {
   try {
-    const paramsValue = await params;
-    const { id, areaId } = paramsValue;
+    const routeParams = handleRouteParams(params);
+    const { id, areaId } = routeParams;
     const clientId = parseInt(id);
     const areaIdInt = parseInt(areaId);
 

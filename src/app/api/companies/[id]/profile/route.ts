@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { handleRouteParams } from "@/lib/route-params";
 
 interface Certificacion {
   certificacion: string;

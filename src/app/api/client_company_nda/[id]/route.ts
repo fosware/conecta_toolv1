@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getUserFromToken } from "@/lib/get-user-from-token";
 import { NextRequest, NextResponse } from "next/server";
+import { handleRouteParams } from "@/lib/route-params";
 
 // GET: Obtener un NDA específico por ID
 export async function GET(

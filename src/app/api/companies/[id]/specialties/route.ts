@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserFromToken } from "@/lib/get-user-from-token";
 import { type CompanySpecialty } from "@/types";
+import { handleRouteParams } from "@/lib/route-params";
 
 // GET: Obtener especialidades de una empresa
 export async function GET(
@@ -11,7 +12,8 @@ export async function GET(
   try {
     const userId = await getUserFromToken();
     const paramsValue = await params;
-    const { id } = paramsValue;
+    const routeParams = handleRouteParams(params);
+    const { id  } = routeParams;
     const companyId = parseInt(id);
 
     if (isNaN(companyId)) {
@@ -214,7 +216,8 @@ export async function DELETE(
   try {
     const userId = await getUserFromToken();
     const paramsValue = await params;
-    const { id } = paramsValue;
+    const routeParams = handleRouteParams(params);
+    const { id  } = routeParams;
     const specialtyId = parseInt(id);
 
     if (isNaN(specialtyId)) {

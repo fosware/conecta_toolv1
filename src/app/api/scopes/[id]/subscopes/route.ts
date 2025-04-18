@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserFromToken } from "@/lib/get-user-from-token";
+import { handleRouteParams } from "@/lib/route-params";
 
 // GET: Obtener subalcances de un alcance
 export async function GET(
@@ -10,7 +11,8 @@ export async function GET(
   try {
     const userId = await getUserFromToken();
     const paramsValue = await params;
-    const { id } = paramsValue;
+    const routeParams = handleRouteParams(params);
+    const { id  } = routeParams;
     const scopeId = parseInt(id);
 
     if (isNaN(scopeId)) {

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { clientAreaCreateSchema } from "@/lib/schemas/client";
+import { handleRouteParams } from "@/lib/route-params";
 
 export async function GET(
   request: Request,
@@ -8,7 +9,8 @@ export async function GET(
 ) {
   try {
     const paramsValue = await params;
-    const { id } = paramsValue;
+    const routeParams = handleRouteParams(params);
+    const { id } = routeParams;
     const clientId = parseInt(id);
 
     if (isNaN(clientId)) {
@@ -38,7 +40,8 @@ export async function POST(
 ) {
   try {
     const paramsValue = await params;
-    const { id } = paramsValue;
+    const routeParams = handleRouteParams(params);
+    const { id } = routeParams;
     const clientId = parseInt(id);
     const body = await request.json();
 

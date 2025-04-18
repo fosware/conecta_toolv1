@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getUserFromToken } from "@/lib/get-user-from-token";
 import bcrypt from "bcryptjs";
 import { Prisma } from "@prisma/client";
+import { handleRouteParams } from "@/lib/route-params";
 
 export async function PUT(
   request: Request,

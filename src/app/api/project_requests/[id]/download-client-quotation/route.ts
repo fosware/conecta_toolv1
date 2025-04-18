@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getToken } from "@/lib/auth";
+import { handleRouteParams } from "@/lib/route-params";
 
 export async function GET(
   request: NextRequest,

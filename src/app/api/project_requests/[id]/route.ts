@@ -3,6 +3,7 @@ import { getUserFromToken } from "@/lib/get-user-from-token";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { projectRequestUpdateSchema } from "@/lib/schemas/project_request";
+import { handleRouteParams } from "@/lib/route-params";
 
 export async function GET(
   request: NextRequest,
@@ -192,7 +193,7 @@ export async function PUT(
     }
 
     // Acceder directamente a la propiedad id
-    //const id = parseInt(params.id);
+    //const id = parseInt(routeParams.id);
     const { id } = await params;
 
     const parsedId = parseInt(id);

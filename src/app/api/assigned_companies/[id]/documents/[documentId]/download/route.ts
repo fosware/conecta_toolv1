@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserFromToken } from "@/lib/get-user-from-token";
+import { handleRouteParams } from "@/lib/route-params";
 
 export async function GET(
   request: NextRequest,
@@ -8,7 +9,8 @@ export async function GET(
 ) {
   try {
     // Obtener los IDs de la URL siguiendo las mejores prácticas de Next.js 15
-    const { id, documentId } = params;
+    const routeParams = handleRouteParams(params);
+const { id, documentId  } = routeParams;
     const parsedId = parseInt(id);
     const parsedDocumentId = parseInt(documentId);
 

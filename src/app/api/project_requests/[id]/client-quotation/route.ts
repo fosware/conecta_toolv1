@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getToken } from "@/lib/auth";
 import { getUserFromToken } from "@/lib/get-user-from-token";
+import { handleRouteParams } from "@/lib/route-params";
 
 // Definir la interfaz para los datos de las empresas seleccionadas
 interface SelectedCompany {

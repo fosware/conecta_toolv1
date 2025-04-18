@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserFromToken } from "@/lib/get-user-from-token";
+import { handleRouteParams } from "@/lib/route-params";
 
 export async function GET(
   request: NextRequest,
@@ -17,7 +18,8 @@ export async function GET(
     }
 
     // Obtener el ID de la empresa asignada siguiendo las mejores prácticas de Next.js 15
-    const { id } = params;
+    const routeParams = handleRouteParams(params);
+const { id  } = routeParams;
     const assignedCompanyId = parseInt(id);
 
     if (isNaN(assignedCompanyId)) {

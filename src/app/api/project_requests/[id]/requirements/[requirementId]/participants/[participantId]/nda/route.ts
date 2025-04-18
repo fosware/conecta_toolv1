@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserFromToken } from "@/lib/get-user-from-token";
+import { handleRouteParams } from "@/lib/route-params";
 
 export async function DELETE(
   request: NextRequest,
@@ -17,7 +18,8 @@ export async function DELETE(
     }
     
     // Obtener los IDs de la URL
-    const { id, requirementId, participantId } = params;
+    const routeParams = handleRouteParams(params);
+const { id, requirementId, participantId  } = routeParams;
     const projectRequestId = parseInt(id);
     const projectRequirementId = parseInt(requirementId);
     const participantIdNum = parseInt(participantId);

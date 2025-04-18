@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserFromToken } from "@/lib/get-user-from-token";
 import { z } from "zod";
+import { handleRouteParams } from "@/lib/route-params";
 
 // Esquema para validar la creación de una especialidad requerida
 const requirementSpecialtySchema = z.object({

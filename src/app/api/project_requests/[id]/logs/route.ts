@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserFromToken } from "@/lib/get-user-from-token";
+import { handleRouteParams } from "@/lib/route-params";
 
 export async function GET(
   request: NextRequest,
@@ -8,7 +9,8 @@ export async function GET(
 ) {
   try {
     // Extraer el ID correctamente según Next.js 15
-    const { id } = params;
+    const routeParams = handleRouteParams(params);
+const { id  } = routeParams;
     const projectRequestId = parseInt(id);
 
     // Verificar autenticación
