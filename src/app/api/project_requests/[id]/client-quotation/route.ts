@@ -16,7 +16,7 @@ interface SelectedCompany {
 // Obtener la cotización para cliente existente
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verificar autenticación
@@ -98,7 +98,7 @@ export async function GET(
 // Crear o actualizar una cotización para cliente
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verificar autenticación
@@ -142,7 +142,7 @@ export async function POST(
       );
     }
 
-    // Iniciar una transacción para asegurar que todas las operaciones se completen o ninguna
+    // Realizar operaciones en una transacción
     const result = await prisma.$transaction(async (tx) => {
       // Obtener todas las cotizaciones de los participantes
       const participatingCompanies = await tx.projectRequestCompany.findMany({

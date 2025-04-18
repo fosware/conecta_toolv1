@@ -179,8 +179,6 @@ export default function ProjectRequestOverview({
   const [clientQuotationData, setClientQuotationData] = useState<any>(null);
   const [downloadingClientQuotation, setDownloadingClientQuotation] =
     useState(false);
-  const [sendingClientQuotation, setSendingClientQuotation] = useState(false);
-  const [sendQuotationDialogOpen, setSendQuotationDialogOpen] = useState(false);
 
   // Estado para el modal de logs de seguimiento
   const [logsModalOpen, setLogsModalOpen] = useState(false);
@@ -503,51 +501,6 @@ export default function ProjectRequestOverview({
       toast.error(error.message || "Error al descargar la cotización");
     } finally {
       setDownloadingClientQuotation(false);
-    }
-  };
-
-  // Función para enviar la cotización al cliente
-  const handleSendClientQuotation = async () => {
-    // Abrir el diálogo de confirmación
-    setSendQuotationDialogOpen(true);
-  };
-
-  // Función que se ejecuta cuando se confirma el envío de la cotización
-  const handleConfirmSendQuotation = async () => {
-    try {
-      setSendingClientQuotation(true);
-
-      // Enviar la cotización al cliente
-      const response = await fetch(
-        `/api/project_requests/${data.id}/send-client-quotation`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${getToken()}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.error || "Error al enviar la cotización al cliente"
-        );
-      }
-
-      toast.success("Cotización enviada al cliente correctamente");
-
-      // Refrescar los datos si existe la función
-      if (onRefreshData) {
-        onRefreshData();
-      }
-    } catch (error: any) {
-      console.error("Error al enviar cotización al cliente:", error);
-      toast.error(error.message || "Error al enviar la cotización al cliente");
-    } finally {
-      setSendingClientQuotation(false);
-      setSendQuotationDialogOpen(false);
     }
   };
 
@@ -1118,27 +1071,6 @@ export default function ProjectRequestOverview({
                             )}
                             <span>{clientQuotationData.quotationFileName}</span>
                           </Button>
-
-                          {data.statusId === 10 && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex items-center gap-2"
-                              onClick={handleSendClientQuotation}
-                              disabled={sendingClientQuotation}
-                            >
-                              {sendingClientQuotation ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Send className="h-4 w-4" />
-                              )}
-                              <span>
-                                {sendingClientQuotation
-                                  ? "Enviando..."
-                                  : "Enviar Cotización"}
-                              </span>
-                            </Button>
-                          )}
                         </div>
                       </div>
                     )}
@@ -1210,41 +1142,6 @@ export default function ProjectRequestOverview({
             </AlertDialogCancel>
             <AlertDialogAction onClick={handleUpdateQuotationStatus}>
               {confirmAction?.action === "approve" ? "Aprobar" : "No seleccionar"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Diálogo de confirmación para enviar cotización */}
-      <AlertDialog
-        open={sendQuotationDialogOpen}
-        onOpenChange={setSendQuotationDialogOpen}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <Send className="h-5 w-5 text-purple-600" />
-              Enviar Cotización
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              ¿Está seguro de enviar la cotización al cliente? Esto cambiará el
-              estado del proyecto.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel
-              onClick={() => {
-                setSendQuotationDialogOpen(false);
-              }}
-            >
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleConfirmSendQuotation}
-              className="flex items-center gap-2"
-            >
-              <Send className="h-4 w-4" />
-              Enviar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

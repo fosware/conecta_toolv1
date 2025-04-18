@@ -1,21 +1,24 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { getToken } from "@/lib/auth";
+
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -25,7 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Check, X, AlertCircle } from "lucide-react";
+import { Loader2, Check, X, AlertCircle, FileIcon } from "lucide-react";
 
 interface ClientQuotationModalProps {
   open: boolean;
@@ -42,8 +45,9 @@ interface CompanyQuotation {
   directCost: number | null;
   indirectCost: number | null;
   price: number | null;
+  isClientSelected: boolean;
   isClientApproved: boolean;
-  isClientSelected: boolean; // Volvemos a agregar esta propiedad
+  nonApprovalReason: string | null;
   statusId: number;
   requirementId: number;
   requirementName: string;
@@ -88,14 +92,42 @@ export function ClientQuotationModal({
   const [observations, setObservations] = useState("");
   const [existingQuotation, setExistingQuotation] = useState(false);
   const [approvalState, setApprovalState] = useState<ApprovalState>({});
+  const [totals, setTotals] = useState<{
+    materialCost: number;
+    directCost: number;
+    indirectCost: number;
+    price: number;
+    clientPrice: number | null;
+  }>({
+    materialCost: 0,
+    directCost: 0,
+    indirectCost: 0,
+    price: 0,
+    clientPrice: null,
+  });
   const [clientName, setClientName] = useState<string>("");
+
+  // Función para formatear número como moneda
+  const formatCurrency = (amount: number): string => {
+    return new Intl.NumberFormat("es-MX", {
+      style: "currency",
+      currency: "MXN",
+      minimumFractionDigits: 2,
+    }).format(amount);
+  };
+
+  // Función para limpiar el formato de precio y convertirlo a número
+  const cleanPriceFormat = (price: string): number => {
+    // Eliminar cualquier caracter que no sea número o punto decimal
+    const cleanedPrice = price.replace(/[^0-9.]/g, "");
+    return Number(cleanedPrice) || 0;
+  };
 
   // Calcular los totales por requerimiento
   const requirementTotals = requirementsWithQuotations.map((req) => {
     // Solo incluir en los totales las cotizaciones seleccionadas (aprobadas)
     const selectedQuotations = req.quotations.filter(
-      (company) =>
-        approvalState[company.id]?.isApproved === true
+      (company) => approvalState[company.id]?.isApproved === true
     );
 
     const materialCost = selectedQuotations.reduce(
@@ -129,8 +161,7 @@ export function ClientQuotationModal({
   // Calcular los totales generales
   const allSelectedQuotations = requirementsWithQuotations.flatMap((req) =>
     req.quotations.filter(
-      (company) =>
-        approvalState[company.id]?.isApproved === true
+      (company) => approvalState[company.id]?.isApproved === true
     )
   );
 
@@ -154,65 +185,20 @@ export function ClientQuotationModal({
     0
   );
 
+  // Registrar los valores para depuración
+  console.log("Estado de aprobación:", approvalState);
+  console.log("Cotizaciones seleccionadas:", allSelectedQuotations);
+  console.log("Precio total calculado:", totalPrice);
+
   const totalCost = totalMaterialCost + totalDirectCost + totalIndirectCost;
 
-  // Función para formatear un número a 2 decimales
-  const formatToTwoDecimals = (
-    value: string | number | null | undefined
-  ): string => {
-    if (value === null || value === undefined || value === "") return "";
-    const numValue = typeof value === "string" ? parseFloat(value) : value;
-    if (isNaN(numValue)) return "";
-    return numValue.toFixed(2);
-  };
-
-  // Función para formatear como moneda en tiempo real
-  const formatAsCurrency = (value: string): string => {
-    if (!value) return "";
-    
-    // Eliminar cualquier caracter que no sea número o punto
-    let numericValue = value.replace(/[^\d.]/g, "");
-    
-    // Manejar el punto decimal
-    const hasDecimal = numericValue.includes(".");
-    let integerPart = hasDecimal ? numericValue.split(".")[0] : numericValue;
-    let decimalPart = hasDecimal ? numericValue.split(".")[1] : "";
-    
-    // Limitar decimales a 2
-    if (decimalPart.length > 2) {
-      decimalPart = decimalPart.substring(0, 2);
-    }
-    
-    // Formatear la parte entera con comas para miles
-    if (integerPart.length > 3) {
-      integerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-    }
-    
-    // Reconstruir el valor
-    return hasDecimal ? `${integerPart}.${decimalPart}` : integerPart;
-  };
-
-  // Función para formatear número como moneda
-  const formatCurrency = (amount: number): string => {
-    return new Intl.NumberFormat("es-MX", {
-      style: "currency",
-      currency: "MXN",
-      minimumFractionDigits: 2,
-    }).format(amount);
-  };
-
-  // Función para formatear número con comas
-  const formatNumberWithCommas = (value: string | number): string => {
-    // Convertir a número y luego a string con formato
-    const num = typeof value === 'string' ? parseFloat(value) : value;
-    if (isNaN(num)) return "0.00";
-    
-    // Formatear con comas para miles y dos decimales
-    return new Intl.NumberFormat("es-MX", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(num);
-  };
+  // Actualizar automáticamente el precio al cliente cuando cambian las selecciones
+  useEffect(() => {
+    // Actualizar el precio al cliente siempre que cambie la selección de cotizaciones
+    const formattedPrice = formatCurrency(totalPrice);
+    console.log("Actualizando precio al cliente a:", formattedPrice);
+    setClientPrice(formattedPrice);
+  }, [totalPrice]);
 
   // Cargar datos al abrir el modal
   useEffect(() => {
@@ -222,44 +208,38 @@ export function ClientQuotationModal({
       // Limpiar estados cuando se cierra el modal
       resetForm();
     }
-  }, [open, projectRequestId]);
+  }, [open]);
 
-  // Inicializar el estado de aprobación cuando se cargan las cotizaciones
+  // Inicializar el estado de aprobación cuando se cargan los datos
   useEffect(() => {
     if (requirementsWithQuotations.length > 0) {
-      const initialState: ApprovalState = {};
-      
-      requirementsWithQuotations.forEach(req => {
-        req.quotations.forEach(company => {
-          // Si es una cotización existente, usamos el estado actual
-          // Si es nueva, todas empiezan como no aprobadas
-          initialState[company.id] = {
+      console.log("Inicializando estado de aprobación con datos existentes");
+
+      // Crear un nuevo objeto de estado de aprobación
+      const newApprovalState: ApprovalState = {};
+
+      // Inicializar el estado para cada cotización
+      requirementsWithQuotations.forEach((req) => {
+        req.quotations.forEach((company) => {
+          // Guardar el estado actual de aprobación y el motivo de rechazo
+          newApprovalState[company.id] = {
             isApproved: company.isClientApproved,
-            rejectionReason: ""
+            rejectionReason: company.nonApprovalReason || "",
           };
+
+          console.log(
+            `Inicializado: Cotización ${company.id} - ${company.companyName} - Aprobado: ${company.isClientApproved} - Motivo: ${company.nonApprovalReason || "N/A"}`
+          );
         });
       });
-      
-      console.log("Estado inicial de aprobación:", initialState);
-      setApprovalState(initialState);
+
+      console.log("Estado de aprobación inicializado:", newApprovalState);
+      setApprovalState(newApprovalState);
+
+      // Calcular totales iniciales
+      calculateTotals();
     }
   }, [requirementsWithQuotations]);
-
-  // Actualizar el precio al cliente cuando cambia el costo total o si ya existe una cotización
-  useEffect(() => {
-    if (
-      !existingQuotation ||
-      clientPrice === "" ||
-      clientPrice === "0" ||
-      clientPrice === "0.00" ||
-      parseFloat(clientPrice.replace(/,/g, "")) === 0
-    ) {
-      // Convertir a entero
-      const priceAsInt = Math.floor(totalPrice);
-      const formattedPrice = formatNumberWithCommas(priceAsInt);
-      setClientPrice(formattedPrice);
-    }
-  }, [totalPrice, existingQuotation]);
 
   const loadData = async (showLoading = true) => {
     try {
@@ -328,12 +308,28 @@ export function ClientQuotationModal({
 
         if (clientQuotationData.quotation) {
           setExistingQuotation(true);
-          setExistingFileName(
-            clientQuotationData.quotation.quotationFileName || null
+
+          // Guardar el nombre del archivo y mostrarlo en la consola para depuración
+          const fileName =
+            clientQuotationData.quotation.quotationFileName || null;
+          console.log("Nombre del archivo de cotización:", fileName);
+          console.log(
+            "Datos completos de la cotización:",
+            clientQuotationData.quotation
           );
+
+          // Asegurarse de que el nombre del archivo se establezca correctamente
+          if (fileName) {
+            setExistingFileName(fileName);
+            console.log("Nombre del archivo establecido:", fileName);
+          } else {
+            console.warn("No se encontró nombre de archivo en la respuesta");
+            setExistingFileName(null);
+          }
+
           setClientPrice(
             clientQuotationData.quotation.clientPrice
-              ? formatToTwoDecimals(clientQuotationData.quotation.clientPrice.toString())
+              ? formatCurrency(clientQuotationData.quotation.clientPrice)
               : ""
           );
           setObservations(clientQuotationData.quotation.observations || "");
@@ -349,15 +345,39 @@ export function ClientQuotationModal({
             console.log("IDs de empresas seleccionadas:", selectedIds);
 
             // Actualizar correctamente el estado de requirementsWithQuotations
-            setRequirementsWithQuotations((prevRequirements) =>
-              prevRequirements.map((req) => ({
+            setRequirementsWithQuotations((prevRequirements) => {
+              // Inicializar el estado de aprobación para todas las cotizaciones
+              const newApprovalState: ApprovalState = {};
+
+              // Recorrer todos los requerimientos y sus cotizaciones
+              prevRequirements.forEach((req) => {
+                req.quotations.forEach((company) => {
+                  // Usar el estado isClientApproved de la cotización
+                  // NO usar selectedIds para determinar si está aprobada
+
+                  // Actualizar el estado de aprobación
+                  newApprovalState[company.id] = {
+                    isApproved: company.isClientApproved || false,
+                    rejectionReason: company.nonApprovalReason || "",
+                  };
+                });
+              });
+
+              // Actualizar el estado de aprobación
+              setApprovalState(newApprovalState);
+
+              return prevRequirements.map((req) => ({
                 ...req,
                 quotations: req.quotations.map((company) => ({
                   ...company,
                   isClientSelected: selectedIds.includes(company.id),
+                  // No modificar isClientApproved aquí, mantener el valor original
                 })),
-              }))
-            );
+              }));
+            });
+          } else {
+            // Si no hay empresas seleccionadas, inicializar el estado de aprobación vacío
+            setApprovalState({});
           }
         }
       }
@@ -380,8 +400,8 @@ export function ClientQuotationModal({
   // Nueva función para manejar la aprobación/rechazo de cotizaciones
   const handleApprovalChange = (quotationId: number, isApproved: boolean) => {
     console.log("Cambiando aprobación:", quotationId, isApproved);
-    
-    // Actualizar el estado directamente
+
+    // Actualizar el estado de aprobación
     setApprovalState((prev) => {
       const newState = {
         ...prev,
@@ -390,8 +410,35 @@ export function ClientQuotationModal({
           rejectionReason: prev[quotationId]?.rejectionReason || "",
         },
       };
-      
-      console.log("Nuevo estado:", newState);
+
+      // Calcular el nuevo precio total basado en el nuevo estado de aprobación
+      // Considerar todas las cotizaciones de todos los requerimientos
+      const newSelectedQuotations = requirementsWithQuotations.flatMap((req) =>
+        req.quotations.filter((company) => {
+          // Para la cotización que se está cambiando, usar el nuevo estado
+          if (company.id === quotationId) {
+            return isApproved;
+          }
+          // Para las demás cotizaciones, usar el estado actual en newState
+          return newState[company.id]?.isApproved === true;
+        })
+      );
+
+      console.log(
+        "Cotizaciones seleccionadas después del cambio:",
+        newSelectedQuotations
+      );
+
+      const newTotalPrice = newSelectedQuotations.reduce(
+        (sum, company) => sum + (company.price ?? 0),
+        0
+      );
+
+      console.log("Nuevo precio total calculado:", newTotalPrice);
+
+      // Actualizar el precio al cliente directamente
+      setClientPrice(formatCurrency(newTotalPrice));
+
       return newState;
     });
   };
@@ -409,12 +456,17 @@ export function ClientQuotationModal({
 
   // Función para guardar las aprobaciones/rechazos de cotizaciones
   const saveApprovals = async () => {
+    console.log(
+      "Guardando aprobaciones/rechazos para todos los requerimientos"
+    );
+    console.log("Estado de aprobación actual:", approvalState);
+    console.log("Requerimientos con cotizaciones:", requirementsWithQuotations);
+
     // Verificar que todas las cotizaciones tengan una decisión
     const pendingDecisions = requirementsWithQuotations.flatMap((req) =>
       req.quotations.filter(
         (company) =>
-          !company.isClientApproved &&
-          approvalState[company.id] === undefined
+          !company.isClientApproved && approvalState[company.id] === undefined
       )
     );
 
@@ -443,116 +495,112 @@ export function ClientQuotationModal({
     }
 
     try {
-      // Preparar los datos para enviar
-      const approvals: ApprovalItem[] = [];
-      const rejections: RejectionItem[] = [];
+      // Preparar los datos para enviar - procesamos TODAS las cotizaciones
+      const updates: Array<{
+        quotationId: number;
+        isApproved: boolean;
+        rejectionReason?: string;
+      }> = [];
 
+      // Procesar todas las cotizaciones de todos los requerimientos
       requirementsWithQuotations.forEach((req) => {
+        console.log(
+          `Procesando requerimiento: ${req.id} - ${req.requirementName}`
+        );
+
         req.quotations.forEach((company) => {
-          // Solo procesar las cotizaciones que han cambiado su estado
+          console.log(
+            `Procesando cotización: ${company.id} - ${company.companyName}`
+          );
+
+          // Obtener el estado actual de aprobación
           const currentApprovalState = approvalState[company.id]?.isApproved;
-          
-          // Si el estado actual es diferente al estado guardado
-          if (currentApprovalState !== company.isClientApproved) {
-            if (currentApprovalState === true && !company.isClientApproved) {
-              approvals.push({
-                quotationId: company.id,
-              });
-            } else if (currentApprovalState === false && company.isClientApproved) {
-              rejections.push({
-                quotationId: company.id,
-                rejectionReason: approvalState[company.id]?.rejectionReason || "",
-              });
-            }
-          }
+          const currentReason =
+            approvalState[company.id]?.rejectionReason || "";
+
+          console.log(
+            `Estado actual: ${currentApprovalState}, Estado guardado: ${company.isClientApproved}`
+          );
+          console.log(
+            `Motivo actual: "${currentReason}", Motivo guardado: "${company.nonApprovalReason || ""}"`
+          );
+
+          // Siempre enviar el estado actual para todas las cotizaciones
+          updates.push({
+            quotationId: company.id,
+            isApproved: !!currentApprovalState, // Convertir a booleano
+            rejectionReason: !currentApprovalState ? currentReason : undefined,
+          });
         });
       });
 
-      // Solo enviar si hay cambios
-      if (approvals.length > 0 || rejections.length > 0) {
-        console.log("Aprobaciones a enviar:", approvals);
-        console.log("Rechazos a enviar:", rejections);
-        
-        let hasError = false;
-        let errorMessage = "";
+      console.log("Actualizaciones a enviar:", updates);
 
-        // Procesar cada aprobación
-        for (const approval of approvals) {
-          try {
-            const response = await fetch(
-              `/api/project_requests/${projectRequestId}/client-quotation-approval`,
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${getToken()}`,
-                },
-                body: JSON.stringify({
-                  quotationId: approval.quotationId,
-                }),
-              }
-            );
-
-            if (!response.ok) {
-              const errorData = await response.json();
-              console.warn(`Error al aprobar cotización ${approval.quotationId}:`, errorData.error);
-              // Continuamos con las demás operaciones
+      // Enviar todas las actualizaciones en una sola llamada
+      if (updates.length > 0) {
+        try {
+          console.log("Enviando actualizaciones...");
+          const response = await fetch(
+            `/api/project_requests/${projectRequestId}/requirement-quotation-approval`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${getToken()}`,
+              },
+              body: JSON.stringify({
+                updates: updates,
+              }),
             }
-          } catch (error) {
-            console.error(`Error al aprobar cotización ${approval.quotationId}:`, error);
-            // Continuamos con las demás operaciones
+          );
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            console.error("Error al actualizar cotizaciones:", errorData);
+            toast.error(errorData.error || "Error al actualizar cotizaciones");
+            return false;
           }
+
+          console.log("Actualizaciones enviadas con éxito");
+
+          // Actualizar el estado local para reflejar los cambios
+          setRequirementsWithQuotations((prevRequirements) => {
+            const updatedRequirements = prevRequirements.map((req) => ({
+              ...req,
+              quotations: req.quotations.map((company) => {
+                // Actualizar según el estado actual en approvalState
+                const newApprovalState = approvalState[company.id]?.isApproved;
+                if (newApprovalState !== undefined) {
+                  return {
+                    ...company,
+                    isClientApproved: newApprovalState,
+                    nonApprovalReason: newApprovalState
+                      ? null
+                      : approvalState[company.id]?.rejectionReason,
+                  };
+                }
+                return company;
+              }),
+            }));
+
+            console.log("Requerimientos actualizados:", updatedRequirements);
+            return updatedRequirements;
+          });
+
+          // Recargar los datos para asegurar que tenemos la información más actualizada
+          console.log("Recargando datos...");
+          await loadData(false);
+
+          return true;
+        } catch (error) {
+          console.error("Error al actualizar cotizaciones:", error);
+          toast.error("Error al actualizar cotizaciones");
+          return false;
         }
-
-        // Procesar cada rechazo
-        for (const rejection of rejections) {
-          try {
-            const response = await fetch(
-              `/api/project_requests/${projectRequestId}/client-quotation-rejection`,
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${getToken()}`,
-                },
-                body: JSON.stringify({
-                  quotationId: rejection.quotationId,
-                  rejectionReason: rejection.rejectionReason,
-                }),
-              }
-            );
-
-            if (!response.ok) {
-              const errorData = await response.json();
-              console.warn(`Error al rechazar cotización ${rejection.quotationId}:`, errorData.error);
-              // Continuamos con las demás operaciones
-            }
-          } catch (error) {
-            console.error(`Error al rechazar cotización ${rejection.quotationId}:`, error);
-            // Continuamos con las demás operaciones
-          }
-        }
-
-        // Actualizar el estado local para reflejar los cambios
-        setRequirementsWithQuotations((prevRequirements) => {
-          return prevRequirements.map((req) => ({
-            ...req,
-            quotations: req.quotations.map((company) => {
-              // Actualizar según el estado actual en approvalState
-              const newApprovalState = approvalState[company.id]?.isApproved;
-              if (newApprovalState !== undefined) {
-                return { ...company, isClientApproved: newApprovalState };
-              }
-              return company;
-            }),
-          }));
-        });
-
-        // Recargar los datos para asegurar que tenemos la información más actualizada
-        await loadData(false);
+      } else {
+        console.log("No hay cambios para enviar");
+        return true;
       }
-
-      return true;
     } catch (error: any) {
       console.error(
         "Error al guardar las aprobaciones/rechazos de cotizaciones:",
@@ -583,14 +631,24 @@ export function ClientQuotationModal({
       return;
     }
 
+    // Obtener el precio del cliente limpiando el formato
+    const clientPriceValue = clientPrice
+      ? parseFloat(clientPrice.replace(/[^0-9.]/g, ""))
+      : 0;
+
+    console.log("Precio del cliente para validación:", {
+      original: clientPrice,
+      limpio: clientPriceValue,
+    });
+
     // Validar que se haya ingresado un precio para el cliente
-    if (!clientPrice || parseFloat(clientPrice.replace(/,/g, "")) <= 0) {
+    if (clientPriceValue <= 0) {
       toast.error("Debe ingresar un precio válido para el cliente");
       return;
     }
 
     // Validar que se haya seleccionado un archivo si es una nueva cotización
-    if (!existingQuotation && !file) {
+    if (!existingQuotation && !file && !existingFileName) {
       toast.error("Debe seleccionar un archivo de cotización");
       return;
     }
@@ -611,16 +669,29 @@ export function ClientQuotationModal({
         formData.append("file", file);
       }
 
-      // Formatear el precio a 2 decimales antes de enviarlo (quitar comas)
-      const priceAsNumber = parseFloat(clientPrice.replace(/,/g, "")) || 0;
-      const formattedPrice = priceAsNumber.toFixed(2);
+      // Usar el precio del cliente limpio y formateado para el API
+      const formattedPrice = clientPriceValue.toFixed(2);
       formData.append("clientPrice", formattedPrice);
+
+      // Actualizar el estado de totales con el precio final
+      setTotals((prev) => ({
+        ...prev,
+        clientPrice: clientPriceValue,
+      }));
 
       // Usar la fecha actual
       const currentDate = new Date().toISOString().split("T")[0];
       formData.append("dateQuotationClient", currentDate);
 
       formData.append("observations", observations);
+
+      console.log("Enviando datos de cotización:", {
+        clientPrice: formattedPrice,
+        clientPriceOriginal: clientPrice,
+        dateQuotationClient: currentDate,
+        observations,
+        hasFile: !!file,
+      });
 
       const response = await fetch(
         `/api/project_requests/${projectRequestId}/client-quotation`,
@@ -639,12 +710,6 @@ export function ClientQuotationModal({
           errorData.error || "Error al guardar la cotización para cliente"
         );
       }
-
-      toast.success(
-        existingQuotation
-          ? "Cotización para cliente actualizada correctamente"
-          : "Cotización para cliente creada correctamente"
-      );
 
       // Limpiar el formulario y cerrar el modal
       onOpenChange(false);
@@ -674,6 +739,112 @@ export function ClientQuotationModal({
 
   const handleClose = () => {
     onOpenChange(false);
+  };
+
+  // Función para calcular los totales basados en las cotizaciones seleccionadas
+  const calculateTotals = useCallback(() => {
+    console.log("Calculando totales basados en cotizaciones seleccionadas");
+
+    let totalMaterialCost = 0;
+    let totalDirectCost = 0;
+    let totalIndirectCost = 0;
+    let totalPrice = 0;
+
+    // Recorrer todos los requerimientos y sus cotizaciones
+    requirementsWithQuotations.forEach((req) => {
+      // Calcular subtotales por requerimiento
+      let reqMaterialCost = 0;
+      let reqDirectCost = 0;
+      let reqIndirectCost = 0;
+      let reqPrice = 0;
+
+      // Solo considerar cotizaciones aprobadas
+      req.quotations.forEach((company) => {
+        const isApproved = approvalState[company.id]?.isApproved;
+
+        if (isApproved) {
+          // Convertir a número y asegurar que siempre sea un valor numérico
+          reqMaterialCost += Number(company.materialCost || 0);
+          reqDirectCost += Number(company.directCost || 0);
+          reqIndirectCost += Number(company.indirectCost || 0);
+          reqPrice += Number(company.price || 0);
+        }
+      });
+
+      // Actualizar totales generales
+      totalMaterialCost += reqMaterialCost;
+      totalDirectCost += reqDirectCost;
+      totalIndirectCost += reqIndirectCost;
+      totalPrice += reqPrice;
+    });
+
+    // Actualizar el estado con los nuevos totales
+    setTotals({
+      materialCost: totalMaterialCost,
+      directCost: totalDirectCost,
+      indirectCost: totalIndirectCost,
+      price: totalPrice,
+      clientPrice: clientPrice
+        ? parseFloat(clientPrice.replace(/[^0-9.]/g, ""))
+        : totalPrice, // Mantener el precio al cliente si ya existe
+    });
+
+    console.log("Totales calculados:", {
+      materialCost: totalMaterialCost,
+      directCost: totalDirectCost,
+      indirectCost: totalIndirectCost,
+      price: totalPrice,
+      clientPrice: clientPrice
+        ? parseFloat(clientPrice.replace(/[^0-9.]/g, ""))
+        : totalPrice,
+    });
+  }, [requirementsWithQuotations, approvalState, clientPrice]);
+
+  // Recalcular totales cuando cambia el estado de aprobación
+  useEffect(() => {
+    if (requirementsWithQuotations.length > 0) {
+      calculateTotals();
+    }
+  }, [approvalState, calculateTotals]);
+
+  // Función para descargar el archivo de cotización
+  const handleDownloadQuotation = async () => {
+    if (!existingFileName) return;
+    
+    try {
+      const response = await fetch(
+        `/api/project_requests/${projectRequestId}/download-client-quotation`,
+        {
+          headers: {
+            Authorization: `Bearer ${getToken()}`,
+          },
+        }
+      );
+      
+      if (!response.ok) {
+        throw new Error("Error al descargar el archivo");
+      }
+      
+      // Convertir la respuesta a blob
+      const blob = await response.blob();
+      
+      // Crear URL para el blob
+      const url = window.URL.createObjectURL(blob);
+      
+      // Crear un elemento <a> para descargar el archivo
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = existingFileName;
+      document.body.appendChild(a);
+      a.click();
+      
+      // Limpiar
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error("Error al descargar el archivo:", error);
+      toast.error("Error al descargar el archivo de cotización");
+    }
   };
 
   return (
@@ -731,20 +902,20 @@ export function ClientQuotationModal({
                                   <div className="flex justify-between items-center">
                                     <div className="flex items-center space-x-2">
                                       <Checkbox
-                                        id={`approve-${company.id}`}
+                                        id={`company-${company.id}`}
                                         checked={
-                                          approvalState[company.id]?.isApproved === true
+                                          approvalState[company.id]?.isApproved
                                         }
-                                        onCheckedChange={(checked) => {
-                                          console.log("Checkbox clicked:", company.id, checked);
+                                        onCheckedChange={(checked: boolean) => {
                                           handleApprovalChange(
                                             company.id,
-                                            checked === true
+                                            checked
                                           );
                                         }}
+                                        disabled={submitting}
                                       />
                                       <Label
-                                        htmlFor={`approve-${company.id}`}
+                                        htmlFor={`company-${company.id}`}
                                         className="font-medium text-base"
                                       >
                                         {company.companyName}
@@ -813,7 +984,8 @@ export function ClientQuotationModal({
                                       }
                                       disabled={
                                         submitting ||
-                                        approvalState[company.id]?.isApproved === true
+                                        approvalState[company.id]
+                                          ?.isApproved === true
                                       }
                                       className="text-sm h-8 w-full"
                                     />
@@ -824,8 +996,8 @@ export function ClientQuotationModal({
                           })}
 
                           {/* Subtotales por requerimiento */}
-                          {req.quotations.some((q) => 
-                            approvalState[q.id]?.isApproved === true
+                          {req.quotations.some(
+                            (q) => approvalState[q.id]?.isApproved === true
                           ) && (
                             <div className="bg-muted/30 p-3 rounded-md mt-3">
                               <div className="text-sm font-medium mb-2">
@@ -909,13 +1081,13 @@ export function ClientQuotationModal({
                   <div>
                     <h4 className="text-sm font-medium mb-1">Costo Material</h4>
                     <p className="text-lg font-semibold">
-                      {formatCurrency(totalMaterialCost)}
+                      {formatCurrency(totals.materialCost)}
                     </p>
                   </div>
                   <div>
                     <h4 className="text-sm font-medium mb-1">Costo Directo</h4>
                     <p className="text-lg font-semibold">
-                      {formatCurrency(totalDirectCost)}
+                      {formatCurrency(totals.directCost)}
                     </p>
                   </div>
                   <div>
@@ -923,13 +1095,13 @@ export function ClientQuotationModal({
                       Costo Indirecto
                     </h4>
                     <p className="text-lg font-semibold">
-                      {formatCurrency(totalIndirectCost)}
+                      {formatCurrency(totals.indirectCost)}
                     </p>
                   </div>
                   <div>
                     <h4 className="text-sm font-medium mb-1">Precio Total</h4>
                     <p className="text-lg font-semibold text-primary">
-                      {formatCurrency(totalPrice)}
+                      {formatCurrency(totals.price)}
                     </p>
                   </div>
                 </div>
@@ -937,7 +1109,11 @@ export function ClientQuotationModal({
                   <div className="flex justify-end items-center gap-2 pr-10">
                     <span className="font-medium text-base">Costo Total:</span>
                     <span className="text-lg font-semibold">
-                      {formatCurrency(totalCost)}
+                      {formatCurrency(
+                        totals.materialCost +
+                          totals.directCost +
+                          totals.indirectCost
+                      )}
                     </span>
                   </div>
                 </div>
@@ -945,9 +1121,9 @@ export function ClientQuotationModal({
 
               <div className="border-t pt-4 mt-6">
                 <div className="flex flex-col space-y-4">
-                  <div className="flex flex-col md:flex-row md:items-end gap-4">
-                    <div>
-                      <Label className="text-base font-semibold mb-1">
+                  <div className="flex flex-col md:flex-row gap-4">
+                    <div className="md:w-1/3">
+                      <Label className="text-base font-medium mb-1 block">
                         Precio al Cliente:
                       </Label>
                       <div className="relative">
@@ -957,22 +1133,31 @@ export function ClientQuotationModal({
                         <Input
                           id="clientPrice"
                           type="text"
-                          className="pl-7 text-lg w-100"
+                          className="pl-7 text-lg"
                           placeholder="0"
                           value={clientPrice}
                           onChange={(e) => {
-                            const value = e.target.value.replace(/[^\d]/g, "");
-                            setClientPrice(value);
+                            setClientPrice(e.target.value);
                           }}
                           onBlur={() => {
-                            // Formatear a 2 decimales cuando pierde el foco
                             if (clientPrice) {
-                              const priceAsNumber = parseFloat(clientPrice) || 0;
-                              // Formatear con comas y dos decimales
-                              const formattedPrice = formatNumberWithCommas(priceAsNumber);
+                              const priceAsNumber = parseFloat(
+                                clientPrice.replace(/[^0-9.]/g, "")
+                              );
+                              setTotals((prev) => ({
+                                ...prev,
+                                clientPrice: priceAsNumber,
+                              }));
+                              const formattedPrice =
+                                formatCurrency(priceAsNumber);
                               setClientPrice(formattedPrice);
                             } else {
-                              setClientPrice("0.00");
+                              const defaultPrice = totals.price;
+                              setClientPrice(formatCurrency(defaultPrice));
+                              setTotals((prev) => ({
+                                ...prev,
+                                clientPrice: defaultPrice,
+                              }));
                             }
                           }}
                           disabled={submitting}
@@ -980,26 +1165,39 @@ export function ClientQuotationModal({
                       </div>
                     </div>
 
-                    <div className="flex-1">
-                      <Label htmlFor="file" className="mb-1">
-                        Archivo de Cotización
-                      </Label>
+                    <div className="md:w-2/3">
+                      <div className="mb-1">
+                        <Label className="text-base font-medium">
+                          Archivo de Cotización:
+                        </Label>
+                        {existingFileName && (
+                          <button
+                            type="button"
+                            onClick={handleDownloadQuotation}
+                            className="ml-2 text-sm text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary/20 rounded px-1"
+                            title="Haz clic para descargar el archivo"
+                          >
+                            <span className="flex items-center">
+                              <FileIcon className="h-3.5 w-3.5 mr-1" />
+                              {existingFileName}
+                            </span>
+                          </button>
+                        )}
+                      </div>
                       <Input
                         id="file"
                         type="file"
                         onChange={handleFileChange}
                         disabled={submitting}
                       />
-                      {existingFileName && (
-                        <p className="text-sm text-muted-foreground">
-                          Archivo actual: {existingFileName}
-                        </p>
-                      )}
                     </div>
                   </div>
 
                   <div>
-                    <Label htmlFor="observations" className="mb-1">
+                    <Label
+                      htmlFor="observations"
+                      className="text-base font-medium mb-1 block"
+                    >
                       Observaciones
                     </Label>
                     <Textarea
@@ -1011,31 +1209,31 @@ export function ClientQuotationModal({
                       className="min-h-[80px]"
                     />
                   </div>
+
+                  <div className="flex justify-end gap-2 mt-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleClose}
+                      disabled={submitting}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button type="submit" disabled={submitting}>
+                      {submitting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Guardando...
+                        </>
+                      ) : existingQuotation ? (
+                        "Actualizar Cotización"
+                      ) : (
+                        "Guardar Cotización"
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </div>
-
-              <DialogFooter className="gap-2 sm:gap-0 mt-6">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleClose}
-                  disabled={submitting}
-                >
-                  Cancelar
-                </Button>
-                <Button type="submit" disabled={submitting}>
-                  {submitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Guardando...
-                    </>
-                  ) : existingQuotation ? (
-                    "Actualizar Cotización"
-                  ) : (
-                    "Guardar Cotización"
-                  )}
-                </Button>
-              </DialogFooter>
             </div>
           </form>
         )}

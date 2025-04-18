@@ -31,80 +31,98 @@ export async function POST(
       );
     }
 
-    // Verificar que exista una cotización para cliente
-    const clientQuotation = await prisma.clientQuotationSummary.findFirst({
-      where: {
-        projectRequestId: projectRequestId,
-        isActive: true,
-        isDeleted: false,
-      },
-    });
+    // Obtener datos del cuerpo de la solicitud
+    const data = await request.json();
+    const { quotationId } = data;
 
-    if (!clientQuotation) {
+    if (!quotationId) {
       return NextResponse.json(
-        { error: "No se encontró una cotización para cliente" },
-        { status: 404 }
-      );
-    }
-
-    // Verificar que la cotización no haya sido ya seleccionada
-    const projectRequest = await prisma.projectRequest.findUnique({
-      where: {
-        id: projectRequestId,
-      },
-    });
-
-    if (!projectRequest) {
-      return NextResponse.json(
-        { error: "No se encontró la solicitud de proyecto" },
-        { status: 404 }
-      );
-    }
-
-    if (projectRequest.statusId === 13) {
-      return NextResponse.json(
-        { error: "La cotización ya ha sido seleccionada" },
+        { error: "ID de cotización requerido" },
         { status: 400 }
       );
     }
 
-    // Actualizar el estado del proyecto a "Cotización seleccionada" (statusId: 13)
-    await prisma.projectRequest.update({
+    // Verificar que la cotización exista
+    const quotation = await prisma.projectRequestRequirementQuotation.findUnique({
       where: {
-        id: projectRequestId,
+        projectRequestCompanyId: quotationId,
+      },
+      include: {
+        ProjectRequestCompany: {
+          include: {
+            ProjectRequirements: {
+              select: {
+                id: true,
+                projectRequestId: true,
+                requirementName: true,
+              }
+            },
+            Company: {
+              select: {
+                id: true,
+                comercialName: true,
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!quotation) {
+      return NextResponse.json(
+        { error: "No se encontró la cotización" },
+        { status: 404 }
+      );
+    }
+
+    // Verificar que la cotización pertenezca al proyecto
+    if (quotation.ProjectRequestCompany.ProjectRequirements.projectRequestId !== projectRequestId) {
+      return NextResponse.json(
+        { error: "La cotización no pertenece a este proyecto" },
+        { status: 400 }
+      );
+    }
+
+    // Verificar si la cotización ya está aprobada
+    if (quotation.isClientApproved) {
+      return NextResponse.json(
+        { error: "La cotización ya ha sido aprobada" },
+        { status: 400 }
+      );
+    }
+
+    // Actualizar el estado de aprobación de la cotización
+    await prisma.projectRequestRequirementQuotation.update({
+      where: {
+        projectRequestCompanyId: quotationId,
       },
       data: {
-        statusId: 13, // ID del estado "Cotización seleccionada"
+        isClientApproved: true,
+        nonApprovalReason: null, // Limpiar cualquier motivo de rechazo previo
       },
     });
 
-    // Actualizar la cotización del cliente con una observación sobre la selección
-    // Ya que no existe el campo dateQuotationApproved en el modelo
-    await prisma.clientQuotationSummary.update({
-      where: {
-        id: clientQuotation.id,
-      },
-      data: {
-        observations: `Cotización seleccionada el ${new Date().toISOString()}`,
-      },
-    });
-
-    // Crear un log automático del sistema para registrar la selección de la cotización por el cliente
+    // Crear un log en la bitácora
+    const requirementName = quotation.ProjectRequestCompany.ProjectRequirements.requirementName;
+    const companyName = quotation.ProjectRequestCompany.Company.comercialName;
+    
+    const logMessage = `Cotización aprobada para el requerimiento "${requirementName}" del asociado "${companyName}"`;
+    
     await ProjectRequestLogsService.createSystemLog(
       projectRequestId,
-      "CLIENT_QUOTATION_SELECTED",
+      "REQUIREMENT_QUOTATION_APPROVED",
       userId,
-      true // Indicar que es un log a nivel de proyecto
+      true // Es un log a nivel de proyecto
     );
 
     return NextResponse.json({
-      message: "Cotización seleccionada correctamente",
+      message: "Cotización aprobada correctamente",
       success: true,
     });
   } catch (error) {
-    console.error("Error al seleccionar cotización:", error);
+    console.error("Error al aprobar cotización:", error);
     return NextResponse.json(
-      { error: "Error al seleccionar la cotización" },
+      { error: "Error al aprobar la cotización" },
       { status: 500 }
     );
   }

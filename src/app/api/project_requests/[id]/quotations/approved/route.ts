@@ -14,6 +14,7 @@ interface FormattedQuotation {
   totalCost: number;
   isClientSelected: boolean;
   isClientApproved: boolean;
+  nonApprovalReason: string | null;
   requirementId: number;
   requirementName: string;
   statusId: number;
@@ -116,6 +117,7 @@ export async function GET(
         (item.Quotation?.indirectCost || 0),
       isClientSelected: item.Quotation?.isClientSelected || false,
       isClientApproved: item.Quotation?.isClientApproved || false,
+      nonApprovalReason: item.Quotation?.nonApprovalReason || null,
       requirementId: item.projectRequirementsId,
       requirementName: item.ProjectRequirements?.requirementName || "Sin nombre",
       statusId: item.statusId,

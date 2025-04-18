@@ -31,78 +31,99 @@ export async function POST(
       );
     }
 
-    // Obtener datos del cuerpo (razón del rechazo)
+    // Obtener datos del cuerpo de la solicitud
     const data = await request.json();
-    const { rejectionReason } = data;
+    const { quotationId, rejectionReason } = data;
 
-    // Verificar que exista una cotización para cliente
-    const clientQuotation = await prisma.clientQuotationSummary.findFirst({
-      where: {
-        projectRequestId: projectRequestId,
-        isActive: true,
-        isDeleted: false,
-      },
-    });
-
-    if (!clientQuotation) {
+    if (!quotationId) {
       return NextResponse.json(
-        { error: "No se encontró una cotización para cliente" },
-        { status: 404 }
-      );
-    }
-
-    // Verificar que la cotización no haya sido ya rechazada
-    const projectRequest = await prisma.projectRequest.findUnique({
-      where: {
-        id: projectRequestId,
-      },
-    });
-
-    if (!projectRequest) {
-      return NextResponse.json(
-        { error: "No se encontró la solicitud de proyecto" },
-        { status: 404 }
-      );
-    }
-
-    if (projectRequest.statusId === 13) {
-      return NextResponse.json(
-        { error: "La cotización ya ha sido rechazada por el cliente" },
+        { error: "ID de cotización requerido" },
         { status: 400 }
       );
     }
 
-    // Actualizar el estado del proyecto a "Cotización rechazada por Cliente" (statusId: 13)
-    await prisma.projectRequest.update({
+    if (!rejectionReason) {
+      return NextResponse.json(
+        { error: "Motivo de rechazo requerido" },
+        { status: 400 }
+      );
+    }
+
+    // Verificar que la cotización exista
+    const quotation = await prisma.projectRequestRequirementQuotation.findUnique({
       where: {
-        id: projectRequestId,
+        projectRequestCompanyId: quotationId,
+      },
+      include: {
+        ProjectRequestCompany: {
+          include: {
+            ProjectRequirements: {
+              select: {
+                id: true,
+                projectRequestId: true,
+                requirementName: true,
+              }
+            },
+            Company: {
+              select: {
+                id: true,
+                comercialName: true,
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!quotation) {
+      return NextResponse.json(
+        { error: "No se encontró la cotización" },
+        { status: 404 }
+      );
+    }
+
+    // Verificar que la cotización pertenezca al proyecto
+    if (quotation.ProjectRequestCompany.ProjectRequirements.projectRequestId !== projectRequestId) {
+      return NextResponse.json(
+        { error: "La cotización no pertenece a este proyecto" },
+        { status: 400 }
+      );
+    }
+
+    // Verificar si la cotización ya está rechazada
+    if (quotation.isClientApproved === false) {
+      return NextResponse.json(
+        { error: "La cotización ya ha sido rechazada" },
+        { status: 400 }
+      );
+    }
+
+    // Actualizar el estado de aprobación de la cotización
+    await prisma.projectRequestRequirementQuotation.update({
+      where: {
+        projectRequestCompanyId: quotationId,
       },
       data: {
-        statusId: 13, // ID del estado "Cotización rechazada por Cliente"
+        isClientApproved: false,
+        nonApprovalReason: rejectionReason,
       },
     });
 
-    // Actualizar la observación en la cotización del cliente con la razón del rechazo
-    // Ya que no existe el campo dateQuotationRejected en el modelo
-    await prisma.clientQuotationSummary.update({
-      where: {
-        id: clientQuotation.id,
-      },
-      data: {
-        observations: `Cotización rechazada el ${new Date().toISOString()}. Razón: ${rejectionReason || "No se especificó una razón"}`,
-      },
-    });
-
-    // Crear un log automático del sistema para registrar el rechazo de la cotización por el cliente
+    // Crear un log en la bitácora
+    const requirementName = quotation.ProjectRequestCompany.ProjectRequirements.requirementName;
+    const companyName = quotation.ProjectRequestCompany.Company.comercialName;
+    
+    const logMessage = `Cotización rechazada para el requerimiento "${requirementName}" del asociado "${companyName}". Motivo: ${rejectionReason}`;
+    
     await ProjectRequestLogsService.createSystemLog(
       projectRequestId,
-      "CLIENT_QUOTATION_REJECTED",
+      "REQUIREMENT_QUOTATION_REJECTED",
       userId,
-      true // Indicar que es un log a nivel de proyecto
+      true // Es un log a nivel de proyecto
     );
 
     return NextResponse.json({
-      message: "Cotización rechazada por el cliente correctamente",
+      message: "Cotización rechazada correctamente",
       success: true,
     });
   } catch (error) {
