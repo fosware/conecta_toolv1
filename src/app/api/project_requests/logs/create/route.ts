@@ -28,12 +28,30 @@ export async function POST(request: NextRequest) {
     
     const { message, projectRequestCompanyId } = validationResult.data;
 
+    console.warn("⚠️ ADVERTENCIA: Usando endpoint general para crear logs sin especificar requerimiento");
+    console.warn("⚠️ Se recomienda usar el endpoint: /api/project_requests/logs/create/with-requirement");
+
     // Verificar que la relación proyecto-compañía existe
     const projectRequestCompany = await prisma.projectRequestCompany.findUnique({
       where: {
         id: projectRequestCompanyId,
         isActive: true,
         isDeleted: false,
+      },
+      include: {
+        Company: {
+          select: {
+            id: true,
+            comercialName: true,
+          },
+        },
+        ProjectRequirements: {
+          select: {
+            id: true,
+            projectRequestId: true,
+            requirementName: true,
+          },
+        },
       },
     });
 
@@ -43,6 +61,10 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       );
     }
+
+    // Mostrar información detallada para ayudar en la depuración
+    console.log(`Usando relación: ID=${projectRequestCompany.id}, Compañía=${projectRequestCompany.Company?.comercialName}, Requerimiento=${projectRequestCompany.ProjectRequirements?.requirementName}`);
+    console.log(`Para filtrar correctamente, use: projectRequestId=${projectRequestCompany.ProjectRequirements?.projectRequestId}, companyId=${projectRequestCompany.Company?.id}, requirementId=${projectRequestCompany.ProjectRequirements?.id}`);
 
     // Crear el log
     const newLog = await prisma.projectRequestCompanyStatusLog.create({
@@ -54,7 +76,14 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json(newLog, { status: 201 });
+    return NextResponse.json(
+      {
+        ...newLog,
+        companyName: projectRequestCompany.Company?.comercialName,
+        requirementName: projectRequestCompany.ProjectRequirements?.requirementName,
+      }, 
+      { status: 201 }
+    );
   } catch (error) {
     console.error("Error al crear log:", error);
     return NextResponse.json(

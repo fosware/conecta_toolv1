@@ -268,6 +268,12 @@ export async function POST(
       },
     });
 
+    // Actualizar el estado de la solicitud a "Gestión de Requerimientos" (ID 18)
+    await prisma.projectRequest.update({
+      where: { id: parsedId },
+      data: { statusId: 18 }, // Estado "Gestión de Requerimientos"
+    });
+
     return NextResponse.json({
       success: true,
       item: newRequirementSpecialty,

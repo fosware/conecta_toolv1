@@ -46,7 +46,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import ProjectRequestLogsModal from "../../project_request_logs/components/project-request-logs-modal";
+import ProjectRequestLogsModal from "@/app/(root)/(modules)/project_request_logs/components/project-request-logs-modal";
+import UnreadIndicator from "@/app/(root)/(modules)/project_request_logs/components/unread-indicator";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 // Interfaz para los requerimientos con los nuevos campos
 interface ProjectRequirement {
@@ -93,6 +104,15 @@ function formatDateForDisplay(dateString: string | Date | undefined): string {
   });
 }
 
+// Función para formatear número como moneda
+function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat("es-MX", {
+    style: "currency",
+    currency: "MXN",
+    minimumFractionDigits: 2,
+  }).format(amount);
+}
+
 // Función para obtener el icono según el estado
 function getStatusIcon(statusId: number) {
   switch (statusId) {
@@ -134,6 +154,8 @@ function getStatusBadgeStyles(statusId: number) {
       return "bg-green-100 text-green-800";
     case 10: // Finalizado
       return "bg-emerald-100 text-emerald-800";
+    case 16: // En espera de aprobación
+      return "bg-amber-100 text-amber-800";
     default:
       return "bg-gray-50 text-gray-700";
   }
@@ -147,20 +169,51 @@ export default function ProjectRequestOverview({
   onManageParticipants,
   onRefreshData, // Nuevo prop para refrescar los datos
 }: ProjectRequestOverviewProps) {
-  const [showTechnicalDocsDialog, setShowTechnicalDocsDialog] = useState(false);
+  const [expandedRequirements, setExpandedRequirements] = useState<{
+    [key: number]: boolean;
+  }>({});
+  const [technicalDocsOpen, setTechnicalDocsOpen] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<any>(null);
-  const [selectedRequirementId, setSelectedRequirementId] = useState<
-    number | null
-  >(null);
-  const [downloadingQuote, setDownloadingQuote] = useState<number | null>(null);
-  const [updatingStatus, setUpdatingStatus] = useState<number | null>(null);
+  const [clientQuotationOpen, setClientQuotationOpen] = useState(false);
+  const [clientQuotationData, setClientQuotationData] = useState<{
+    id: number;
+    clientPrice: number;
+    observations: string;
+    quotationFileName: string;
+    dateQuotationClient: string;
+    dateQuotationSent: string;
+    totals?: {
+      materialCost: number;
+      directCost: number;
+      indirectCost: number;
+      price: number;
+    };
+  } | null>(null);
+  const [downloadingClientQuotation, setDownloadingClientQuotation] =
+    useState(false);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{
-    participantId: number;
-    action: "approve" | "reject";
     title: string;
     description: string;
+    action: "approve" | "reject";
+    participant: any;
   } | null>(null);
+  const [isLogsModalOpen, setIsLogsModalOpen] = useState(false);
+  const [selectedCompanyForLogs, setSelectedCompanyForLogs] = useState<{
+    companyId: number;
+    requirementId: number;
+    companyName: string;
+    requirementName: string;
+  } | null>(null);
+  const [updatingQuotationStatus, setUpdatingQuotationStatus] = useState(false);
+  const [approvingClientQuotation, setApprovingClientQuotation] =
+    useState(false);
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState("");
+
+  // Agregar estados faltantes
+  const [downloadingQuote, setDownloadingQuote] = useState<number | null>(null);
+  const [updatingStatus, setUpdatingStatus] = useState<number | null>(null);
 
   // Estado para almacenar información de NDAs válidos
   const [validNdas, setValidNdas] = useState<Record<number, boolean>>({});
@@ -170,23 +223,6 @@ export default function ProjectRequestOverview({
 
   // Estado para evitar múltiples verificaciones simultáneas
   const [isCheckingNdas, setIsCheckingNdas] = useState<boolean>(false);
-
-  // Estado para el modal de documentos técnicos
-  const [technicalDocsOpen, setTechnicalDocsOpen] = useState(false);
-
-  // Estado para el modal de cotizaciones para cliente
-  const [clientQuotationOpen, setClientQuotationOpen] = useState(false);
-  const [clientQuotationData, setClientQuotationData] = useState<any>(null);
-  const [downloadingClientQuotation, setDownloadingClientQuotation] =
-    useState(false);
-
-  // Estado para el modal de logs de seguimiento
-  const [logsModalOpen, setLogsModalOpen] = useState(false);
-  const [selectedCompanyForLogs, setSelectedCompanyForLogs] = useState<{
-    id: number;
-    name: string;
-    requirementName: string;
-  } | null>(null);
 
   // Función para verificar NDAs para todos los requerimientos
   const checkNdasForAllRequirements = async () => {
@@ -381,6 +417,8 @@ export default function ProjectRequestOverview({
       a.click();
       window.URL.revokeObjectURL(url);
       window.document.body.removeChild(a);
+
+      toast.success("Cotización descargada correctamente");
     } catch (error) {
       console.error("Error downloading quote:", error);
       toast.error("Error al descargar la cotización");
@@ -393,24 +431,19 @@ export default function ProjectRequestOverview({
     participant: any,
     action: "approve" | "reject"
   ) => {
-    // Preparar el diálogo de confirmación según la acción
-    if (action === "approve") {
-      setConfirmAction({
-        participantId: participant.id,
-        action: "approve",
-        title: "Aprobar cotización",
-        description: `¿Está seguro que desea aprobar la cotización de ${participant.Company?.comercialName || "la empresa seleccionada"}?`,
-      });
-    } else {
-      setConfirmAction({
-        participantId: participant.id,
-        action: "reject",
-        title: "No seleccionar cotización",
-        description: `¿Está seguro que desea marcar como no seleccionada la cotización de ${participant.Company?.comercialName || "la empresa seleccionada"}?`,
-      });
-    }
+    const title =
+      action === "approve" ? "Aprobar Cotización" : "No Seleccionar Cotización";
+    const description =
+      action === "approve"
+        ? "¿Estás seguro de que deseas aprobar esta cotización? Esta acción no se puede deshacer."
+        : "¿Estás seguro de que no deseas seleccionar esta cotización? Esta acción no se puede deshacer.";
 
-    // Abrir el diálogo de confirmación
+    setConfirmAction({
+      title,
+      description,
+      action,
+      participant,
+    });
     setConfirmDialogOpen(true);
   };
 
@@ -418,47 +451,44 @@ export default function ProjectRequestOverview({
     if (!confirmAction) return;
 
     try {
-      setUpdatingStatus(confirmAction.participantId);
+      setUpdatingStatus(confirmAction.participant.id);
+      setUpdatingQuotationStatus(true);
 
-      // Determinar el nuevo estado según la acción
-      const newStatusId = confirmAction.action === "approve" ? 9 : 8; // 9: Revisión Ok, 8: No seleccionado
-
-      // Llamar a la API para actualizar el estado
       const response = await fetch(
-        `/api/assigned_companies/${confirmAction.participantId}/update-status`,
+        `/api/assigned_companies/${confirmAction.participant.id}/update-quotation-status`,
         {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${getToken()}`,
           },
           body: JSON.stringify({
-            statusId: newStatusId,
+            status:
+              confirmAction.action === "approve" ? "approved" : "rejected",
           }),
         }
       );
 
       if (!response.ok) {
-        throw new Error(
-          `Error al ${confirmAction.action === "approve" ? "aprobar" : "marcar como no seleccionada"} la cotización`
-        );
+        throw new Error("Error al actualizar el estado de la cotización");
       }
 
-      // Mostrar mensaje de éxito
       toast.success(
-        `Cotización ${confirmAction.action === "approve" ? "aprobada" : "marcada como no seleccionada"} correctamente`
+        confirmAction.action === "approve"
+          ? "Cotización aprobada correctamente"
+          : "Cotización marcada como no seleccionada"
       );
 
-      // Refrescar los datos sin mostrar el indicador de carga
+      // Refrescar los datos
       if (onRefreshData) {
         onRefreshData();
       }
     } catch (error) {
       console.error("Error updating quotation status:", error);
-      toast.error(
-        `Error al ${confirmAction.action === "approve" ? "aprobar" : "marcar como no seleccionada"} la cotización`
-      );
+      toast.error("Error al actualizar el estado de la cotización");
     } finally {
       setUpdatingStatus(null);
+      setUpdatingQuotationStatus(false);
       setConfirmDialogOpen(false);
       setConfirmAction(null);
     }
@@ -489,7 +519,7 @@ export default function ProjectRequestOverview({
       const a = document.createElement("a");
       a.href = url;
       a.download =
-        clientQuotationData.quotationFileName || "cotizacion-cliente.xlsx";
+        clientQuotationData?.quotationFileName || "cotizacion-cliente.xlsx";
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -517,8 +547,53 @@ export default function ProjectRequestOverview({
       );
 
       if (response.ok) {
-        const data = await response.json();
-        setClientQuotationData(data.quotation);
+        const responseData = await response.json();
+
+        // Verificar si la respuesta tiene la estructura esperada
+        if (responseData && responseData.quotation) {
+          // La API devuelve la cotización en responseData.quotation
+          const quotation = responseData.quotation;
+
+          // Calcular los totales basados en las empresas seleccionadas
+          let materialCostTotal = 0;
+          let directCostTotal = 0;
+          let indirectCostTotal = 0;
+          let priceTotal = 0;
+
+          // Si hay empresas seleccionadas, calcular los totales
+          if (
+            responseData.selectedCompanies &&
+            responseData.selectedCompanies.length > 0
+          ) {
+            responseData.selectedCompanies.forEach((company: any) => {
+              materialCostTotal += company.materialCost || 0;
+              directCostTotal += company.directCost || 0;
+              indirectCostTotal += company.indirectCost || 0;
+              // Calcular el precio como la suma de los costos
+              priceTotal +=
+                (company.materialCost || 0) +
+                (company.directCost || 0) +
+                (company.indirectCost || 0);
+            });
+          }
+
+          setClientQuotationData({
+            id: quotation.id,
+            clientPrice: quotation.clientPrice || 0,
+            observations: quotation.observations || "",
+            quotationFileName: quotation.quotationFileName || "",
+            dateQuotationClient: quotation.dateQuotationClient || "",
+            dateQuotationSent: quotation.dateQuotationSent || "",
+            totals: {
+              materialCost: materialCostTotal,
+              directCost: directCostTotal,
+              indirectCost: indirectCostTotal,
+              price: priceTotal,
+            },
+          });
+        } else {
+          setClientQuotationData(null);
+        }
       } else {
         setClientQuotationData(null);
       }
@@ -545,19 +620,131 @@ export default function ProjectRequestOverview({
     }
   };
 
-  // Función para abrir el modal de logs de seguimiento
-  const handleOpenLogsModal = (participant: any, requirementName: string) => {
-    if (!participant.Company || !participant.Company.id) {
-      console.error("Error: No se encontró el ID de la compañía", participant);
+  const handleOpenLogsModal = (
+    companyId: number,
+    requirementId: number,
+    companyName: string,
+    requirementName: string
+  ) => {
+    console.log(
+      `Abriendo modal de bitácora para Compañía=${companyId}, Requerimiento=${requirementId}`
+    );
+    setSelectedCompanyForLogs({
+      companyId,
+      requirementId,
+      companyName,
+      requirementName,
+    });
+    setIsLogsModalOpen(true);
+  };
+
+  const handleReviewOk = async (participant: any, requirementId: number) => {
+    try {
+      setUpdatingStatus(participant.id);
+
+      const response = await fetch(
+        `/api/assigned_companies/${participant.id}/update-status`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${getToken()}`,
+          },
+          body: JSON.stringify({
+            statusId: 9, // ID 9 para estado "Revisión Ok"
+            requirementId: requirementId, // Incluir el ID del requerimiento para la bitácora
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Error al actualizar el estado de la cotización");
+      }
+
+      toast.success("Cotización marcada como Revisión Ok correctamente");
+
+      // Refrescar los datos
+      if (onRefreshData) {
+        onRefreshData();
+      }
+    } catch (error) {
+      console.error("Error updating quotation status:", error);
+      toast.error("Error al actualizar el estado de la cotización");
+    } finally {
+      setUpdatingStatus(null);
+    }
+  };
+
+  const handleApproveClientQuotation = async () => {
+    try {
+      setApprovingClientQuotation(true);
+      const response = await fetch(
+        `/api/project_requests/${data.id}/approve-client-quotation`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Error al aprobar la cotización para cliente");
+      }
+
+      toast.success("Cotización para cliente aprobada correctamente");
+
+      // Refrescar los datos
+      if (onRefreshData) {
+        onRefreshData();
+      }
+    } catch (error) {
+      console.error("Error approving client quotation:", error);
+      toast.error("Error al aprobar la cotización para cliente");
+    } finally {
+      setApprovingClientQuotation(false);
+    }
+  };
+
+  const handleRejectClientQuotation = async () => {
+    if (!rejectionReason.trim()) {
+      toast.error("Debe ingresar un motivo de rechazo");
       return;
     }
 
-    setSelectedCompanyForLogs({
-      id: participant.Company.id,
-      name: participant.Company?.comercialName || "Empresa sin nombre",
-      requirementName,
-    });
-    setLogsModalOpen(true);
+    try {
+      setApprovingClientQuotation(true);
+      const response = await fetch(
+        `/api/project_requests/${data.id}/reject-client-quotation`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            rejectionReason: rejectionReason.trim(),
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Error al rechazar la cotización para cliente");
+      }
+
+      toast.success("Cotización para cliente rechazada correctamente");
+      setRejectDialogOpen(false);
+      setRejectionReason("");
+
+      // Refrescar los datos
+      if (onRefreshData) {
+        onRefreshData();
+      }
+    } catch (error) {
+      console.error("Error rejecting client quotation:", error);
+      toast.error("Error al rechazar la cotización para cliente");
+    } finally {
+      setApprovingClientQuotation(false);
+    }
   };
 
   return (
@@ -580,27 +767,30 @@ export default function ProjectRequestOverview({
             <div className="flex items-center space-x-2">
               <Building className="w-5 h-5 text-primary" />
               <span className="text-lg font-medium">
-                Cliente: {data.clientArea?.client?.name || "No especificado"}
+                Cliente:{" "}
+                {(data.clientArea as any)?.client?.name || "No especificado"}
               </span>
             </div>
             <div className="flex items-center space-x-2 text-sm pl-7">
-              <span>Área: {data.clientArea?.name || "No especificada"}</span>
-              {data.clientArea?.contactName && (
+              <span>
+                Área: {(data.clientArea as any)?.areaName || "No especificada"}
+              </span>
+              {(data.clientArea as any)?.contactName && (
                 <>
                   <span className="mx-1">|</span>
-                  <span>Contacto: {data.clientArea.contactName}</span>
+                  <span>Contacto: {(data.clientArea as any).contactName}</span>
                 </>
               )}
-              {data.clientArea?.contactEmail && (
+              {(data.clientArea as any)?.contactEmail && (
                 <>
                   <span className="mx-1">|</span>
-                  <span>Correo: {data.clientArea.contactEmail}</span>
+                  <span>Correo: {(data.clientArea as any).contactEmail}</span>
                 </>
               )}
-              {data.clientArea?.contactPhone && (
+              {(data.clientArea as any)?.contactPhone && (
                 <>
                   <span className="mx-1">|</span>
-                  <span>Teléfono: {data.clientArea.contactPhone}</span>
+                  <span>Teléfono: {(data.clientArea as any).contactPhone}</span>
                 </>
               )}
             </div>
@@ -684,48 +874,6 @@ export default function ProjectRequestOverview({
                               </div>
                             )}
                           </div>
-                        )}
-                      </div>
-                      <div className="flex space-x-1">
-                        {onManageSpecialties && (
-                          <Button
-                            variant="ghost"
-                            onClick={() => {
-                              // Asegurarse de que el objeto requirement incluya el projectRequestId
-                              const requirementWithProjectId = {
-                                ...requirement,
-                                projectRequestId: data.id,
-                              };
-                              onManageSpecialties(
-                                requirementWithProjectId as ProjectRequirement
-                              );
-                            }}
-                            title="Gestionar especialidades"
-                            className="h-8 px-2 flex items-center gap-1"
-                          >
-                            <Medal className="h-4 w-4" />
-                            <span className="text-xs">Especialidades</span>
-                          </Button>
-                        )}
-                        {onManageCertifications && (
-                          <Button
-                            variant="ghost"
-                            onClick={() => {
-                              // Asegurarse de que el objeto requirement incluya el projectRequestId
-                              const requirementWithProjectId = {
-                                ...requirement,
-                                projectRequestId: data.id,
-                              };
-                              onManageCertifications(
-                                requirementWithProjectId as ProjectRequirement
-                              );
-                            }}
-                            title="Gestionar certificaciones"
-                            className="h-8 px-2 flex items-center gap-1"
-                          >
-                            <Award className="h-4 w-4" />
-                            <span className="text-xs">Certificaciones</span>
-                          </Button>
                         )}
                       </div>
                     </div>
@@ -839,7 +987,7 @@ export default function ProjectRequestOverview({
                                 key={participant.id}
                                 className="border rounded-md p-3 text-sm hover:bg-muted/50 transition-colors"
                               >
-                                <div className="flex justify-between items-start mb-2">
+                                <div className="flex items-center justify-between mb-2">
                                   <div>
                                     <div className="font-medium">
                                       {participant.Company?.comercialName ||
@@ -857,29 +1005,66 @@ export default function ProjectRequestOverview({
                                       </span>
                                     </div>
                                   </div>
-                                  {participant.status && (
-                                    <Badge
-                                      className={`flex items-center space-x-1 border-0 pointer-events-none ${getStatusBadgeStyles(participant.status.id)}`}
-                                    >
-                                      {getStatusIcon(participant.status.id)}
-                                      <span>{participant.status.name}</span>
-                                    </Badge>
-                                  )}
+                                  <div className="flex flex-col items-end gap-2">
+                                    {participant.status && (
+                                      <Badge
+                                        className={`flex items-center space-x-1 border-0 pointer-events-none ${getStatusBadgeStyles(participant.status.id)}`}
+                                      >
+                                        {getStatusIcon(participant.status.id)}
+                                        <span>{participant.status.name}</span>
+                                      </Badge>
+                                    )}
+                                    {participant.status &&
+                                      participant.status.id === 7 && (
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="flex items-center gap-1 border-green-500/50 hover:border-green-600 hover:bg-green-50"
+                                          onClick={() =>
+                                            handleReviewOk(
+                                              participant,
+                                              requirement.id
+                                            )
+                                          }
+                                          disabled={
+                                            updatingStatus === participant.id
+                                          }
+                                        >
+                                          {updatingStatus === participant.id ? (
+                                            <Loader2 className="h-3 w-3 animate-spin" />
+                                          ) : (
+                                            <Check className="h-3 w-3 text-green-600" />
+                                          )}
+                                          <span className="text-xs">
+                                            {updatingStatus === participant.id
+                                              ? "Actualizando..."
+                                              : "Revisión OK"}
+                                          </span>
+                                        </Button>
+                                      )}
+                                  </div>
                                 </div>
                                 <div className="flex flex-wrap gap-2 mt-3">
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    className="flex items-center gap-1"
+                                    className="flex items-center gap-1 relative"
                                     onClick={() =>
                                       handleOpenLogsModal(
-                                        participant,
+                                        participant.Company.id,
+                                        requirement.id,
+                                        participant.Company.comercialName,
                                         requirement.requirementName
                                       )
                                     }
                                   >
-                                    <MessageSquare className="h-3 w-3" />
-                                    <span className="text-xs">Bitácora</span>
+                                    <MessageSquare className="h-4 w-4 mr-1" />
+                                    Bitácora
+                                    <UnreadIndicator
+                                      projectRequestId={data.id}
+                                      companyId={participant.Company.id}
+                                      requirementId={requirement.id}
+                                    />
                                   </Button>
                                   <Button
                                     variant="outline"
@@ -966,19 +1151,21 @@ export default function ProjectRequestOverview({
               </h3>
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-1">
-                  {data.statusId === 11 ? (
-                    <Send className="h-4 w-4 text-purple-600" />
-                  ) : (
-                    <Clock
-                      className={`h-4 w-4 ${
-                        data.statusId === 10
-                          ? "text-blue-600"
-                          : data.statusId >= 12
-                            ? "text-green-600"
-                            : "text-muted-foreground"
-                      }`}
-                    />
-                  )}
+                  <span>
+                    {data.statusId === 11 ? (
+                      <Send className="h-4 w-4 text-purple-600" />
+                    ) : (
+                      <Clock
+                        className={`h-4 w-4 ${
+                          data.statusId === 10
+                            ? "text-blue-600"
+                            : data.statusId >= 12
+                              ? "text-green-600"
+                              : "text-muted-foreground"
+                        }`}
+                      />
+                    )}
+                  </span>
                   <Badge
                     variant="outline"
                     className={
@@ -1010,48 +1197,90 @@ export default function ProjectRequestOverview({
             <div className="border rounded-lg p-4">
               {clientQuotationData ? (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <h4 className="font-medium">Información de Cotización</h4>
-                      <div className="text-sm space-y-1">
-                        <div className="flex items-center space-x-2">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          <span>
-                            <span className="font-semibold">
-                              Fecha de creación:
-                            </span>{" "}
-                            {formatDateForDisplay(
-                              clientQuotationData.dateQuotationClient
-                            )}
-                          </span>
-                        </div>
-                        {clientQuotationData.dateQuotationSent && (
-                          <div className="flex items-center space-x-2">
-                            <Send className="h-4 w-4 text-purple-600" />
-                            <span>
-                              <span className="font-semibold">
-                                Cotización enviada al Cliente:
-                              </span>{" "}
-                              {formatDateForDisplay(
-                                clientQuotationData.dateQuotationSent
-                              )}
-                            </span>
-                          </div>
-                        )}
-                        <div className="flex items-center space-x-2">
-                          <FileDigit className="h-4 w-4 text-muted-foreground" />
-                          <span>
-                            <span className="font-semibold">
-                              Precio al Cliente:
-                            </span>{" "}
-                            {new Intl.NumberFormat("es-MX", {
-                              style: "currency",
-                              currency: "MXN",
-                            }).format(clientQuotationData.clientPrice)}
-                          </span>
-                        </div>
+                  {/* Costos Generales */}
+                  <div className="bg-muted/30 p-4 rounded-lg mb-4">
+                    <h3 className="font-semibold mb-3">Totales Generales</h3>
+
+                    {/* Primera fila: Costo Material, Costo Directo y Costo Indirecto */}
+                    <div className="grid grid-cols-3 gap-4 mb-3">
+                      <div>
+                        <h4 className="text-sm font-medium mb-1">
+                          Costo Material
+                        </h4>
+                        <p className="text-lg font-semibold">
+                          {formatCurrency(
+                            clientQuotationData?.totals?.materialCost || 0
+                          )}
+                        </p>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium mb-1">
+                          Costo Directo
+                        </h4>
+                        <p className="text-lg font-semibold">
+                          {formatCurrency(
+                            clientQuotationData?.totals?.directCost || 0
+                          )}
+                        </p>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium mb-1">
+                          Costo Indirecto
+                        </h4>
+                        <p className="text-lg font-semibold">
+                          {formatCurrency(
+                            clientQuotationData?.totals?.indirectCost || 0
+                          )}
+                        </p>
                       </div>
                     </div>
+
+                    {/* Segunda fila: Precio Total (izquierda) y Costo Total (derecha) */}
+                    <div className="grid grid-cols-3 gap-4 mt-3 pt-3 border-t">
+                      <div>
+                        <h4 className="text-sm font-medium mb-1">
+                          Precio Total
+                        </h4>
+                        <p className="text-lg font-semibold text-primary">
+                          {formatCurrency(
+                            clientQuotationData?.totals?.price || 0
+                          )}
+                        </p>
+                      </div>
+                      <div></div> {/* Columna vacía en el medio */}
+                      <div>
+                        <h4 className="text-sm font-medium mb-1">
+                          Costo Total
+                        </h4>
+                        <p className="text-lg font-semibold">
+                          {formatCurrency(
+                            (clientQuotationData?.totals?.materialCost || 0) +
+                              (clientQuotationData?.totals?.directCost || 0) +
+                              (clientQuotationData?.totals?.indirectCost || 0)
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <h4 className="font-medium">Precio al Cliente</h4>
+                      <p className="text-lg font-semibold text-primary">
+                        {formatCurrency(clientQuotationData.clientPrice || 0)}
+                      </p>
+                    </div>
+
+                    {clientQuotationData.dateQuotationClient && (
+                      <div className="space-y-2">
+                        <h4 className="font-medium">Fecha de Cotización</h4>
+                        <p className="text-sm">
+                          {formatDateForDisplay(
+                            clientQuotationData.dateQuotationClient
+                          )}
+                        </p>
+                      </div>
+                    )}
 
                     {clientQuotationData.quotationFileName && (
                       <div className="space-y-2">
@@ -1069,7 +1298,9 @@ export default function ProjectRequestOverview({
                             ) : (
                               <Download className="h-4 w-4" />
                             )}
-                            <span>{clientQuotationData.quotationFileName}</span>
+                            <span className="text-sm">
+                              {clientQuotationData.quotationFileName}
+                            </span>
                           </Button>
                         </div>
                       </div>
@@ -1084,6 +1315,41 @@ export default function ProjectRequestOverview({
                       </p>
                     </div>
                   )}
+
+                  {/* Botones de Aceptar y Rechazar cotización */}
+                  <div className="mt-6 border-t pt-4 flex justify-end items-center">
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-green-600 border-green-600 hover:bg-green-50"
+                        onClick={handleApproveClientQuotation}
+                        disabled={approvingClientQuotation}
+                      >
+                        {approvingClientQuotation ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Procesando...
+                          </>
+                        ) : (
+                          <>
+                            <Check className="mr-2 h-4 w-4" />
+                            Aceptar
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-destructive border-destructive hover:bg-red-50"
+                        onClick={() => setRejectDialogOpen(true)}
+                        disabled={approvingClientQuotation}
+                      >
+                        <X className="mr-2 h-4 w-4" />
+                        Rechazar
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <div className="flex items-center justify-center py-8 text-muted-foreground">
@@ -1141,7 +1407,58 @@ export default function ProjectRequestOverview({
               Cancelar
             </AlertDialogCancel>
             <AlertDialogAction onClick={handleUpdateQuotationStatus}>
-              {confirmAction?.action === "approve" ? "Aprobar" : "No seleccionar"}
+              {confirmAction?.action === "approve"
+                ? "Aprobar"
+                : "No seleccionar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Diálogo para rechazar cotización */}
+      <AlertDialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Rechazar Cotización</AlertDialogTitle>
+            <AlertDialogDescription>
+              Por favor, ingrese el motivo por el cual se rechaza la cotización.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="rejectionReason" className="text-left">
+                Motivo de rechazo
+              </Label>
+              <Textarea
+                id="rejectionReason"
+                value={rejectionReason}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                  setRejectionReason(e.target.value)
+                }
+                placeholder="Ingrese el motivo de rechazo"
+                className="min-h-[100px]"
+              />
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => setRejectDialogOpen(false)}
+            >
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleRejectClientQuotation}
+              disabled={!rejectionReason.trim() || approvingClientQuotation}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {approvingClientQuotation ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Procesando...
+                </>
+              ) : (
+                "Rechazar Cotización"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1149,15 +1466,16 @@ export default function ProjectRequestOverview({
 
       {/* Modal de logs de seguimiento */}
       <ProjectRequestLogsModal
-        isOpen={logsModalOpen}
+        isOpen={isLogsModalOpen}
         onClose={() => {
-          setLogsModalOpen(false);
+          setIsLogsModalOpen(false);
           setSelectedCompanyForLogs(null);
         }}
         projectRequestId={data.id}
-        companyId={selectedCompanyForLogs?.id}
+        companyId={selectedCompanyForLogs?.companyId}
+        requirementId={selectedCompanyForLogs?.requirementId}
         requirementName={selectedCompanyForLogs?.requirementName}
-        title={`Bitácora - ${selectedCompanyForLogs?.name || "Asociado"}`}
+        title={`Bitácora - ${selectedCompanyForLogs?.companyName || "Asociado"}`}
       />
     </>
   );

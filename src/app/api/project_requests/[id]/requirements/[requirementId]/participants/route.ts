@@ -173,6 +173,15 @@ export async function POST(
       }
     });
 
+    // Actualizar el estado de la solicitud principal a "En proceso" (ID 19)
+    // cuando hay asociados seleccionados para cotizar
+    if (companiesToAdd.length > 0 || companiesToUpdate.length > 0) {
+      await prisma.projectRequest.update({
+        where: { id: projectRequestId },
+        data: { statusId: 19 }, // Estado "En proceso"
+      });
+    }
+
     return NextResponse.json({
       success: true,
       message: "Participantes actualizados correctamente",

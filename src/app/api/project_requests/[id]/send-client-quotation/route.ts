@@ -44,13 +44,13 @@ export async function POST(
       );
     }
 
-    // Actualizar el estado del proyecto a "Cotización enviada al Cliente" (statusId: 11)
+    // Actualizar el estado del proyecto a "Cotizado" (statusId: 20)
     await prisma.projectRequest.update({
       where: {
         id: projectRequestId,
       },
       data: {
-        statusId: 11, // ID del estado "Cotización enviada al Cliente"
+        statusId: 20, // ID del estado "Cotizado" para la solicitud principal
       },
     });
 

@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { getUserFromToken } from "@/lib/get-user-from-token";
 import { ProjectRequestLogsService } from "@/lib/services/project-request-logs";
 import { handleRouteParams } from "@/lib/route-params";
+import { SYSTEM_MESSAGES } from "@/app/(root)/(modules)/project_request_logs/constants";
 
 export async function PUT(
   request: NextRequest,
@@ -22,7 +23,7 @@ export async function PUT(
 
     // Obtener los datos del cuerpo de la solicitud
     const data = await request.json();
-    const { statusId } = data;
+    const { statusId, requirementId } = data;
 
     if (!statusId) {
       return NextResponse.json(
@@ -68,13 +69,14 @@ export async function PUT(
       },
     });
 
-    // Crear un log automático del sistema
+    // Crear un log automático del sistema solo para este asociado específico
     const messageType = statusId === 8 ? "QUOTATION_NOT_SELECTED" : "QUOTATION_APPROVED";
-    await ProjectRequestLogsService.createSystemLog(
-      parsedId,
-      messageType as any,
-      userId
-    );
+    await ProjectRequestLogsService.createLog({
+      projectRequestCompanyId: parsedId,
+      message: SYSTEM_MESSAGES[messageType],
+      userId: userId,
+      isSystemMessage: true
+    });
 
     return NextResponse.json({
       message: `Estado actualizado correctamente a ${statusId === 8 ? "No seleccionado" : "Revisión Ok"}`,

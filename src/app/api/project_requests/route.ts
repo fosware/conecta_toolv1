@@ -104,6 +104,9 @@ export async function GET(request: NextRequest) {
             select: {
               id: true,
               areaName: true,
+              contactName: true,
+              contactEmail: true,
+              contactPhone: true,
               clientId: true,
               client: {
                 select: {
@@ -222,6 +225,7 @@ export async function POST(request: NextRequest) {
         data: {
           ...validatedData,
           userId,
+          statusId: 17, // Estado "Recibida"
           isActive: true,
           isDeleted: false,
         },
@@ -240,6 +244,9 @@ export async function POST(request: NextRequest) {
             select: {
               id: true,
               areaName: true,
+              contactName: true,
+              contactEmail: true,
+              contactPhone: true,
               clientId: true,
               client: {
                 select: {

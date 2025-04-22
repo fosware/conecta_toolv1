@@ -115,27 +115,37 @@ export async function POST(
             },
           });
           
+          // Actualizar el estado de la empresa asignada según la selección
+          await prisma.projectRequestCompany.update({
+            where: {
+              id: quotationId,
+            },
+            data: {
+              statusId: isApproved ? 16 : 8, // 16: En espera de aprobación, 8: No seleccionado
+              updatedAt: new Date(),
+            },
+          });
+          
           // Crear un log en la bitácora
           const requirementName = quotation.ProjectRequestCompany.ProjectRequirements.requirementName;
           const companyName = quotation.ProjectRequestCompany.Company.comercialName;
           
           const logMessage = isApproved 
-            ? `Cotización aprobada para el requerimiento "${requirementName}" del asociado "${companyName}"`
-            : `Cotización no seleccionada para el requerimiento "${requirementName}" del asociado "${companyName}". Motivo: ${rejectionReason}`;
+            ? `Cotización seleccionada. En espera de aprobación.`
+            : `Cotización no seleccionada. Motivo: ${rejectionReason}`;
           
-          const logType = isApproved ? "REQUIREMENT_QUOTATION_APPROVED" : "REQUIREMENT_QUOTATION_REJECTED";
-          
-          await ProjectRequestLogsService.createSystemLog(
-            projectRequestId,
-            logType,
+          // Crear log específico para este asociado y requerimiento
+          await ProjectRequestLogsService.createLog({
+            projectRequestCompanyId: quotationId,
+            message: logMessage,
             userId,
-            true // Es un log a nivel de proyecto
-          );
+            isSystemMessage: true
+          });
           
           results.push({
             quotationId,
             success: true,
-            message: isApproved ? "Cotización aprobada correctamente" : "Cotización rechazada correctamente"
+            message: isApproved ? "Cotización seleccionada correctamente" : "Cotización rechazada correctamente"
           });
         } catch (error) {
           console.error(`Error al procesar la cotización ${quotationId}:`, error);
@@ -229,26 +239,36 @@ export async function POST(
         },
       });
       
+      // Actualizar el estado de la empresa asignada según la selección
+      await prisma.projectRequestCompany.update({
+        where: {
+          id: quotationId,
+        },
+        data: {
+          statusId: isApproved ? 16 : 8, // 16: En espera de aprobación, 8: No seleccionado
+          updatedAt: new Date(),
+        },
+      });
+      
       // Crear un log en la bitácora
       const requirementName = quotation.ProjectRequestCompany.ProjectRequirements.requirementName;
       const companyName = quotation.ProjectRequestCompany.Company.comercialName;
       
       const logMessage = isApproved 
-        ? `Cotización aprobada para el requerimiento "${requirementName}" del asociado "${companyName}"`
-        : `Cotización no seleccionada para el requerimiento "${requirementName}" del asociado "${companyName}". Motivo: ${rejectionReason}`;
+        ? `Cotización seleccionada. En espera de aprobación.`
+        : `Cotización no seleccionada. Motivo: ${rejectionReason}`;
       
-      const logType = isApproved ? "REQUIREMENT_QUOTATION_APPROVED" : "REQUIREMENT_QUOTATION_REJECTED";
-      
-      await ProjectRequestLogsService.createSystemLog(
-        projectRequestId,
-        logType,
+      // Crear log específico para este asociado y requerimiento
+      await ProjectRequestLogsService.createLog({
+        projectRequestCompanyId: quotationId,
+        message: logMessage,
         userId,
-        true // Es un log a nivel de proyecto
-      );
+        isSystemMessage: true
+      });
       
       return NextResponse.json({
         message: isApproved 
-          ? "Cotización aprobada correctamente" 
+          ? "Cotización seleccionada correctamente" 
           : "Cotización rechazada correctamente",
         success: true,
       });

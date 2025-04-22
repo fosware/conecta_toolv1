@@ -7,6 +7,7 @@ import Sidebar from "../../components/sidebar";
 import { useState } from "react";
 import React from "react";
 import { Toaster } from "react-hot-toast";
+import { UnreadMessagesProvider } from "../(root)/(modules)/project_request_logs/context/unread-messages-context";
 
 export default function RootLayout({
   children,
@@ -18,37 +19,39 @@ export default function RootLayout({
   return (
     <div className="h-screen flex flex-col">
       <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={true}>
-        <Toaster
-          position="bottom-right"
-          reverseOrder={false}
-          toastOptions={{
-            success: {
-              style: {
-                backgroundColor: "var(--background)", 
-                color: "var(--accent)", 
-                border: "1px solid var(--accent)", 
+        <UnreadMessagesProvider>
+          <Toaster
+            position="bottom-right"
+            reverseOrder={false}
+            toastOptions={{
+              success: {
+                style: {
+                  backgroundColor: "var(--background)", 
+                  color: "var(--accent)", 
+                  border: "1px solid var(--accent)", 
+                },
+                iconTheme: {
+                  primary: "var(--accent)",
+                  secondary: "var(--background)",
+                },
               },
-              iconTheme: {
-                primary: "var(--accent)",
-                secondary: "var(--background)",
+              error: {
+                style: {
+                  backgroundColor: "var(--background)",
+                  color: "var(--destructive)",
+                  border: "1px solid var(--destructive)",
+                },
               },
-            },
-            error: {
-              style: {
-                backgroundColor: "var(--background)",
-                color: "var(--destructive)",
-                border: "1px solid var(--destructive)",
-              },
-            },
-          }}
-        />
-        <Navbar isSidebarOpen={isSidebarOpen} setSidebarOpen={setSidebarOpen} />
-        <div className="flex flex-1 overflow-hidden pt-16 bg-background dark:bg-background-dark">
-          <Sidebar isOpen={isSidebarOpen} setIsOpen={setSidebarOpen} />
-          <main className="flex-1 overflow-y-auto p-4 bg-background dark:bg-background-dark w-full">
-            {children}
-          </main>
-        </div>
+            }}
+          />
+          <Navbar isSidebarOpen={isSidebarOpen} setSidebarOpen={setSidebarOpen} />
+          <div className="flex flex-1 overflow-hidden pt-16 bg-background dark:bg-background-dark">
+            <Sidebar isOpen={isSidebarOpen} setIsOpen={setSidebarOpen} />
+            <main className="flex-1 overflow-y-auto p-4 bg-background dark:bg-background-dark w-full">
+              {children}
+            </main>
+          </div>
+        </UnreadMessagesProvider>
       </ThemeProvider>
     </div>
   );

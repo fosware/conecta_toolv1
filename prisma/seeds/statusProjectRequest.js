@@ -16,8 +16,15 @@ const projectSatatusValues = [
   { name: "Cotización enviada al Cliente", userId: 1 },
   { name: "Cotización rechazada por el Cliente", userId: 1 },
   { name: "Cotización seleccionada", userId: 1 },
-  { name: "Cotización aprobada", userId: 1 },
+  { name: "Cotización aprobada por el cliente", userId: 1 },
   { name: "Finalizado", userId: 1 },
+  { name: "En espera de aprobación", userId: 1 },
+  { name: "Recibida", userId: 1 },
+  { name: "Gestión de Requerimientos", userId: 1 },
+  { name: "En proceso", userId: 1 },
+  { name: "Cotizado", userId: 1 },
+  { name: "Rechazada", userId: 1 },
+  { name: "Aceptada", userId: 1 },
 ];
 
 export async function seedProjectStatus() {

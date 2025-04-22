@@ -41,6 +41,7 @@ model User {
   ClientQuotationSummary             ClientQuotationSummary[]
   ProjectRequestCompanyStatusLog     ProjectRequestCompanyStatusLog[]
   ClientCompanyNDA                   ClientCompanyNDA[]
+  UserLogReadStatus                  UserLogReadStatus[]
 
   @@unique([email, isDeleted])
   @@unique([username, isDeleted])
@@ -654,7 +655,25 @@ model ProjectRequestCompanyStatusLog {
   user                    User      @relation(fields: [userId], references: [id])
 
   ProjectRequestCompany ProjectRequestCompany @relation(fields: [projectRequestCompanyId], references: [id])
+  UserLogReadStatus     UserLogReadStatus[]
 
   @@index([isDeleted, isActive])
   @@map("d_project_request_company_status_logs")
+}
+
+// Registra el estado de lectura de logs para bitácora
+model UserLogReadStatus {
+  id        Int                            @id @default(autoincrement())
+  logId     Int
+  isRead    Boolean                        @default(false)
+  readAt    DateTime?
+  createdAt DateTime                       @default(now())
+  updatedAt DateTime                       @updatedAt
+  userId    Int
+  user      User                           @relation(fields: [userId], references: [id])
+  log       ProjectRequestCompanyStatusLog @relation(fields: [logId], references: [id])
+
+  @@unique([userId, logId])
+  @@index([userId, isRead])
+  @@map("d_user_log_read_status")
 }

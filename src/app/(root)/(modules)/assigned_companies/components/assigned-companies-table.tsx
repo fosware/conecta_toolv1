@@ -32,6 +32,7 @@ import { cn } from "@/lib/utils";
 import { AssignedCompany, Status } from "@/lib/schemas/assigned_company";
 import { UploadQuoteDialog } from "./upload-quote-dialog";
 import { toast } from "sonner";
+import UnreadIndicator from "@/app/(root)/(modules)/project_request_logs/components/unread-indicator";
 
 interface AssignedCompaniesTableProps {
   data: AssignedCompany[];
@@ -358,9 +359,16 @@ export function AssignedCompaniesTable({
                         e.stopPropagation();
                         onOpenLogs(item);
                       }}
-                      className="h-8 w-8"
+                      className="h-8 w-8 relative"
                     >
                       <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                      {item.ProjectRequest?.id && item.Company?.id && item.requirements && item.requirements.length > 0 && (
+                        <UnreadIndicator 
+                          projectRequestId={item.ProjectRequest.id} 
+                          companyId={item.Company.id} 
+                          requirementId={item.requirements[0].id}
+                        />
+                      )}
                     </Button>
                   </div>
                 </TableCell>

@@ -13,6 +13,7 @@ export interface ProjectRequestCompanyStatusLog {
   userRole?: string;
   isSystemMessage: boolean;
   companyName?: string;
+  requirementName?: string;
 }
 
 export interface LogFormData {

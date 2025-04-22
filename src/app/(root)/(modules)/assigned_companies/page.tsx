@@ -44,8 +44,9 @@ export default function AssignedCompaniesPage() {
   // Estado para el modal de bitácora
   const [logsModalOpen, setLogsModalOpen] = useState(false);
   const [selectedCompanyForLogs, setSelectedCompanyForLogs] = useState<{
-    id: number;
-    name: string;
+    companyId: number;
+    requirementId: number;
+    companyName: string;
     projectRequestId: number;
     requirementName: string;
   } | null>(null);
@@ -156,14 +157,31 @@ export default function AssignedCompaniesPage() {
       return;
     }
 
-    // Obtener el nombre del requerimiento (si hay varios, tomamos el primero o un valor por defecto)
-    const requirementName = item.requirements && item.requirements.length > 0
-      ? item.requirements[0].name
-      : item.ProjectRequest.requirement || "Requerimiento general";
+    // Obtener el ID del requerimiento (si hay varios, tomamos el primero o un valor por defecto)
+    let requirementId: number | undefined;
+    
+    if (item.requirements && item.requirements.length > 0 && item.requirements[0].id) {
+      requirementId = item.requirements[0].id;
+    } else {
+      // Si no hay requerimientos específicos, usamos un valor por defecto
+      // Esto es un fallback, pero idealmente deberíamos tener el ID del requerimiento
+      console.warn("No se encontró un ID de requerimiento específico, usando fallback");
+      requirementId = 0; // Valor por defecto
+      toast.warning("No se pudo determinar el requerimiento específico");
+      return; // No abrimos el modal si no tenemos un requerimiento válido
+    }
 
+    // Obtener el nombre del requerimiento
+    const requirementName = item.requirements && item.requirements.length > 0
+      ? (item.requirements[0].requirementName || item.requirements[0].name || "Requerimiento")
+      : (item.ProjectRequest.requirement || "Requerimiento general");
+
+    console.log(`Abriendo bitácora para: Proyecto=${item.ProjectRequest.id}, Compañía=${item.Company.id}, Requerimiento=${requirementId}`);
+    
     setSelectedCompanyForLogs({
-      id: item.Company.id,
-      name: item.Company?.comercialName || item.Company?.name || "Empresa sin nombre",
+      companyId: item.Company.id,
+      requirementId: requirementId,
+      companyName: item.Company?.comercialName || item.Company?.name || "Empresa sin nombre",
       projectRequestId: item.ProjectRequest.id,
       requirementName: requirementName,
     });
@@ -288,9 +306,10 @@ export default function AssignedCompaniesPage() {
           setSelectedCompanyForLogs(null);
         }}
         projectRequestId={selectedCompanyForLogs?.projectRequestId || 0}
-        companyId={selectedCompanyForLogs?.id}
-        title={`Bitácora - ${selectedCompanyForLogs?.name || 'Asociado'}`}
+        companyId={selectedCompanyForLogs?.companyId}
+        requirementId={selectedCompanyForLogs?.requirementId}
         requirementName={selectedCompanyForLogs?.requirementName}
+        title={`Bitácora - ${selectedCompanyForLogs?.companyName || 'Asociado'}`}
       />
     </>
   );

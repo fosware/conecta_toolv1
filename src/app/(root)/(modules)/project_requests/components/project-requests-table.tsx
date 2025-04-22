@@ -213,7 +213,7 @@ export function ProjectRequestsTable({
   };
 
   if (loading) {
-    return <TableSkeleton columns={7} rows={5} />;
+    return <TableSkeleton columns={8} rows={5} />;
   }
 
   return (
@@ -240,16 +240,17 @@ export function ProjectRequestsTable({
               <TableHead className="w-[50px]"></TableHead>
               <TableHead>Título</TableHead>
               <TableHead>Cliente</TableHead>
-              <TableHead>Área</TableHead>
+              <TableHead>Contacto</TableHead>
               <TableHead>Fecha de petición</TableHead>
+              <TableHead>Estado</TableHead>
               {showActiveColumn && <TableHead>Activo</TableHead>}
-              <TableHead className="text-center">Acciones</TableHead>
+              <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center">
+                <TableCell colSpan={8} className="text-center">
                   <div className="flex items-center justify-center py-4">
                     <Loader2 className="h-6 w-6 animate-spin" />
                   </div>
@@ -257,7 +258,7 @@ export function ProjectRequestsTable({
               </TableRow>
             ) : tableData.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center">
+                <TableCell colSpan={8} className="h-24 text-center">
                   No hay solicitudes de proyectos disponibles.
                 </TableCell>
               </TableRow>
@@ -286,10 +287,24 @@ export function ProjectRequestsTable({
                       </Button>
                     </TableCell>
                     <TableCell>{item.title}</TableCell>
-                    <TableCell>{item.clientArea.client.name}</TableCell>
-                    <TableCell>{item.clientArea.name}</TableCell>
+                    <TableCell>{item.clientArea?.client?.name || "No especificado"}</TableCell>
+                    <TableCell>
+                      {item.clientArea?.contactName || "No especificado"}
+                    </TableCell>
                     <TableCell>
                       {formatDateForDisplay(item.requestDate || item.createdAt)}
+                    </TableCell>
+                    <TableCell>
+                      <span className={`text-sm ${
+                        item.statusId === 17 ? "text-blue-600" : 
+                        item.statusId === 18 ? "text-indigo-600" : 
+                        item.statusId === 19 ? "text-yellow-600" : 
+                        item.statusId === 20 ? "text-orange-600" : 
+                        item.statusId === 21 ? "text-red-600" : 
+                        item.statusId === 22 ? "text-green-600" : "text-gray-600"
+                      }`}>
+                        {item.status?.name || "No definido"}
+                      </span>
                     </TableCell>
                     {showActiveColumn && (
                       <TableCell>
@@ -355,7 +370,7 @@ export function ProjectRequestsTable({
                   {expandedId === item.id && selectedRequestDetails && (
                     <TableRow>
                       <TableCell
-                        colSpan={showActiveColumn ? 7 : 6}
+                        colSpan={showActiveColumn ? 8 : 7}
                         className="p-0 border-t-0"
                       >
                         <div className="px-4">
