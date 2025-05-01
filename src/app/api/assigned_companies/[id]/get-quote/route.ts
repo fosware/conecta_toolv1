@@ -55,7 +55,7 @@ export async function GET(
     // Devolver la respuesta con el código de estado 200 (OK)
     return NextResponse.json({ quotation }, { status: 200 });
   } catch (error) {
-    console.error("Error en GET /api/assigned_companies/[id]/get-quote:", error);
+    // Eliminar console.error para mejorar el rendimiento
     return NextResponse.json(
       { error: "Error al obtener la cotización" },
       { status: 500 }

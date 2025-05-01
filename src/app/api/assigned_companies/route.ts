@@ -184,7 +184,7 @@ export async function GET(request: NextRequest) {
       items,
     });
   } catch (error) {
-    console.error("Error en GET /api/assigned_companies:", error);
+    // Eliminar el console.error para mejorar el rendimiento
     return NextResponse.json(
       { error: "Error al obtener las empresas asignadas" },
       { status: 500 }

@@ -148,10 +148,22 @@ npx prisma db push
 npm run prisma:seed
 ```
 
+- Cambiar versión de Node.js:
+```bash
+nvm use 18
+```
+
 - Actualizar dependencias:
 ```bash
 npm i --legacy-peer-deps
 ```
+
+- Reiniciar el servidor:
+```bash
+pm2 restart conecta_tool --update-env
+```
+
+
 
 ## 🗄️ Estructura del Proyecto
 

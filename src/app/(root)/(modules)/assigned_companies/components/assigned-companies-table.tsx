@@ -107,7 +107,7 @@ export function AssignedCompaniesTable({
       window.URL.revokeObjectURL(url);
       window.document.body.removeChild(a);
     } catch (error) {
-      console.error("Error downloading quotation:", error);
+      // Eliminar console.error y mantener solo el toast para el usuario
       toast.error("Error al descargar la cotización");
     } finally {
       setDownloadingQuote(null);

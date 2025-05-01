@@ -84,14 +84,10 @@ export default function AssignedCompaniesPage() {
         }
       );
 
-      // Imprimir en consola para depuración
-      console.log("Total de registros cargados:", items.length);
-      console.log("Registros después de filtrar:", filteredItems.length);
-
       setData(filteredItems);
       setFilteredData(filteredItems);
     } catch (error) {
-      console.error("Error loading data:", error);
+      toast.error("Error al cargar los datos");
     } finally {
       if (showLoading) {
         setLoading(false);
@@ -176,8 +172,6 @@ export default function AssignedCompaniesPage() {
       ? (item.requirements[0].requirementName || item.requirements[0].name || "Requerimiento")
       : (item.ProjectRequest.requirement || "Requerimiento general");
 
-    console.log(`Abriendo bitácora para: Proyecto=${item.ProjectRequest.id}, Compañía=${item.Company.id}, Requerimiento=${requirementId}`);
-    
     setSelectedCompanyForLogs({
       companyId: item.Company.id,
       requirementId: requirementId,
@@ -216,7 +210,7 @@ export default function AssignedCompaniesPage() {
         setSelectedRequestDetails(null);
       }
     } catch (error) {
-      console.error("Error deleting item:", error);
+      toast.error("Error al eliminar el elemento");
     }
   };
 

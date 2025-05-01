@@ -159,7 +159,7 @@ export async function POST(
       { status: 200 }
     );
   } catch (error) {
-    console.error("Error en POST /api/assigned_companies/[id]/upload-quote:", error);
+    // Eliminar console.error para mejorar el rendimiento
     return NextResponse.json(
       { error: "Error al procesar la solicitud" },
       { status: 500 }

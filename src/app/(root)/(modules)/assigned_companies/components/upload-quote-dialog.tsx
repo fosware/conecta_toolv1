@@ -158,7 +158,6 @@ export function UploadQuoteDialog({
         }
       }
     } catch (error) {
-      console.error("Error loading existing quote:", error);
       toast.error("Error al cargar la cotización existente");
     } finally {
       setLoading(false);
@@ -333,7 +332,6 @@ export function UploadQuoteDialog({
       handleReset();
       onSuccess();
     } catch (error: any) {
-      console.error("Error uploading quote:", error);
       toast.error(error.message || "Error al subir la cotización");
     } finally {
       setUploading(false);
