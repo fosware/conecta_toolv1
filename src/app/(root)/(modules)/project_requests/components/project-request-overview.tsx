@@ -876,6 +876,48 @@ export default function ProjectRequestOverview({
                           </div>
                         )}
                       </div>
+                      <div className="flex space-x-1">
+                        {onManageSpecialties && (
+                          <Button
+                            variant="ghost"
+                            onClick={() => {
+                              // Asegurarse de que el objeto requirement incluya el projectRequestId
+                              const requirementWithProjectId = {
+                                ...requirement,
+                                projectRequestId: data.id,
+                              };
+                              onManageSpecialties(
+                                requirementWithProjectId as ProjectRequirement
+                              );
+                            }}
+                            title="Gestionar especialidades"
+                            className="h-8 px-2 flex items-center gap-1"
+                          >
+                            <Award className="h-4 w-4  text-amber-500" />
+                            <span className="text-xs">Especialidades</span>
+                          </Button>
+                        )}
+                        {onManageCertifications && (
+                          <Button
+                            variant="ghost"
+                            onClick={() => {
+                              // Asegurarse de que el objeto requirement incluya el projectRequestId
+                              const requirementWithProjectId = {
+                                ...requirement,
+                                projectRequestId: data.id,
+                              };
+                              onManageCertifications(
+                                requirementWithProjectId as ProjectRequirement
+                              );
+                            }}
+                            title="Gestionar certificaciones"
+                            className="h-8 px-2 flex items-center gap-1"
+                          >
+                            <Medal className="h-4 w-4  text-blue-500" />
+                            <span className="text-xs">Certificaciones</span>
+                          </Button>
+                        )}
+                      </div>
                     </div>
 
                     {/* Especialidades del requerimiento */}
@@ -1441,12 +1483,10 @@ export default function ProjectRequestOverview({
             </div>
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel
-              onClick={() => setRejectDialogOpen(false)}
-            >
+            <AlertDialogCancel onClick={() => setRejectDialogOpen(false)}>
               Cancelar
             </AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={handleRejectClientQuotation}
               disabled={!rejectionReason.trim() || approvingClientQuotation}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
