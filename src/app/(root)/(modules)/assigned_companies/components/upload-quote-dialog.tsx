@@ -54,7 +54,7 @@ interface UploadQuoteDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   item: AssignedCompany;
-  onSuccess: () => void;
+  onSuccess: (updatedItem?: any) => void;
 }
 
 export function UploadQuoteDialog({
@@ -324,13 +324,21 @@ export function UploadQuoteDialog({
         throw new Error(errorData.error || "Error al subir la cotización");
       }
 
-      toast.success(
-        existingQuotation
-          ? "Cotización actualizada correctamente"
-          : "Cotización subida correctamente"
-      );
-      handleReset();
+      const responseData = await response.json();
+    
+    toast.success(
+      existingQuotation
+        ? "Cotización actualizada correctamente"
+        : "Cotización subida correctamente"
+    );
+    handleReset();
+    
+    // Pasar el ID del item actualizado a la función onSuccess para actualización optimista
+    if (responseData.updatedItemId) {
+      onSuccess(responseData.updatedItemId);
+    } else {
       onSuccess();
+    }
     } catch (error: any) {
       toast.error(error.message || "Error al subir la cotización");
     } finally {
@@ -364,7 +372,7 @@ export function UploadQuoteDialog({
               {existingQuotation ? "Editar Cotización" : "Subir Cotización"}
             </DialogTitle>
             <DialogDescription className="mb-2">
-              {item.Company?.comercialName || item.Company?.name || "N/A"}
+              {item.Company?.comercialName || item.Company?.companyName || "N/A"}
             </DialogDescription>
 
             {/* Información de solicitud y requerimientos */}
@@ -372,9 +380,7 @@ export function UploadQuoteDialog({
               <div className="text-left">
                 <h3 className="font-semibold text-foreground">Solicitud</h3>
                 <div className="text-sm">
-                  {item.ProjectRequest?.title ||
-                    item.ProjectRequest?.name ||
-                    "N/A"}
+                  {item.ProjectRequest?.title || "N/A"}
                 </div>
               </div>
               <div className="text-left">
@@ -382,8 +388,8 @@ export function UploadQuoteDialog({
                   Requerimientos
                 </h3>
                 <div className="text-sm">
-                  {item.requirements && item.requirements.length > 0
-                    ? `${item.requirements.map((req) => req.name).join(", ")}`
+                  {item.ProjectRequirements 
+                    ? item.ProjectRequirements.requirementName || "Sin requerimientos"
                     : "Sin requerimientos"}
                 </div>
               </div>

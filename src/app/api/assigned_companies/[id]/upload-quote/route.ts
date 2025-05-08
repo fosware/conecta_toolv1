@@ -154,8 +154,14 @@ export async function POST(
       });
     }
 
+    // Simplemente devolvemos el ID de la cotización actualizada
+    // El frontend se encargará de obtener los datos actualizados
     return NextResponse.json(
-      { message: "Cotización guardada correctamente", quotation },
+      { 
+        message: "Cotización guardada correctamente", 
+        quotation,
+        updatedItemId: parsedId  // Solo devolvemos el ID para que el frontend actualice
+      },
       { status: 200 }
     );
   } catch (error) {

@@ -9,8 +9,8 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    // Extraer el ID correctamente según las mejores prácticas de Next.js
-    const id = await params.id;
+    // Extraer el ID correctamente según las mejores prácticas de Next.js 15
+    const { id } = await params;
     const parsedId = parseInt(id);
 
     if (isNaN(parsedId)) {

@@ -65,12 +65,13 @@ export default function AssignedCompaniesPage() {
 
       const result = await response.json();
       // Filtrar elementos eliminados (esto debería hacerse en el backend, pero por si acaso)
-      const filteredItems = result.items.filter((item: any) => {
-        // Verificar que no esté eliminado y tenga información de la solicitud de proyecto
-        if (item.isActive === false) return false;
-        if (!item.ProjectRequest) return false;
-        return true;
-      });
+      const filteredItems = result.items.filter((item: any) => item.isActive !== false);
+          // Verificar que tenga información de la solicitud de proyecto
+          if (!item.ProjectRequest) return false;
+
+          return true;
+        }
+      );
 
       setData(filteredItems);
       setFilteredData(filteredItems);
@@ -98,37 +99,18 @@ export default function AssignedCompaniesPage() {
       const detailedItem = responseData.items?.[0] || null;
       
       if (detailedItem) {
-        // Asegurarnos de preservar la información de ProjectRequirements
-        // y no perder datos importantes durante la actualización
-        const preservedItem = {
-          ...detailedItem,
-          // Asegurarnos de que ProjectRequirements contenga toda la información necesaria
-          ProjectRequirements: {
-            ...(detailedItem.ProjectRequirements || {}),
-            // Si hay especialidades en el detalle, usarlas; de lo contrario, mantener las existentes
-            specialties: detailedItem.ProjectRequirements?.RequirementSpecialty?.map((rs: any) => ({
-              id: rs.id,
-              specialty: rs.specialty,
-              scope: rs.scope,
-              subScope: rs.subScope,
-              observations: rs.observations
-            })) || []
-          }
-        };
-        
         // Actualizar el estado con los detalles completos
-        setSelectedRequestDetails(preservedItem);
+        setSelectedRequestDetails(detailedItem);
         
-        // Actualizar el item en el array de datos para mantener la coherencia
-        // pero preservando la estructura de los datos de requerimientos
+        // También actualizar el item en el array de datos para mantener la coherencia
         const updatedData = data.map(item => 
-          item.id === id ? preservedItem : item
+          item.id === id ? { ...item, ...detailedItem } : item
         );
         setData(updatedData);
         
-        // Actualizar también los datos filtrados
+        // Actualizar también los datos filtrados si es necesario
         const updatedFilteredData = filteredData.map(item => 
-          item.id === id ? preservedItem : item
+          item.id === id ? { ...item, ...detailedItem } : item
         );
         setFilteredData(updatedFilteredData);
       } else {

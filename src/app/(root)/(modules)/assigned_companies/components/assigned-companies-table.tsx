@@ -64,6 +64,9 @@ export function AssignedCompaniesTable({
   const [selectedItem, setSelectedItem] = useState<AssignedCompany | null>(
     null
   );
+  
+  // Obtener el item expandido de los datos
+  const expandedItem = data.find(item => item.id === expandedId);
 
   const handleDownloadQuote = async (item: AssignedCompany) => {
     try {
@@ -191,6 +194,28 @@ export function AssignedCompaniesTable({
         return (
           <CheckSquare className="w-3 h-3 text-green-500 dark:text-green-400 mr-1" />
         );
+      case 7: // Cotización enviada
+        return (
+          <FileText className="w-3 h-3 text-blue-500 dark:text-blue-400 mr-1" />
+        );
+      // Cotización rechazada por el Cliente - puede ser ID 8, 12 o cualquier otro
+      case 8:
+      case 12:
+      case 15:
+        return (
+          <span className="text-red-600 dark:text-red-500 mr-1 font-bold text-base">
+            ✗
+          </span>
+        );
+      // Cotización aprobada por el Cliente - puede ser ID 9, 10, 11, 14 o cualquier otro
+      case 9:
+      case 10:
+      case 11:
+      case 14:
+      case 16:
+        return (
+          <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400 mr-1" />
+        );
       default:
         return (
           <CheckCircle2 className="w-3 h-3 text-gray-500 dark:text-gray-400 mr-1" />
@@ -198,21 +223,20 @@ export function AssignedCompaniesTable({
     }
   };
 
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return "N/A";
+  const formatDate = (dateValue?: Date | string) => {
+    if (!dateValue) return "N/A";
     try {
-      const d = new Date(dateString);
-      if (isNaN(d.getTime())) throw new Error("Invalid date");
-
-      return d.toLocaleDateString("es-ES", {
-        day: "2-digit",
-        month: "2-digit",
+      const date = typeof dateValue === 'string' ? new Date(dateValue) : dateValue;
+      if (isNaN(date.getTime())) return "N/A";
+      
+      return date.toLocaleDateString("es-MX", {
         year: "numeric",
-        timeZone: "UTC", // Forzar interpretación UTC
+        month: "2-digit",
+        day: "2-digit",
+        timeZone: "UTC", // Evitar problemas de zona horaria
       });
     } catch (error) {
-      console.error("Error formatting date:", dateString, error);
-      return "Fecha inválida";
+      return "N/A";
     }
   };
 
@@ -226,10 +250,39 @@ export function AssignedCompaniesTable({
     setUploadQuoteDialogOpen(true);
   };
 
-  const handleQuoteUploaded = () => {
+  const handleQuoteUploaded = async (updatedItemId?: number) => {
     // Recargar los datos sin mostrar el indicador de carga
     if (onRefreshData) {
       onRefreshData(false);
+    }
+    
+    // Si tenemos el ID del item actualizado y es el mismo que está expandido actualmente
+    if (updatedItemId && expandedId === updatedItemId) {
+      // Primero, actualizar optimistamente el estado del item en la UI
+      // Esto mostrará inmediatamente que la cotización está disponible
+      const updatedItem = data.find(item => item.id === updatedItemId);
+      if (updatedItem && updatedItem.status) {
+        // Si el estado es menor a 5 (cotización disponible), actualizarlo a 5
+        if (updatedItem.status.id < 5) {
+          // Esto es una actualización optimista, los datos reales vendrán con onRefreshData
+          toast.success("Cotización subida correctamente");
+        }
+      }
+      
+      // Simular un clic en el botón de bitácora para refrescar los datos de logs
+      // Usamos un timeout para asegurar que la UI se haya actualizado
+      setTimeout(() => {
+        const logsButton = document.querySelector(`[data-logs-button="${updatedItemId}"]`);
+        if (logsButton) {
+          (logsButton as HTMLButtonElement).click();
+        } else {
+          // Si no se encuentra el botón, intentar abrir los logs directamente
+          const item = data.find(i => i.id === updatedItemId);
+          if (item && onOpenLogs) {
+            onOpenLogs(item);
+          }
+        }
+      }, 500);
     }
   };
 
@@ -249,7 +302,10 @@ export function AssignedCompaniesTable({
     );
   }
 
-  const filteredData = data.filter((item) => !item.isDeleted);
+  // Filtrar los datos para mostrar solo los activos
+  const filteredData = data.filter(
+    (item) => item.isActive !== false
+  );
 
   return (
     <div className="rounded-md border">
@@ -284,32 +340,23 @@ export function AssignedCompaniesTable({
                     <ChevronRight className="h-4 w-4" />
                   )}
                 </TableCell>
-                <TableCell>
+                <TableCell className="py-2">
                   {item.ProjectRequest?.clientArea?.client?.name || "N/A"}
                 </TableCell>
-                <TableCell>
-                  {item.ProjectRequest?.clientArea?.areaName ||
-                    item.ProjectRequest?.clientArea?.name ||
-                    "N/A"}
+                <TableCell className="py-2">
+                  {item.ProjectRequest?.clientArea?.areaName || "N/A"}
                 </TableCell>
-                <TableCell>
-                  {item.ProjectRequest?.title ||
-                    item.ProjectRequest?.name ||
-                    "N/A"}
+                <TableCell className="py-2">
+                  {item.ProjectRequest?.title || "N/A"}
                 </TableCell>
-                <TableCell>
-                  {formatDate(
-                    item.ProjectRequest?.requestDate ||
-                      item.ProjectRequest?.createdAt
-                  )}
+                <TableCell className="py-2">
+                  {formatDate(item.createdAt)}
                 </TableCell>
-                <TableCell>
-                  {item.Company?.comercialName || item.Company?.name || "N/A"}
+                <TableCell className="py-2">
+                  {item.Company?.companyName || "N/A"}
                 </TableCell>
-                <TableCell>
-                  {item.requirements && item.requirements.length > 0
-                    ? item.requirements.map((req) => req.name).join(", ")
-                    : "N/A"}
+                <TableCell className="py-2">
+                  {item.ProjectRequirements?.requirementName || item.requirementName || "N/A"}
                 </TableCell>
                 <TableCell>
                   {item.status && (
@@ -354,21 +401,24 @@ export function AssignedCompaniesTable({
                     <Button
                       variant="ghost"
                       size="icon"
-                      title="Bitácora"
+                      title="Ver bitácora"
+                      data-logs-button={item.id}
                       onClick={(e) => {
                         e.stopPropagation();
                         onOpenLogs(item);
                       }}
-                      className="h-8 w-8 relative"
+                      className="h-8 w-8"
                     >
-                      <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                      {item.ProjectRequest?.id && item.Company?.id && item.requirements && item.requirements.length > 0 && (
-                        <UnreadIndicator 
-                          projectRequestId={item.ProjectRequest.id} 
-                          companyId={item.Company.id} 
-                          requirementId={item.requirements[0].id}
-                        />
-                      )}
+                      <div className="relative">
+                        <MessageSquare className="h-4 w-4" />
+                        {item.ProjectRequest?.id && item.companyId && item.projectRequirementsId && (
+                          <UnreadIndicator
+                            projectRequestId={item.ProjectRequest.id}
+                            companyId={item.companyId}
+                            requirementId={item.projectRequirementsId}
+                          />
+                        )}
+                      </div>
                     </Button>
                   </div>
                 </TableCell>
@@ -377,20 +427,30 @@ export function AssignedCompaniesTable({
               {expandedId === item.id && (
                 <TableRow className="bg-muted/30">
                   <TableCell colSpan={9} className="p-0 border-t-0">
-                    <div className="px-4">
-                      <div className="p-6 bg-card rounded-lg shadow-lg mt-4 mb-6">
-                        <div className="flex justify-between items-start mb-4">
-                          <div></div>{" "}
-                          {/* Espacio vacío para mantener la alineación */}
-                          {item.status && (
-                            <Badge
-                              className={`flex items-center space-x-1 border-0 pointer-events-none ${getStatusBadgeStyles(item.status.id)}`}
-                            >
-                              {getStatusIcon(item.status.id)}
-                              <span>{item.status.name}</span>
-                            </Badge>
-                          )}
+                    {expandedItem && 'loading' in expandedItem && expandedItem.loading ? (
+                      <div className="px-4">
+                        <div className="p-6 bg-card rounded-lg shadow-lg mt-4 mb-6 flex justify-center items-center">
+                          <div className="flex flex-col items-center space-y-2">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                            <p className="text-sm text-muted-foreground">Cargando detalles...</p>
+                          </div>
                         </div>
+                      </div>
+                    ) : (
+                      <div className="px-4">
+                        <div className="p-6 bg-card rounded-lg shadow-lg mt-4 mb-6">
+                          <div className="flex justify-between items-start mb-4">
+                            <div></div>{" "}
+                            {/* Espacio vacío para mantener la alineación */}
+                            {item.status && (
+                              <Badge
+                                className={`flex items-center space-x-1 border-0 pointer-events-none ${getStatusBadgeStyles(item.status.id)}`}
+                              >
+                                {getStatusIcon(item.status.id)}
+                                <span>{item.status.name}</span>
+                              </Badge>
+                            )}
+                          </div>
                         <div className="grid grid-cols-3 gap-4">
                           <div>
                             <h3 className="font-semibold mb-2 border-b p-1 text-center bg-slate-500 text-slate-100 dark:bg-slate-800">
@@ -399,138 +459,97 @@ export function AssignedCompaniesTable({
                             <div className="space-y-1 text-sm p-1">
                               <p>
                                 <span className="font-semibold">Cliente:</span>{" "}
-                                {item.ProjectRequest?.clientArea?.client
-                                  ?.name || "N/A"}
+                                {item.ProjectRequest?.clientArea?.client?.name ||
+                                  "N/A"}
                               </p>
                               <p>
                                 <span className="font-semibold">Área:</span>{" "}
-                                {item.ProjectRequest?.clientArea?.areaName ||
-                                  item.ProjectRequest?.clientArea?.name ||
-                                  "N/A"}
+                                {item.ProjectRequest?.clientArea?.areaName || "N/A"}
+                              </p>
+                              <p>
+                                <span className="font-semibold">Proyecto:</span>{" "}
+                                {item.ProjectRequest?.title || "N/A"}
                               </p>
                               <p>
                                 <span className="font-semibold">
-                                  Solicitud:
+                                  Fecha de Asignación:
                                 </span>{" "}
-                                {item.ProjectRequest?.title ||
-                                  item.ProjectRequest?.name ||
-                                  "N/A"}
+                                {formatDate(item.createdAt)}
                               </p>
                               <p>
                                 <span className="font-semibold">
-                                  Descripción:
+                                  Última Actualización:
                                 </span>{" "}
-                                {item.ProjectRequest?.description || "N/A"}
+                                {formatDate(item.updatedAt)}
                               </p>
                               <p>
                                 <span className="font-semibold">
                                   Fecha Solicitud:
                                 </span>{" "}
-                                {formatDate(
-                                  item.ProjectRequest?.requestDate ||
-                                    item.ProjectRequest?.createdAt
-                                )}
-                              </p>
-                              <p>
-                                <span className="font-semibold">
-                                  Observaciones:
-                                </span>{" "}
-                                {item.ProjectRequest?.observation ||
-                                  "Sin observaciones"}
+                                {formatDate(item.updatedAt)}
                               </p>
                             </div>
                           </div>
                           <div>
                             <h3 className="font-semibold mb-2 border-b p-1 text-center bg-slate-500 text-slate-100 dark:bg-slate-800">
-                              Detalles del Requerimiento
+                              Requerimientos
                             </h3>
                             <div className="space-y-1 text-sm p-1">
-                              {item.requirements &&
-                              item.requirements.length > 0 ? (
-                                item.requirements.map((req, index) => (
-                                  <div key={index} className="mb-4">
-                                    <p>
-                                      <span className="font-semibold">
-                                        Nombre:
-                                      </span>{" "}
-                                      {req.name || "N/A"}
-                                    </p>
-
-                                    {req.piecesNumber !== null && 
-                                     req.piecesNumber !== undefined && (
-                                      <p className="mt-1">
-                                        <span className="font-semibold">
-                                          Número de piezas:
-                                        </span>{" "}
-                                        {req.piecesNumber}
+                              {item.ProjectRequirements ? (
+                                <div className="mb-2 pb-2 border-b last:border-0">
+                                  <p className="font-medium">{item.ProjectRequirements.requirementName}</p>
+                                  
+                                  {/* Verificar si hay especialidades en el formato directo o en RequirementSpecialty */}
+                                  {(item.ProjectRequirements.specialties && item.ProjectRequirements.specialties.length > 0) ? (
+                                    <div className="mt-1">
+                                      <p className="text-xs font-semibold text-muted-foreground">
+                                        Especialidades:
                                       </p>
-                                    )}
-
-                                    {req.observation && (
-                                      <p className="mt-1">
-                                        <span className="font-semibold">
-                                          Observaciones:
-                                        </span>{" "}
-                                        {req.observation}
+                                      <ul className="list-disc pl-4 text-xs">
+                                        {item.ProjectRequirements.specialties.map(
+                                          (spec, idx) => (
+                                            <li key={idx}>
+                                              {spec.specialty?.name || "N/A"}
+                                            </li>
+                                          )
+                                        )}
+                                      </ul>
+                                    </div>
+                                  ) : ((item.ProjectRequirements as any).RequirementSpecialty && (item.ProjectRequirements as any).RequirementSpecialty.length > 0) ? (
+                                    <div className="mt-1">
+                                      <p className="text-xs font-semibold text-muted-foreground">
+                                        Especialidades:
                                       </p>
-                                    )}
-
-                                    {/* Certificaciones */}
-                                    {req.certifications &&
-                                      req.certifications.length > 0 && (
-                                        <div className="mt-2">
-                                          <p className="font-semibold">
-                                            Certificaciones:
-                                          </p>
-                                          <ul className="list-disc pl-5 mt-1">
-                                            {req.certifications.map(
-                                              (cert: any, idx: number) => (
-                                                <li key={idx}>
-                                                  {cert.certification?.name ||
-                                                    "N/A"}
-                                                  {cert.observation && (
-                                                    <p className="text-xs text-muted-foreground mt-1">
-                                                      <span className="font-semibold">
-                                                        Observación:
-                                                      </span>{" "}
-                                                      {cert.observation}
-                                                    </p>
-                                                  )}
-                                                </li>
-                                              )
-                                            )}
-                                          </ul>
-                                        </div>
-                                      )}
-
-                                    {/* Especialidades */}
-                                    {req.specialties &&
-                                      req.specialties.length > 0 && (
-                                        <div className="mt-2">
-                                          <p className="font-semibold">
-                                            Especialidades:
-                                          </p>
-                                          <ul className="list-disc pl-5 mt-1">
-                                            {req.specialties.map(
-                                              (spec: any, idx: number) => (
-                                                <li key={idx}>
-                                                  {spec.specialty?.name || "N/A"}
-                                                  {spec.observation && (
-                                                    <p className="text-xs text-muted-foreground mt-1">
-                                                      <span className="font-semibold">
-                                                        Observación:
-                                                      </span>{" "}
-                                                      {spec.observation}
-                                                    </p>
-                                                  )}
-                                                </li>
-                                              )
-                                            )}
-                                          </ul>
-                                        </div>
-                                      )}
-                                  </div>
-                                ))
+                                      <ul className="list-disc pl-4 text-xs">
+                                        {((item.ProjectRequirements as any).RequirementSpecialty as any[]).map(
+                                          (rs, idx) => (
+                                            <li key={idx}>
+                                              {rs.specialty?.name || "N/A"}
+                                            </li>
+                                          )
+                                        )}
+                                      </ul>
+                                    </div>
+                                  ) : null}
+                                  
+                                  {/* Mostrar certificaciones si están disponibles */}
+                                  {((item.ProjectRequirements as any).RequirementCertification && (item.ProjectRequirements as any).RequirementCertification.length > 0) ? (
+                                    <div className="mt-3">
+                                      <p className="text-xs font-semibold text-muted-foreground">
+                                        Certificaciones:
+                                      </p>
+                                      <ul className="list-disc pl-4 text-xs">
+                                        {((item.ProjectRequirements as any).RequirementCertification as any[]).map(
+                                          (cert, idx) => (
+                                            <li key={idx}>
+                                              {cert.certification?.name || "N/A"}
+                                            </li>
+                                          )
+                                        )}
+                                      </ul>
+                                    </div>
+                                  ) : null}
+                                </div>
                               ) : (
                                 <p className="text-muted-foreground">
                                   No hay requerimientos disponibles
@@ -578,6 +597,7 @@ export function AssignedCompaniesTable({
                         </div>
                       </div>
                     </div>
+                    )}
                   </TableCell>
                 </TableRow>
               )}

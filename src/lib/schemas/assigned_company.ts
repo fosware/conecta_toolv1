@@ -95,23 +95,49 @@ export interface Requirement {
 export interface AssignedCompany {
   id: number;
   companyId: number;
-  statusId?: number;
-  ndaFile?: string | null;
-  ndaFileName?: string | null;
-  ndaSignedFile?: string | null;
-  ndaSignedFileName?: string | null;
-  ndaSignedAt?: string | null;
+  Company: {
+    id: number;
+    companyName: string;
+    comercialName?: string;
+    contactName?: string;
+    email?: string;
+    phone?: string;
+  };
+  statusId: number;
+  status: {
+    id: number;
+    name: string;
+  };
+  ProjectRequest: {
+    id: number;
+    title: string;
+    clientArea: {
+      id: number;
+      areaName: string;
+      client: {
+        id: number;
+        name: string;
+      };
+    };
+  } | null;
+  ProjectRequirements: {
+    id: number;
+    requirementName: string;
+    specialties?: {
+      id: number;
+      specialty: {
+        id: number;
+        name: string;
+      };
+    }[];
+  };
+  requirementName?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+  loading?: boolean;
+  unreadMessagesCount?: number;
+  projectRequirementsId?: number;
   isActive?: boolean;
-  isDeleted?: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-  projectRequestId?: number;
-  
-  // Relaciones
-  Company?: Company;
-  status?: Status;
-  ProjectRequest?: ProjectRequest;
-  requirements?: Requirement[];
   Documents?: {
     id: number;
     projectRequestCompanyId: number;

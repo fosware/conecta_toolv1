@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserFromToken } from "@/lib/get-user-from-token";
 import { ProjectRequestLogsService } from "@/lib/services/project-request-logs";
-import { handleRouteParams } from "@/lib/route-params";
 
 /**
  * Endpoint para aprobar o rechazar una cotización por requerimiento
@@ -23,10 +22,9 @@ export async function POST(
       );
     }
 
-    // Obtener y validar el ID del proyecto
-    // Usar la utilidad para manejar los parámetros de ruta
-    const routeParams = handleRouteParams(params);
-    const projectRequestId = parseInt(routeParams.id);
+    // Obtener y validar el ID del proyecto según las mejores prácticas de Next.js 15
+    const { id } = await params;
+    const projectRequestId = parseInt(id);
     if (isNaN(projectRequestId)) {
       return NextResponse.json(
         { error: "ID de solicitud inválido" },
