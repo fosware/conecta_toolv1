@@ -5,7 +5,7 @@ export const SYSTEM_MESSAGES = {
   NDA_SIGNED: "NDA firmado por el asociado",
   TECHNICAL_DOCS_SENT: "Documentos técnicos enviados",
   QUOTATION_SENT: "Cotización enviada por el asociado",
-  QUOTATION_APPROVED: "Cotización aprobada",
+  QUOTATION_APPROVED: "Cotización revisada ok",
   QUOTATION_REJECTED: "No seleccionado",
   QUOTATION_NOT_SELECTED: "No seleccionado",
   QUOTATION_RESENT: "Cotización reenviada por el asociado",

@@ -37,6 +37,12 @@ interface ClientQuotationModalProps {
   onSuccess?: () => void;
 }
 
+interface QuotationSegment {
+  id: number;
+  estimatedDeliveryDate: string;
+  description: string;
+}
+
 interface CompanyQuotation {
   id: number;
   companyId: number;
@@ -51,6 +57,8 @@ interface CompanyQuotation {
   statusId: number;
   requirementId: number;
   requirementName: string;
+  additionalDetails: string | null;
+  segments: QuotationSegment[];
 }
 
 interface RequirementWithQuotations {
@@ -105,6 +113,8 @@ export function ClientQuotationModal({
     price: 0,
     clientPrice: null,
   });
+  
+
   const [clientName, setClientName] = useState<string>("");
 
   // Función para formatear número como moneda
@@ -130,6 +140,7 @@ export function ClientQuotationModal({
       (company) => approvalState[company.id]?.isApproved === true
     );
 
+    // Sumar los valores directamente sin manipulación
     const materialCost = selectedQuotations.reduce(
       (sum, company) => sum + (company.materialCost ?? 0),
       0
@@ -185,10 +196,16 @@ export function ClientQuotationModal({
     0
   );
 
-  // Registrar los valores para depuración
-  console.log("Estado de aprobación:", approvalState);
-  console.log("Cotizaciones seleccionadas:", allSelectedQuotations);
-  console.log("Precio total calculado:", totalPrice);
+  // Actualizar el estado de totales con los valores calculados
+  useEffect(() => {
+    setTotals({
+      materialCost: totalMaterialCost,
+      directCost: totalDirectCost,
+      indirectCost: totalIndirectCost,
+      price: totalPrice,
+      clientPrice: totals.clientPrice
+    });
+  }, [totalMaterialCost, totalDirectCost, totalIndirectCost, totalPrice]);
 
   const totalCost = totalMaterialCost + totalDirectCost + totalIndirectCost;
 
@@ -243,20 +260,29 @@ export function ClientQuotationModal({
 
   const loadData = async (showLoading = true) => {
     try {
+      // Solo mostrar loading en la carga inicial, no en refrescos
       if (showLoading) {
         setLoading(true);
       }
-
-      // Cargar información del proyecto para obtener el nombre del cliente
-      const projectResponse = await fetch(
-        `/api/project_requests/${projectRequestId}`,
-        {
+      
+      // Paralelizar las peticiones para mejorar el rendimiento
+      const [projectResponse, quotationsResponse] = await Promise.all([
+        // Petición 1: Cargar información del proyecto para obtener el nombre del cliente
+        fetch(`/api/project_requests/${projectRequestId}`, {
           headers: {
             Authorization: `Bearer ${getToken()}`,
           },
-        }
-      );
-
+        }),
+        
+        // Petición 2: Cargar cotizaciones para el cliente
+        fetch(`/api/project_requests/${projectRequestId}/client-quotation`, {
+          headers: {
+            Authorization: `Bearer ${getToken()}`,
+          },
+        })
+      ]);
+      
+      // Procesar la respuesta del proyecto
       if (projectResponse.ok) {
         const projectData = await projectResponse.json();
         if (projectData.client && projectData.client.name) {
@@ -265,30 +291,21 @@ export function ClientQuotationModal({
           setClientName(projectData.clientName);
         }
       }
-
-      // Cargar las cotizaciones de empresas seleccionadas
-      const companiesResponse = await fetch(
-        `/api/project_requests/${projectRequestId}/quotations/approved`,
-        {
-          headers: {
-            Authorization: `Bearer ${getToken()}`,
-          },
-        }
-      );
-
-      if (!companiesResponse.ok) {
+      
+      // Usar la respuesta de cotizaciones ya obtenida
+      if (!quotationsResponse.ok) {
         throw new Error("Error al cargar las cotizaciones aprobadas");
       }
 
-      const companiesData = await companiesResponse.json();
-      console.log("Datos de cotizaciones cargados:", companiesData);
+      const companiesData = await quotationsResponse.json();
+
 
       // Filtrar requerimientos que tienen al menos una cotización
       const requirementsWithData = companiesData.filter(
         (req: RequirementWithQuotations) =>
           req.quotations && req.quotations.length > 0
       );
-      console.log("Requerimientos con cotizaciones:", requirementsWithData);
+
 
       setRequirementsWithQuotations(requirementsWithData || []);
 
@@ -304,26 +321,21 @@ export function ClientQuotationModal({
 
       if (clientQuotationResponse.ok) {
         const clientQuotationData = await clientQuotationResponse.json();
-        console.log("Datos de cotización para cliente:", clientQuotationData);
+
 
         if (clientQuotationData.quotation) {
           setExistingQuotation(true);
 
-          // Guardar el nombre del archivo y mostrarlo en la consola para depuración
+          // Guardar el nombre del archivo
           const fileName =
             clientQuotationData.quotation.quotationFileName || null;
-          console.log("Nombre del archivo de cotización:", fileName);
-          console.log(
-            "Datos completos de la cotización:",
-            clientQuotationData.quotation
-          );
 
           // Asegurarse de que el nombre del archivo se establezca correctamente
           if (fileName) {
             setExistingFileName(fileName);
-            console.log("Nombre del archivo establecido:", fileName);
+
           } else {
-            console.warn("No se encontró nombre de archivo en la respuesta");
+
             setExistingFileName(null);
           }
 
@@ -966,6 +978,47 @@ export function ClientQuotationModal({
                                       </span>
                                     </div>
                                   </div>
+                                  
+                                  {/* Fechas de entrega y observaciones */}
+                                  {company.segments && company.segments.length > 0 && (
+                                    <div className="mt-3 border-t pt-3">
+                                      <h4 className="text-sm font-medium mb-2">Entregas:</h4>
+                                      <div className="space-y-2">
+                                        {company.segments.map((segment) => {
+                                          // Formatear la fecha para mostrarla en formato local
+                                          const date = new Date(segment.estimatedDeliveryDate);
+                                          const formattedDate = date.toLocaleDateString('es-MX', {
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric'
+                                          });
+                                          
+                                          return (
+                                            <div key={segment.id} className="bg-muted/10 p-2 rounded-sm">
+                                              <div className="flex flex-col md:flex-row md:gap-4">
+                                                <div className="md:w-1/3">
+                                                  <span className="text-xs text-muted-foreground block">Fecha de entrega:</span>
+                                                  <span className="text-sm font-medium">{formattedDate}</span>
+                                                </div>
+                                                <div className="md:w-2/3">
+                                                  <span className="text-xs text-muted-foreground block">Observaciones:</span>
+                                                  <span className="text-sm">{segment.description}</span>
+                                                </div>
+                                              </div>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  )}
+                                  
+                                  {/* Detalles adicionales */}
+                                  {company.additionalDetails && (
+                                    <div className="mt-3 border-t pt-3">
+                                      <h4 className="text-sm font-medium mb-1">Detalles adicionales:</h4>
+                                      <p className="text-sm">{company.additionalDetails}</p>
+                                    </div>
+                                  )}
 
                                   {/* Motivo de rechazo */}
                                   <div className="flex-1">
@@ -995,66 +1048,7 @@ export function ClientQuotationModal({
                             );
                           })}
 
-                          {/* Subtotales por requerimiento */}
-                          {req.quotations.some(
-                            (q) => approvalState[q.id]?.isApproved === true
-                          ) && (
-                            <div className="bg-muted/30 p-3 rounded-md mt-3">
-                              <div className="text-sm font-medium mb-2">
-                                Subtotal: {req.requirementName}
-                              </div>
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                <div>
-                                  <div className="text-xs text-muted-foreground">
-                                    Costo Material
-                                  </div>
-                                  <div className="font-medium">
-                                    {formatCurrency(
-                                      requirementTotals.find(
-                                        (r) => r.requirementId === req.id
-                                      )?.materialCost ?? 0
-                                    )}
-                                  </div>
-                                </div>
-                                <div>
-                                  <div className="text-xs text-muted-foreground">
-                                    Costo Directo
-                                  </div>
-                                  <div className="font-medium">
-                                    {formatCurrency(
-                                      requirementTotals.find(
-                                        (r) => r.requirementId === req.id
-                                      )?.directCost ?? 0
-                                    )}
-                                  </div>
-                                </div>
-                                <div>
-                                  <div className="text-xs text-muted-foreground">
-                                    Costo Indirecto
-                                  </div>
-                                  <div className="font-medium">
-                                    {formatCurrency(
-                                      requirementTotals.find(
-                                        (r) => r.requirementId === req.id
-                                      )?.indirectCost ?? 0
-                                    )}
-                                  </div>
-                                </div>
-                                <div>
-                                  <div className="text-xs text-muted-foreground">
-                                    Precio
-                                  </div>
-                                  <div className="font-medium">
-                                    {formatCurrency(
-                                      requirementTotals.find(
-                                        (r) => r.requirementId === req.id
-                                      )?.price ?? 0
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          )}
+                          {/* Eliminada la sección de Subtotal por requerimiento */}
                         </div>
                       ) : (
                         <div className="p-4 text-center text-muted-foreground">
@@ -1110,9 +1104,13 @@ export function ClientQuotationModal({
                     <span className="font-medium text-base">Costo Total:</span>
                     <span className="text-lg font-semibold">
                       {formatCurrency(
-                        totals.materialCost +
-                          totals.directCost +
-                          totals.indirectCost
+                        parseFloat(
+                          (
+                            totals.materialCost +
+                            totals.directCost +
+                            totals.indirectCost
+                          ).toFixed(2)
+                        )
                       )}
                     </span>
                   </div>

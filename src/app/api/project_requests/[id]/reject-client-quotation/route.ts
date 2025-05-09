@@ -60,14 +60,19 @@ export async function PUT(
 
     const requirementIds = requirements.map(req => req.id);
 
-    // Actualizar el estado de las cotizaciones que están en "En espera de aprobación" (ID 16)
-    // a "Cotización rechazada por el Cliente" (ID 12)
+    // Actualizar el estado de TODOS los asociados seleccionados a "Cotización rechazada por el Cliente" (ID 12)
+    // Esto incluye los que están en "En espera de aprobación" (ID 16) y los que ya fueron aprobados (ID 14)
+    // IMPORTANTE: La tabla ProjectRequestCompany es la misma que se usa en la vista de assigned_companies
+    // por lo que al actualizar aquí, se actualiza en ambas vistas
     const updatedCompanies = await prisma.projectRequestCompany.updateMany({
       where: {
         projectRequirementsId: {
           in: requirementIds,
         },
-        statusId: 16, // En espera de aprobación
+        // Actualizar solo los asociados que fueron seleccionados (están en espera de aprobación o ya aprobados)
+        statusId: {
+          in: [14, 16] // Cotización aprobada por el Cliente (14) o En espera de aprobación (16)
+        },
         isActive: true,
         isDeleted: false,
       },
@@ -75,6 +80,34 @@ export async function PUT(
         statusId: 12, // Cotización rechazada por el Cliente
       },
     });
+    
+    // Forzar una actualización en la tabla ProjectRequestCompany para asegurar que los cambios
+    // se reflejen en todas las vistas (project_requests y assigned_companies)
+    // Esto es necesario porque a veces hay problemas de caché o de sincronización
+    const updatedProjectRequestCompanies = await prisma.projectRequestCompany.findMany({
+      where: {
+        projectRequirementsId: {
+          in: requirementIds,
+        },
+        statusId: 12, // Cotización rechazada por el Cliente
+        isActive: true,
+        isDeleted: false,
+      },
+    });
+    
+    // Actualizar cada registro individualmente para forzar la actualización
+    for (const company of updatedProjectRequestCompanies) {
+      // Actualizar solo el timestamp para forzar la actualización
+      // El motivo de rechazo se guarda en los logs
+      await prisma.projectRequestCompany.update({
+        where: {
+          id: company.id
+        },
+        data: {
+          updatedAt: new Date() // Forzar actualización de timestamp
+        }
+      });
+    }
 
     // Obtener las compañías actualizadas para crear logs
     const companiesRejected = await prisma.projectRequestCompany.findMany({

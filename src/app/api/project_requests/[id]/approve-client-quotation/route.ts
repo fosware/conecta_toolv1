@@ -49,13 +49,16 @@ export async function PUT(
 
     const requirementIds = requirements.map(req => req.id);
 
-    // Actualizar el estado de las cotizaciones que están en "En espera de aprobación" (ID 16)
-    // a "Cotización aprobada por el cliente" (ID 14)
+    // Actualizar el estado de TODOS los asociados seleccionados a "Cotización aprobada por el cliente" (ID 14)
+    // Esto incluye los que están en "En espera de aprobación" (ID 16)
+    // IMPORTANTE: La tabla ProjectRequestCompany es la misma que se usa en la vista de assigned_companies
+    // por lo que al actualizar aquí, se actualiza en ambas vistas
     const updatedCompanies = await prisma.projectRequestCompany.updateMany({
       where: {
         projectRequirementsId: {
           in: requirementIds,
         },
+        // Actualizar solo los asociados que fueron seleccionados (están en espera de aprobación)
         statusId: 16, // En espera de aprobación
         isActive: true,
         isDeleted: false,
@@ -64,6 +67,32 @@ export async function PUT(
         statusId: 14, // Cotización aprobada por el cliente
       },
     });
+    
+    // Forzar una actualización en la tabla ProjectRequestCompany para asegurar que los cambios
+    // se reflejen en todas las vistas (project_requests y assigned_companies)
+    // Esto es necesario porque a veces hay problemas de caché o de sincronización
+    const updatedProjectRequestCompanies = await prisma.projectRequestCompany.findMany({
+      where: {
+        projectRequirementsId: {
+          in: requirementIds,
+        },
+        statusId: 14, // Cotización aprobada por el cliente
+        isActive: true,
+        isDeleted: false,
+      },
+    });
+    
+    // Actualizar cada registro individualmente para forzar la actualización
+    for (const company of updatedProjectRequestCompanies) {
+      await prisma.projectRequestCompany.update({
+        where: {
+          id: company.id
+        },
+        data: {
+          updatedAt: new Date(), // Forzar actualización de timestamp
+        }
+      });
+    }
 
     // Obtener las compañías actualizadas para crear logs
     const companiesApproved = await prisma.projectRequestCompany.findMany({

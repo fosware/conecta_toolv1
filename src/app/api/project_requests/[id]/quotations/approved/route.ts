@@ -3,6 +3,13 @@ import { prisma } from "@/lib/prisma";
 import { getToken } from "@/lib/auth";
 import { handleRouteParams } from "@/lib/route-params";
 
+// Definir la interfaz para los segmentos de cotización
+interface QuotationSegment {
+  id: number;
+  estimatedDeliveryDate: string;
+  description: string;
+}
+
 // Definir la interfaz para las cotizaciones formateadas
 interface FormattedQuotation {
   id: number;
@@ -19,6 +26,8 @@ interface FormattedQuotation {
   requirementId: number;
   requirementName: string;
   statusId: number;
+  additionalDetails: string | null;
+  segments: QuotationSegment[];
 }
 
 interface RequirementWithQuotations {
@@ -64,7 +73,7 @@ export async function GET(
       },
     });
 
-    console.log(`Requerimientos encontrados: ${requirements.length}`);
+    // Obtener cotizaciones de asociados seleccionados
 
     // Obtener todas las cotizaciones de asociados seleccionados con cotización enviada
     const quotations = await prisma.projectRequestCompany.findMany({
@@ -86,7 +95,21 @@ export async function GET(
             comercialName: true,
           },
         },
-        Quotation: true,
+        Quotation: {
+          include: {
+            QuotationSegment: {
+              where: {
+                isDeleted: false,
+                isActive: true
+              },
+              select: {
+                id: true,
+                estimatedDeliveryDate: true,
+                description: true
+              }
+            }
+          }
+        },
         ProjectRequirements: {
           select: {
             id: true,
@@ -96,12 +119,12 @@ export async function GET(
       },
     });
 
-    console.log(`Cotizaciones encontradas: ${quotations.length}`);
+
 
     // Filtrar solo las cotizaciones que tienen datos de cotización
     const filteredQuotations = quotations.filter(item => item.Quotation !== null);
 
-    console.log(`Cotizaciones con datos: ${filteredQuotations.length}`);
+
 
     // Transformar los datos para la respuesta
     const formattedQuotations: FormattedQuotation[] = filteredQuotations.map((item) => ({
@@ -122,6 +145,12 @@ export async function GET(
       requirementId: item.projectRequirementsId,
       requirementName: item.ProjectRequirements?.requirementName || "Sin nombre",
       statusId: item.statusId,
+      additionalDetails: item.Quotation?.additionalDetails || null,
+      segments: item.Quotation?.QuotationSegment?.map(segment => ({
+        id: segment.id,
+        estimatedDeliveryDate: segment.estimatedDeliveryDate.toISOString(),
+        description: segment.description
+      })) || []
     }));
 
     // Agrupar las cotizaciones por requerimiento
@@ -134,7 +163,7 @@ export async function GET(
     // Filtrar solo los requerimientos que tienen cotizaciones
     const filteredRequirements = requirementsWithQuotations.filter(req => req.quotations.length > 0);
 
-    console.log(`Requerimientos con cotizaciones: ${filteredRequirements.length}`);
+
 
     return NextResponse.json(filteredRequirements);
   } catch (error: any) {

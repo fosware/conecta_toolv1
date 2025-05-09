@@ -8,12 +8,10 @@ import {
   Building,
   Calendar,
   Check,
+  CheckCircle2,
   CheckSquare,
-  ChevronDown,
-  ChevronRight,
   ClipboardList,
   Clock,
-  DollarSign,
   Download,
   Eye,
   File,
@@ -35,6 +33,7 @@ import { Button } from "@/components/ui/button";
 import { ProjectRequestWithRelations } from "@/lib/schemas/project_request";
 import { TechnicalDocumentsDialog } from "./technical-documents-dialog";
 import { ClientQuotationModal } from "./client-quotation-modal";
+import { ViewQuotationDialog } from "./view-quotation-dialog";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -113,21 +112,76 @@ function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
+// Forzar valores exactos con 2 decimales para todos los cálculos
+const ensureExactNumber = (value: number): number => {
+  return parseFloat(value.toFixed(2));
+};
+
 // Función para obtener el icono según el estado
 function getStatusIcon(statusId: number) {
   switch (statusId) {
     case 1: // Pendiente
-      return <AlertCircle className="h-3 w-3" />;
+      return (
+        <Clock className="w-3 h-3 text-blue-500 dark:text-blue-400 mr-1" />
+      );
     case 2: // En proceso
-      return <AlertCircle className="h-3 w-3" />;
+      return (
+        <Users className="w-3 h-3 text-blue-500 dark:text-blue-400 mr-1" />
+      );
     case 3: // En espera de firma NDA
-      return <AlertCircle className="h-3 w-3" />;
+      return (
+        <FileText className="w-3 h-3 text-amber-500 dark:text-amber-400 mr-1" />
+      );
     case 4: // Firmado por Asociado
-      return <CheckSquare className="h-3 w-3" />;
-    case 5: // Rechazado
-      return <AlertCircle className="h-3 w-3" />;
+      return (
+        <CheckSquare className="w-3 h-3 text-purple-500 dark:text-purple-400 mr-1" />
+      );
+    case 5: // En espera de Documentos Técnicos
+      return (
+        <AlertCircle className="w-3 h-3 text-orange-500 dark:text-orange-400 mr-1" />
+      );
+    case 6: // Documentos técnicos enviados
+      return (
+        <CheckSquare className="w-3 h-3 text-green-500 dark:text-green-400 mr-1" />
+      );
+    case 7: // Cotización enviada
+      return (
+        <FileText className="w-3 h-3 text-blue-500 dark:text-blue-400 mr-1" />
+      );
+    // Cotización rechazada por el Cliente o No seleccionado
+    case 8:
+    case 12:
+      return (
+        <span className="text-red-600 dark:text-red-500 mr-1 font-bold text-base">
+          ✗
+        </span>
+      );
+    case 9: // Revisión Ok
+      return (
+        <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400 mr-1" />
+      );
+    case 10: // Finalizado
+      return (
+        <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400 mr-1" />
+      );
+    // Cotización enviada al Cliente
+    case 11:
+      return (
+        <Check className="w-4 h-4 text-green-600 dark:text-green-400 mr-1" />
+      );
+    // Cotizazión aprobada por el Cliente
+    case 14:
+      return (
+        <Check className="w-4 h-4 text-green-600 dark:text-green-400 mr-1" />
+      );
+    case 16: // En espera de aprobación
+      return (
+        <Clock className="w-3 h-3 text-amber-500 dark:text-amber-400 mr-1" />
+      );
     default:
-      return <AlertCircle className="h-3 w-3" />;
+      return (
+        <AlertCircle className="w-3 h-3 text-gray-500 dark:text-gray-400 mr-1" />
+      );
   }
 }
 
@@ -135,29 +189,35 @@ function getStatusIcon(statusId: number) {
 function getStatusBadgeStyles(statusId: number) {
   switch (statusId) {
     case 1: // Pendiente
-      return "bg-gray-50 text-gray-700";
+      return "bg-gray-50 text-gray-700 dark:bg-gray-800/50 dark:text-gray-300";
     case 2: // En proceso
-      return "bg-blue-50 text-blue-700";
+      return "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300";
     case 3: // En espera de firma NDA
-      return "bg-amber-50 text-amber-700";
+      return "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300";
     case 4: // Firmado por Asociado
-      return "bg-purple-50 text-purple-700";
+      return "bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300";
     case 5: // En espera de Documentos Técnicos
-      return "bg-red-50 text-red-700";
+      return "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300";
     case 6: // Documentos técnicos enviados
-      return "bg-blue-100 text-blue-800";
+      return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300";
     case 7: // Cotización enviada
       return "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300";
     case 8: // No seleccionado
-      return "bg-red-100 text-red-800";
+      return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300";
     case 9: // Revisión Ok
-      return "bg-green-100 text-green-800";
+      return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300";
     case 10: // Finalizado
-      return "bg-emerald-100 text-emerald-800";
+      return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300";
+    case 11: // Cotización enviada al Cliente
+      return "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300";
+    case 12: // Cotización rechazada por el Cliente
+      return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300";
+    case 14: // Cotización aprobada por el Cliente
+      return "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300";
     case 16: // En espera de aprobación
-      return "bg-amber-100 text-amber-800";
+      return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300";
     default:
-      return "bg-gray-50 text-gray-700";
+      return "bg-gray-50 text-gray-700 dark:bg-gray-800/50 dark:text-gray-300";
   }
 }
 
@@ -210,6 +270,12 @@ export default function ProjectRequestOverview({
     useState(false);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
+  const [viewQuotationOpen, setViewQuotationOpen] = useState(false);
+  const [selectedQuotationCompany, setSelectedQuotationCompany] =
+    useState<any>(null);
+  const [companiesWithQuotations, setCompaniesWithQuotations] = useState<{
+    [key: number]: boolean;
+  }>({});
 
   // Agregar estados faltantes
   const [downloadingQuote, setDownloadingQuote] = useState<number | null>(null);
@@ -378,6 +444,44 @@ export default function ProjectRequestOverview({
       setTimeout(() => {
         checkNdasForAllRequirements();
       }, 1200);
+    }
+  };
+
+  // Función para verificar qué asociados tienen cotizaciones
+  const checkQuotationsForCompanies = async () => {
+    try {
+      const quotationsMap: { [key: number]: boolean } = {};
+
+      // Recorrer todos los requerimientos y sus asociados
+      if (data.ProjectRequirements) {
+        for (const requirement of data.ProjectRequirements) {
+          if (
+            requirement.ProjectRequestCompany &&
+            requirement.ProjectRequestCompany.length > 0
+          ) {
+            for (const participant of requirement.ProjectRequestCompany) {
+              try {
+                // Verificar si existe una cotización para este asociado
+                const response = await fetch(
+                  `/api/assigned_companies/${participant.id}/quotation-info`
+                );
+
+                if (response.ok) {
+                  const data = await response.json();
+                  // Si hay datos de cotización, marcar como true
+                  quotationsMap[participant.id] = !!data;
+                }
+              } catch (error) {
+                console.error("Error checking quotation for company:", error);
+              }
+            }
+          }
+        }
+      }
+
+      setCompaniesWithQuotations(quotationsMap);
+    } catch (error) {
+      console.error("Error checking quotations:", error);
     }
   };
 
@@ -554,28 +658,35 @@ export default function ProjectRequestOverview({
           // La API devuelve la cotización en responseData.quotation
           const quotation = responseData.quotation;
 
-          // Calcular los totales basados en las empresas seleccionadas
-          let materialCostTotal = 0;
-          let directCostTotal = 0;
-          let indirectCostTotal = 0;
-          let priceTotal = 0;
+          // Ahora la API ya devuelve solo las cotizaciones aprobadas (isClientApproved = true)
+          // No es necesario filtrar en el cliente
+          const companies = responseData.selectedCompanies || [];
 
-          // Si hay empresas seleccionadas, calcular los totales
-          if (
-            responseData.selectedCompanies &&
-            responseData.selectedCompanies.length > 0
-          ) {
-            responseData.selectedCompanies.forEach((company: any) => {
-              materialCostTotal += company.materialCost || 0;
-              directCostTotal += company.directCost || 0;
-              indirectCostTotal += company.indirectCost || 0;
-              // Calcular el precio como la suma de los costos
-              priceTotal +=
-                (company.materialCost || 0) +
-                (company.directCost || 0) +
-                (company.indirectCost || 0);
-            });
-          }
+          // Calcular los totales usando las cotizaciones
+          // Usar exactamente el mismo método que en el modal
+          const materialCostTotal = companies.reduce(
+            (sum: number, company: { materialCost: number }) =>
+              sum + (company.materialCost || 0),
+            0
+          );
+
+          const directCostTotal = companies.reduce(
+            (sum: number, company: { directCost: number }) =>
+              sum + (company.directCost || 0),
+            0
+          );
+
+          const indirectCostTotal = companies.reduce(
+            (sum: number, company: { indirectCost: number }) =>
+              sum + (company.indirectCost || 0),
+            0
+          );
+
+          const priceTotal = companies.reduce(
+            (sum: number, company: { price: number }) =>
+              sum + (company.price || 0),
+            0
+          );
 
           setClientQuotationData({
             id: quotation.id,
@@ -605,12 +716,17 @@ export default function ProjectRequestOverview({
 
   // Cargar los datos de la cotización para cliente al montar el componente
   useEffect(() => {
-    if (data?.id) {
-      loadClientQuotationData();
-      // Verificar NDAs para todos los requerimientos al cargar la página
+    if (data) {
+      // Verificar NDAs para todos los requerimientos
       checkNdasForAllRequirements();
+
+      // Cargar datos de cotización para cliente
+      loadClientQuotationData();
+
+      // Verificar qué asociados tienen cotizaciones
+      checkQuotationsForCompanies();
     }
-  }, [data?.id]);
+  }, [data]);
 
   // Función para manejar el éxito al guardar la cotización para cliente
   const handleClientQuotationSuccess = () => {
@@ -745,6 +861,11 @@ export default function ProjectRequestOverview({
     } finally {
       setApprovingClientQuotation(false);
     }
+  };
+
+  const handleViewQuotation = (participant: any, requirementName: string) => {
+    setSelectedQuotationCompany({ ...participant, requirementName });
+    setViewQuotationOpen(true);
   };
 
   return (
@@ -1048,14 +1169,29 @@ export default function ProjectRequestOverview({
                                     </div>
                                   </div>
                                   <div className="flex flex-col items-end gap-2">
-                                    {participant.status && (
-                                      <Badge
-                                        className={`flex items-center space-x-1 border-0 pointer-events-none ${getStatusBadgeStyles(participant.status.id)}`}
-                                      >
-                                        {getStatusIcon(participant.status.id)}
-                                        <span>{participant.status.name}</span>
-                                      </Badge>
-                                    )}
+                                    {participant.status &&
+                                      (participant.status.id === 14 ? (
+                                        <div className="flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-green-50 text-green-700">
+                                          <Check className="w-4 h-4 mr-1 text-green-600" />
+                                          <span>{participant.status.name}</span>
+                                        </div>
+                                      ) : participant.status.id === 12 ||
+                                        participant.status.id === 8 ||
+                                        participant.status.id === 21 ? (
+                                        <div className="flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-red-100 text-red-800">
+                                          <span className="text-red-600 mr-1 font-bold text-base">
+                                            ✗
+                                          </span>
+                                          <span>{participant.status.name}</span>
+                                        </div>
+                                      ) : (
+                                        <Badge
+                                          className={`flex items-center space-x-1 border-0 pointer-events-none ${getStatusBadgeStyles(participant.status.id)}`}
+                                        >
+                                          {getStatusIcon(participant.status.id)}
+                                          <span>{participant.status.name}</span>
+                                        </Badge>
+                                      ))}
                                     {participant.status &&
                                       participant.status.id === 7 && (
                                         <Button
@@ -1132,33 +1268,47 @@ export default function ProjectRequestOverview({
                                       Documentos técnicos
                                     </span>
                                   </Button>
-                                  {participant.status &&
-                                    [7, 8, 9].includes(
-                                      participant.status.id
-                                    ) && (
+                                  {companiesWithQuotations[participant.id] && (
+                                    <div className="flex gap-2">
                                       <Button
                                         variant="outline"
                                         size="sm"
-                                        className="flex items-center gap-1"
+                                        onClick={() =>
+                                          handleViewQuotation(
+                                            participant,
+                                            requirement.requirementName
+                                          )
+                                        }
+                                        className="flex items-center space-x-1"
+                                      >
+                                        <Eye className="h-4 w-4 mr-1" />
+                                        <span>Ver Cotización</span>
+                                      </Button>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
                                         onClick={() =>
                                           handleDownloadQuote(participant)
                                         }
                                         disabled={
                                           downloadingQuote === participant.id
                                         }
+                                        className="flex items-center space-x-1"
                                       >
                                         {downloadingQuote === participant.id ? (
-                                          <Loader2 className="h-3 w-3 animate-spin" />
+                                          <>
+                                            <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                                            <span>Descargando...</span>
+                                          </>
                                         ) : (
-                                          <Download className="h-3 w-3" />
+                                          <>
+                                            <Download className="h-4 w-4 mr-1" />
+                                            <span>Descargar</span>
+                                          </>
                                         )}
-                                        <span className="text-xs">
-                                          {downloadingQuote === participant.id
-                                            ? "Descargando..."
-                                            : "Descargar cotización"}
-                                        </span>
                                       </Button>
-                                    )}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             )
@@ -1196,12 +1346,14 @@ export default function ProjectRequestOverview({
                   <span>
                     {data.statusId === 11 ? (
                       <Send className="h-4 w-4 text-purple-600" />
+                    ) : data.statusId === 21 ? (
+                      <X className="h-4 w-4 text-red-600" />
                     ) : (
-                      <Clock
+                      <CheckCircle2
                         className={`h-4 w-4 ${
                           data.statusId === 10
                             ? "text-blue-600"
-                            : data.statusId >= 12
+                            : data.statusId === 22
                               ? "text-green-600"
                               : "text-muted-foreground"
                         }`}
@@ -1215,9 +1367,11 @@ export default function ProjectRequestOverview({
                         ? "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
                         : data.statusId === 11
                           ? "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100"
-                          : data.statusId >= 12
-                            ? "bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
-                            : ""
+                          : data.statusId === 21
+                            ? "bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
+                            : data.statusId === 22
+                              ? "bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
+                              : ""
                     }
                   >
                     {data?.status?.name || `Estado ${data.statusId}`}
@@ -1296,9 +1450,11 @@ export default function ProjectRequestOverview({
                         </h4>
                         <p className="text-lg font-semibold">
                           {formatCurrency(
-                            (clientQuotationData?.totals?.materialCost || 0) +
-                              (clientQuotationData?.totals?.directCost || 0) +
-                              (clientQuotationData?.totals?.indirectCost || 0)
+                            ensureExactNumber(
+                              (clientQuotationData?.totals?.materialCost || 0) +
+                                (clientQuotationData?.totals?.directCost || 0) +
+                                (clientQuotationData?.totals?.indirectCost || 0)
+                            )
                           )}
                         </p>
                       </div>
@@ -1489,7 +1645,7 @@ export default function ProjectRequestOverview({
             <AlertDialogAction
               onClick={handleRejectClientQuotation}
               disabled={!rejectionReason.trim() || approvingClientQuotation}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-red-500 text-white hover:bg-red-600 font-medium"
             >
               {approvingClientQuotation ? (
                 <>
@@ -1517,6 +1673,22 @@ export default function ProjectRequestOverview({
         requirementName={selectedCompanyForLogs?.requirementName}
         title={`Bitácora - ${selectedCompanyForLogs?.companyName || "Asociado"}`}
       />
+
+      {/* Modal de visualización de cotización */}
+      {selectedQuotationCompany && (
+        <ViewQuotationDialog
+          open={viewQuotationOpen}
+          onOpenChange={setViewQuotationOpen}
+          companyId={selectedQuotationCompany.id}
+          companyName={
+            selectedQuotationCompany.Company?.companyName ||
+            selectedQuotationCompany.Company?.comercialName ||
+            "Asociado"
+          }
+          requirementId={selectedQuotationCompany.projectRequirementsId}
+          requirementName={selectedQuotationCompany.requirementName}
+        />
+      )}
     </>
   );
 }

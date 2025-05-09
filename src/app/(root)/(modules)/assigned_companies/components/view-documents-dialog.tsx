@@ -197,7 +197,7 @@ export function ViewDocumentsDialog({
           <DialogTitle>Documentos</DialogTitle>
           <DialogDescription>
             Documentos disponibles para{" "}
-            {item?.Company?.comercialName || item?.Company?.name || "N/A"}
+            {item?.Company?.comercialName || item?.Company?.companyName || "N/A"}
           </DialogDescription>
         </DialogHeader>
 

@@ -12,6 +12,7 @@ interface SelectedCompany {
   materialCost: number;
   directCost: number;
   indirectCost: number;
+  price: number;
 }
 
 // Obtener la cotización para cliente existente
@@ -58,30 +59,47 @@ export async function GET(
     });
 
     // Obtener las empresas participantes con sus cotizaciones
+    // Filtrar directamente en la base de datos para optimizar rendimiento
     const participatingCompanies = await prisma.projectRequestCompany.findMany({
       where: {
         ProjectRequirements: {
           projectRequestId: projectRequestId
+        },
+        // Asociados seleccionados (statusId >= 6 significa que fueron seleccionados)
+        statusId: {
+          gte: 6, // Status mayor o igual a 6 (seleccionado)
         },
         isActive: true,
         isDeleted: false,
       },
       include: {
         Company: true,
-        Quotation: true,
+        Quotation: {
+          where: {
+            isClientApproved: true
+          }
+        },
       },
     });
 
+    // Devolver todas las cotizaciones que tienen datos, sin filtrar por isClientApproved
+    // El filtrado se hará en el componente de overview para coincidir con el modal
     const selectedCompanies = participatingCompanies
       .filter(item => item.Quotation)
-      .map((item) => ({
-        id: item.id,
-        companyId: item.Company?.id || 0,
-        companyName: item.Company?.comercialName || "Empresa sin nombre",
-        materialCost: item.Quotation?.materialCost || 0,
-        directCost: item.Quotation?.directCost || 0,
-        indirectCost: item.Quotation?.indirectCost || 0,
-      }));
+      .map((item) => {
+        // Extraer los valores directamente de la base de datos sin manipulación
+        return {
+          id: item.id,
+          companyId: item.Company?.id || 0,
+          companyName: item.Company?.comercialName || "Empresa sin nombre",
+          materialCost: item.Quotation?.materialCost || 0,
+          directCost: item.Quotation?.directCost || 0,
+          indirectCost: item.Quotation?.indirectCost || 0,
+          price: item.Quotation?.price || 0,
+          isClientApproved: item.Quotation?.isClientApproved || false,
+          isClientSelected: item.Quotation?.isClientSelected || false,
+        };
+      });
 
     return NextResponse.json({
       quotation: clientQuotation,
