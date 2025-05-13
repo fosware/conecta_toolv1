@@ -310,16 +310,14 @@ export function ClientQuotationModal({
         }),
 
         // Petición 2: Cargar cotizaciones para el cliente
-        // Usamos el endpoint de quotations/approved que trae todas las cotizaciones aprobadas por Fosware
-        // sin filtrar por isClientApproved
-        fetch(`/api/project_requests/${projectRequestId}/quotations/approved`, {
+        fetch(`/api/project_requests/${projectRequestId}/client-quotation`, {
           headers: {
             Authorization: `Bearer ${getToken()}`,
           },
         }),
       ]);
       
-      console.log("Cargando cotizaciones desde /quotations/approved");
+      console.log("Cargando cotizaciones desde /client-quotation");
 
       // Procesar la respuesta del proyecto
       if (projectResponse.ok) {
@@ -336,101 +334,110 @@ export function ClientQuotationModal({
         throw new Error("Error al cargar las cotizaciones aprobadas");
       }
 
-      const quotationsData = await quotationsResponse.json();
-      console.log("Datos de cotizaciones recibidos:", quotationsData);
+      const clientQuotationData = await quotationsResponse.json();
+      console.log("Datos de cotizaciones recibidos:", clientQuotationData);
       
       // Preparar los datos para el componente
       let requirementsWithData: RequirementWithQuotations[] = [];
       
-      // El endpoint /quotations/approved devuelve un array de cotizaciones
-      if (Array.isArray(quotationsData)) {
-        console.log(`Encontradas ${quotationsData.length} cotizaciones`);
-        
-        // Agrupar las cotizaciones por requerimiento
-        const quotationsByRequirement: Record<number, RequirementWithQuotations> = {};
-        
-        quotationsData.forEach((quotation: ApiQuotation) => {
-          const reqId = quotation.requirementId;
-          
-          if (!quotationsByRequirement[reqId]) {
-            quotationsByRequirement[reqId] = {
-              id: reqId,
-              requirementName: quotation.requirementName,
-              quotations: []
-            };
-          }
-          
-          quotationsByRequirement[reqId].quotations.push({
-            id: quotation.id,
-            companyId: quotation.companyId,
-            companyName: quotation.companyName,
-            materialCost: quotation.materialCost || 0,
-            directCost: quotation.directCost || 0,
-            indirectCost: quotation.indirectCost || 0,
-            price: quotation.price || 0,
-            isClientSelected: quotation.isClientSelected || false,
-            isClientApproved: quotation.isClientApproved || false,
-            nonApprovalReason: quotation.nonApprovalReason || null,
-            statusId: quotation.statusId,
-            requirementId: quotation.requirementId,
-            requirementName: quotation.requirementName,
-            additionalDetails: quotation.additionalDetails || null,
-            segments: Array.isArray(quotation.segments) ? quotation.segments.map((segment: ApiSegment) => ({
-              id: segment.id || Math.random().toString(36).substr(2, 9), // Asegurar que cada segmento tenga un ID único
-              estimatedDeliveryDate: segment.estimatedDeliveryDate || new Date().toISOString(), // Valor predeterminado
-              description: segment.description || "" // Valor predeterminado
-            })) : [],
-          });
+      // Obtener los requerimientos desde la API
+      const requirements = await fetch(`/api/project_requests/${projectRequestId}/requirements`, {
+        headers: {
+          Authorization: `Bearer ${getToken()}`,
+        },
+      }).then(res => res.json());
+      
+      console.log("Requerimientos obtenidos:", requirements);
+      
+      // Obtener las cotizaciones aprobadas para cada requerimiento
+      const requirementsPromises = requirements.map(async (req: any) => {
+        const response = await fetch(`/api/project_requests/${projectRequestId}/requirements/${req.id}/quotations`, {
+          headers: {
+            Authorization: `Bearer ${getToken()}`,
+          },
         });
         
-        // Convertir el objeto a un array
-        requirementsWithData = Object.values(quotationsByRequirement);
-        console.log(`Agrupadas en ${requirementsWithData.length} requerimientos`);
-      } else if (quotationsData && typeof quotationsData === "object") {
-        // Si es un objeto con la estructura del endpoint client-quotation
-        if (
-          quotationsData.selectedCompanies &&
-          Array.isArray(quotationsData.selectedCompanies) &&
-          quotationsData.selectedCompanies.length > 0
-        ) {
-          console.log(`Encontradas ${quotationsData.selectedCompanies.length} empresas seleccionadas`);
-          
-          // Crear un formato compatible con lo que espera el componente
-          const requirement: RequirementWithQuotations = {
-            id: 1,
-            requirementName: "Requerimiento",
-            quotations: quotationsData.selectedCompanies.map(
-              (company: SelectedCompany) => ({
-                id: company.id,
-                companyId: company.companyId,
-                companyName: company.companyName,
-                materialCost: company.materialCost || 0,
-                directCost: company.directCost || 0,
-                indirectCost: company.indirectCost || 0,
-                price: company.price || 0,
-                isClientSelected: company.isClientSelected || false,
-                isClientApproved: company.isClientApproved || false,
-                nonApprovalReason: null,
-                statusId: 0,
-                requirementId: 1,
-                requirementName: "Requerimiento",
-                additionalDetails: null,
-                segments: [],
-              })
-            ),
-          };
-          requirementsWithData = [requirement];
+        if (!response.ok) {
+          console.error(`Error al obtener cotizaciones para el requerimiento ${req.id}`);
+          return null;
         }
+        
+        const quotations = await response.json();
+        console.log(`Cotizaciones para requerimiento ${req.id}:`, quotations);
+        
+        // Filtrar solo las cotizaciones aprobadas por Fosware
+        const approvedQuotations = quotations.filter((q: any) => q.statusId >= 6);
+        
+        if (approvedQuotations.length === 0) {
+          return null;
+        }
+        
+        return {
+          id: req.id,
+          requirementName: req.requirementName,
+          quotations: approvedQuotations.map((q: any) => ({
+            id: q.id,
+            companyId: q.companyId,
+            companyName: q.companyName,
+            materialCost: q.materialCost || 0,
+            directCost: q.directCost || 0,
+            indirectCost: q.indirectCost || 0,
+            price: q.price || 0,
+            isClientSelected: false, // Se actualizará más adelante si hay cotización existente
+            isClientApproved: false, // Se actualizará más adelante si hay cotización existente
+            nonApprovalReason: null,
+            statusId: q.statusId,
+            requirementId: req.id,
+            requirementName: req.requirementName,
+            additionalDetails: q.additionalDetails || null,
+            segments: q.segments || [],
+          })),
+        };
+      });
+      
+      // Esperar a que todas las promesas se resuelvan
+      const requirementsWithQuotations = await Promise.all(requirementsPromises);
+      
+      // Filtrar los requerimientos nulos (sin cotizaciones aprobadas)
+      requirementsWithData = requirementsWithQuotations.filter(Boolean) as RequirementWithQuotations[];
+      
+      console.log("Requerimientos con cotizaciones:", requirementsWithData);
+      
+      // Si hay cotización existente para cliente, actualizar el estado de selección/aprobación
+      if (clientQuotationData && clientQuotationData.selectedCompanies && clientQuotationData.selectedCompanies.length > 0) {
+        console.log("Hay cotización existente para cliente");
+        
+        // Crear un mapa de empresas seleccionadas para búsqueda rápida
+        const selectedCompaniesMap = new Map();
+        clientQuotationData.selectedCompanies.forEach((company: any) => {
+          selectedCompaniesMap.set(company.id, company);
+        });
+        
+        // Actualizar el estado de selección/aprobación en los requerimientos
+        requirementsWithData = requirementsWithData.map(req => ({
+          ...req,
+          quotations: req.quotations.map(quotation => {
+            const selectedCompany = selectedCompaniesMap.get(quotation.id);
+            if (selectedCompany) {
+              return {
+                ...quotation,
+                isClientSelected: true,
+                isClientApproved: selectedCompany.isClientApproved || false,
+                nonApprovalReason: selectedCompany.nonApprovalReason || null,
+              };
+            }
+            return quotation;
+          }),
+        }));
       }
 
       setRequirementsWithQuotations(requirementsWithData);
 
       // Cargar la cotización para cliente existente (si hay)
-      // Reutilizamos la respuesta de la API que ya tenemos en quotationsData
+      // Reutilizamos la respuesta de la API que ya tenemos en clientQuotationData
       // en lugar de hacer una nueva llamada al mismo endpoint
-      if (quotationsData && quotationsData.quotation) {
-        // Usamos directamente los datos de la primera llamada
-        const clientQuotationData = quotationsData;
+      if (clientQuotationData && clientQuotationData.quotation) {
+        // Ya tenemos los datos de la cotización
         setExistingQuotation(true);
 
         // Guardar el nombre del archivo
