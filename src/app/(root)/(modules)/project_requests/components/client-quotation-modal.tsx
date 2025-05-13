@@ -84,6 +84,9 @@ interface SelectedCompany {
   price?: number;
   isClientSelected?: boolean;
   isClientApproved?: boolean;
+  statusId?: number;
+  projectRequirementsId?: number;
+  quotationId?: number;
 }
 
 interface ApprovalItem {
@@ -277,6 +280,8 @@ export function ClientQuotationModal({
         setLoading(true);
       }
       
+      console.log("Cargando datos para el proyecto ID:", projectRequestId);
+      
       // Paralelizar las peticiones para mejorar el rendimiento
       const [projectResponse, quotationsResponse] = await Promise.all([
         // Petición 1: Cargar información del proyecto para obtener el nombre del cliente
@@ -297,60 +302,80 @@ export function ClientQuotationModal({
       // Procesar la respuesta del proyecto
       if (projectResponse.ok) {
         const projectData = await projectResponse.json();
+        console.log("Datos del proyecto recibidos:", projectData);
+        
         if (projectData.client && projectData.client.name) {
           setClientName(projectData.client.name);
         } else if (projectData.clientName) {
           setClientName(projectData.clientName);
         }
+      } else {
+        console.error("Error al cargar datos del proyecto:", projectResponse.status);
       }
       
       // Usar la respuesta de cotizaciones ya obtenida
       if (!quotationsResponse.ok) {
-        throw new Error("Error al cargar las cotizaciones aprobadas");
+        console.error("Error en la respuesta de cotizaciones:", quotationsResponse.status);
+        throw new Error("Error al cargar las cotizaciones");
       }
 
       const companiesData = await quotationsResponse.json();
-
+      console.log("Datos de cotizaciones recibidos:", companiesData);
 
       // Filtrar requerimientos que tienen al menos una cotización
-      let requirementsWithData = [];
+      let requirementsWithData: RequirementWithQuotations[] = [];
       
-      // Verificar si companiesData es un array antes de usar filter
-      if (Array.isArray(companiesData)) {
-        // Si es un array, usar filter directamente
-        requirementsWithData = companiesData.filter(
-          (req: RequirementWithQuotations) =>
-            req.quotations && req.quotations.length > 0
-        );
-      } else if (companiesData && typeof companiesData === 'object') {
-        // Si es un objeto, verificar si tiene una propiedad selectedCompanies que sea un array
-        if (companiesData.selectedCompanies && Array.isArray(companiesData.selectedCompanies) && companiesData.selectedCompanies.length > 0) {
-          // Crear un formato compatible con lo que espera el componente
-          const requirement: RequirementWithQuotations = {
-            id: 1,
-            requirementName: "Requerimiento",
-            quotations: companiesData.selectedCompanies.map((company: SelectedCompany) => ({
-              id: company.id,
-              companyId: company.companyId,
-              companyName: company.companyName,
-              materialCost: company.materialCost || 0,
-              directCost: company.directCost || 0,
-              indirectCost: company.indirectCost || 0,
-              price: company.price || 0,
-              isClientSelected: company.isClientSelected || false,
-              isClientApproved: company.isClientApproved || false,
-              nonApprovalReason: null,
-              statusId: 0,
-              requirementId: 1,
-              requirementName: "Requerimiento",
-              additionalDetails: null,
-              segments: []
-            }))
-          };
-          requirementsWithData = [requirement];
-        }
+      // Verificar si hay empresas seleccionadas en la respuesta
+      if (companiesData && companiesData.selectedCompanies && Array.isArray(companiesData.selectedCompanies)) {
+        console.log(`Se encontraron ${companiesData.selectedCompanies.length} empresas con cotizaciones`);
+        
+        // Agrupar las cotizaciones por requerimiento
+        const requirementGroups: Record<number, RequirementWithQuotations> = {};
+        
+        // Procesar cada empresa con su cotización
+        companiesData.selectedCompanies.forEach((company: SelectedCompany) => {
+          console.log(`Procesando cotización de empresa: ${company.companyName} (ID: ${company.id})`);
+          console.log(`Estado de la cotización: statusId=${company.statusId}, isClientApproved=${company.isClientApproved}`);
+          
+          // Usar el ID del requerimiento como clave, o 1 si no existe
+          const reqId = company.projectRequirementsId || 1;
+          
+          if (!requirementGroups[reqId]) {
+            requirementGroups[reqId] = {
+              id: reqId,
+              requirementName: "Requerimiento " + reqId,
+              quotations: []
+            };
+          }
+          
+          // Agregar la cotización al grupo correspondiente
+          requirementGroups[reqId].quotations.push({
+            id: company.id,
+            companyId: company.companyId,
+            companyName: company.companyName,
+            materialCost: company.materialCost || 0,
+            directCost: company.directCost || 0,
+            indirectCost: company.indirectCost || 0,
+            price: company.price || 0,
+            isClientSelected: company.isClientSelected || false,
+            isClientApproved: company.isClientApproved || false,
+            nonApprovalReason: null,
+            statusId: company.statusId || 0,
+            requirementId: reqId,
+            requirementName: "Requerimiento " + reqId,
+            additionalDetails: null,
+            segments: []
+          });
+        });
+        
+        // Convertir el objeto de grupos a un array
+        requirementsWithData = Object.values(requirementGroups);
+        console.log(`Datos agrupados en ${requirementsWithData.length} requerimientos`);
+      } else {
+        console.warn("No se encontraron cotizaciones en la respuesta");
       }
       
+      console.log("Requerimientos con cotizaciones:", requirementsWithData);
       setRequirementsWithQuotations(requirementsWithData);
 
       // Cargar la cotización para cliente existente (si hay)

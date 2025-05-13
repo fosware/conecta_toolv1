@@ -65,25 +65,19 @@ export async function GET(
         ProjectRequirements: {
           projectRequestId: projectRequestId
         },
-        // Asociados seleccionados (statusId >= 6 significa que fueron seleccionados)
-        statusId: {
-          gte: 6, // Status mayor o igual a 6 (seleccionado)
-        },
+        // No filtrar por statusId para incluir todos los asociados con cotizaciones
         isActive: true,
         isDeleted: false,
       },
       include: {
         Company: true,
-        Quotation: {
-          where: {
-            isClientApproved: true
-          }
-        },
+        // Incluir todas las cotizaciones sin filtrar por isClientApproved
+        Quotation: true,
       },
     });
 
-    // Devolver todas las cotizaciones que tienen datos, sin filtrar por isClientApproved
-    // El filtrado se hará en el componente de overview para coincidir con el modal
+    // Devolver todas las cotizaciones que tienen datos
+    // Incluir información adicional para ayudar en la depuración
     const selectedCompanies = participatingCompanies
       .filter(item => item.Quotation)
       .map((item) => {
@@ -98,6 +92,9 @@ export async function GET(
           price: item.Quotation?.price || 0,
           isClientApproved: item.Quotation?.isClientApproved || false,
           isClientSelected: item.Quotation?.isClientSelected || false,
+          statusId: item.statusId, // Incluir el estado para depuración
+          projectRequirementsId: item.projectRequirementsId, // Incluir el ID del requerimiento
+          quotationId: item.Quotation?.id // Incluir el ID de la cotización
         };
       });
 
