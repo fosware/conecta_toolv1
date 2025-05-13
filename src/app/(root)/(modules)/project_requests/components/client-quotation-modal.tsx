@@ -74,6 +74,18 @@ interface ApprovalState {
   };
 }
 
+interface SelectedCompany {
+  id: number;
+  companyId: number;
+  companyName: string;
+  materialCost?: number;
+  directCost?: number;
+  indirectCost?: number;
+  price?: number;
+  isClientSelected?: boolean;
+  isClientApproved?: boolean;
+}
+
 interface ApprovalItem {
   quotationId: number;
 }
@@ -301,13 +313,45 @@ export function ClientQuotationModal({
 
 
       // Filtrar requerimientos que tienen al menos una cotización
-      const requirementsWithData = companiesData.filter(
-        (req: RequirementWithQuotations) =>
-          req.quotations && req.quotations.length > 0
-      );
-
-
-      setRequirementsWithQuotations(requirementsWithData || []);
+      let requirementsWithData = [];
+      
+      // Verificar si companiesData es un array antes de usar filter
+      if (Array.isArray(companiesData)) {
+        // Si es un array, usar filter directamente
+        requirementsWithData = companiesData.filter(
+          (req: RequirementWithQuotations) =>
+            req.quotations && req.quotations.length > 0
+        );
+      } else if (companiesData && typeof companiesData === 'object') {
+        // Si es un objeto, verificar si tiene una propiedad selectedCompanies que sea un array
+        if (companiesData.selectedCompanies && Array.isArray(companiesData.selectedCompanies) && companiesData.selectedCompanies.length > 0) {
+          // Crear un formato compatible con lo que espera el componente
+          const requirement: RequirementWithQuotations = {
+            id: 1,
+            requirementName: "Requerimiento",
+            quotations: companiesData.selectedCompanies.map((company: SelectedCompany) => ({
+              id: company.id,
+              companyId: company.companyId,
+              companyName: company.companyName,
+              materialCost: company.materialCost || 0,
+              directCost: company.directCost || 0,
+              indirectCost: company.indirectCost || 0,
+              price: company.price || 0,
+              isClientSelected: company.isClientSelected || false,
+              isClientApproved: company.isClientApproved || false,
+              nonApprovalReason: null,
+              statusId: 0,
+              requirementId: 1,
+              requirementName: "Requerimiento",
+              additionalDetails: null,
+              segments: []
+            }))
+          };
+          requirementsWithData = [requirement];
+        }
+      }
+      
+      setRequirementsWithQuotations(requirementsWithData);
 
       // Cargar la cotización para cliente existente (si hay)
       const clientQuotationResponse = await fetch(
