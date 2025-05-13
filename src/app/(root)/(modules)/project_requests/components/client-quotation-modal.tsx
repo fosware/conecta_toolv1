@@ -766,12 +766,22 @@ export function ClientQuotationModal({
 
       formData.append("observations", observations);
 
+      // Obtener los IDs de las cotizaciones seleccionadas (aprobadas)
+      const selectedQuotationIds = requirementsWithQuotations
+        .flatMap((req) => req.quotations)
+        .filter((company) => approvalState[company.id]?.isApproved === true || company.isClientApproved)
+        .map((company) => company.id);
+
+      // Agregar los IDs de las cotizaciones seleccionadas al formData
+      formData.append("selectedQuotationIds", JSON.stringify(selectedQuotationIds));
+
       console.log("Enviando datos de cotización:", {
         clientPrice: formattedPrice,
         clientPriceOriginal: clientPrice,
         dateQuotationClient: currentDate,
         observations,
         hasFile: !!file,
+        selectedQuotationIds,
       });
 
       const response = await fetch(

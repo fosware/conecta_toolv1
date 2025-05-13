@@ -658,31 +658,38 @@ export default function ProjectRequestOverview({
           // La API devuelve la cotización en responseData.quotation
           const quotation = responseData.quotation;
 
-          // Ahora la API ya devuelve solo las cotizaciones aprobadas (isClientApproved = true)
-          // No es necesario filtrar en el cliente
+          // Obtener todas las cotizaciones disponibles
           const companies = responseData.selectedCompanies || [];
-
-          // Calcular los totales usando las cotizaciones
-          // Usar exactamente el mismo método que en el modal
-          const materialCostTotal = companies.reduce(
+          
+          // Filtrar solo las cotizaciones seleccionadas para el cliente para los cálculos de totales
+          // Esto no afecta la visualización de los asociados disponibles, solo los cálculos
+          const selectedCompanies = companies.filter(
+            (company: { isClientSelected: boolean }) => company.isClientSelected === true
+          );
+          
+          console.log("Cotizaciones disponibles:", companies.length);
+          console.log("Cotizaciones seleccionadas para totales:", selectedCompanies.length);
+          
+          // Calcular los totales usando SOLO las cotizaciones seleccionadas
+          const materialCostTotal = selectedCompanies.reduce(
             (sum: number, company: { materialCost: number }) =>
               sum + (company.materialCost || 0),
             0
           );
 
-          const directCostTotal = companies.reduce(
+          const directCostTotal = selectedCompanies.reduce(
             (sum: number, company: { directCost: number }) =>
               sum + (company.directCost || 0),
             0
           );
 
-          const indirectCostTotal = companies.reduce(
+          const indirectCostTotal = selectedCompanies.reduce(
             (sum: number, company: { indirectCost: number }) =>
               sum + (company.indirectCost || 0),
             0
           );
 
-          const priceTotal = companies.reduce(
+          const priceTotal = selectedCompanies.reduce(
             (sum: number, company: { price: number }) =>
               sum + (company.price || 0),
             0

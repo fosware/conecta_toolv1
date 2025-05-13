@@ -160,6 +160,19 @@ export async function POST(
 
     // Realizar operaciones en una transacción
     const result = await prisma.$transaction(async (tx) => {
+      // Obtener los IDs de las cotizaciones seleccionadas del formulario
+      const selectedQuotationIds = formData.get("selectedQuotationIds");
+      let selectedIds: number[] = [];
+      
+      if (selectedQuotationIds) {
+        try {
+          selectedIds = JSON.parse(selectedQuotationIds as string);
+          console.log("IDs de cotizaciones seleccionadas:", selectedIds);
+        } catch (error) {
+          console.error("Error al parsear los IDs de cotizaciones seleccionadas:", error);
+        }
+      }
+      
       // Obtener todas las cotizaciones de los participantes
       const participatingCompanies = await tx.projectRequestCompany.findMany({
         where: {
@@ -174,15 +187,18 @@ export async function POST(
         },
       });
 
-      // Marcar todas las cotizaciones como seleccionadas
+      // Actualizar el estado de selección de cada cotización
       for (const company of participatingCompanies) {
         if (company.Quotation) {
+          // Marcar como seleccionada solo si está en la lista de IDs seleccionados
+          const isSelected = selectedIds.includes(company.id);
+          
           await tx.projectRequestRequirementQuotation.update({
             where: {
               projectRequestCompanyId: company.id,
             },
             data: {
-              isClientSelected: true,
+              isClientSelected: isSelected,
             },
           });
         }
