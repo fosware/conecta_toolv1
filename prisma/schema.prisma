@@ -42,6 +42,12 @@ model User {
   ProjectRequestCompanyStatusLog     ProjectRequestCompanyStatusLog[]
   ClientCompanyNDA                   ClientCompanyNDA[]
   UserLogReadStatus                  UserLogReadStatus[]
+  ProjectStatus                      ProjectStatus[]
+  Project                            Project[]
+  ProjectCategory                    ProjectCategory[]
+  ProjectCategoryActivityStatus      ProjectCategoryActivityStatus[]
+  ProjectCategoryActivity            ProjectCategoryActivity[]
+  ProjectLog                         ProjectLog[]
 
   @@unique([email, isDeleted])
   @@unique([username, isDeleted])
@@ -539,6 +545,8 @@ model ProjectRequestCompany {
   Quotation                      ProjectRequestRequirementQuotation?
   Documents                      ProjectRequestRequirementDocuments[]
   ProjectRequestCompanyStatusLog ProjectRequestCompanyStatusLog[]
+  Project                        Project?                             @relation(fields: [projectId], references: [id])
+  projectId                      Int?
 
   @@index([isDeleted, isActive])
   @@map("d_project_request_companies")
@@ -676,4 +684,118 @@ model UserLogReadStatus {
   @@unique([userId, logId])
   @@index([userId, isRead])
   @@map("d_user_log_read_status")
+}
+
+//------------------------PROYECTO----------------------------------
+
+// Estatus de proyectos
+model ProjectStatus {
+  id                      Int                       @id @default(autoincrement())
+  name                    String                    @unique
+  description             String?
+  isActive                Boolean                   @default(true)
+  isDeleted               Boolean                   @default(false)
+  dateDeleted             DateTime?
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime                  @updatedAt
+  userId                  Int
+  user                    User                      @relation(fields: [userId], references: [id])
+  ProjectCategoryActivity ProjectCategoryActivity[]
+
+  @@map("d_project_status")
+}
+
+// Proyectos
+model Project {
+  id                    Int                     @id @default(autoincrement())
+  id_company            String                  @unique
+  id_project_request    String?
+  project_status        Boolean                 @default(true)
+  project_observations  String?
+  isDeleted             Boolean                 @default(false)
+  dateDeleted           DateTime?
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+  userId                Int
+  user                  User                    @relation(fields: [userId], references: [id])
+  ProjectRequestCompany ProjectRequestCompany[]
+
+  @@map("d_proyects")
+}
+
+// Categorias de proyecto
+model ProjectCategory {
+  id                      Int                       @id @default(autoincrement())
+  name                    String                    @unique
+  description             String?
+  isActive                Boolean                   @default(true)
+  isDeleted               Boolean                   @default(false)
+  dateDeleted             DateTime?
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime                  @updatedAt
+  userId                  Int
+  user                    User                      @relation(fields: [userId], references: [id])
+  ProjectCategoryActivity ProjectCategoryActivity[]
+  ProjectLog              ProjectLog[]
+
+  @@map("d_project_categories")
+}
+
+// Estatus actividades de categoria
+model ProjectCategoryActivityStatus {
+  id                      Int                       @id @default(autoincrement())
+  name                    String                    @unique
+  isActive                Boolean                   @default(true)
+  isDeleted               Boolean                   @default(false)
+  dateDeleted             DateTime?
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime                  @updatedAt
+  userId                  Int
+  user                    User                      @relation(fields: [userId], references: [id])
+  ProjectCategoryActivity ProjectCategoryActivity[]
+
+  @@map("d_project_category_activity_status")
+}
+
+// Actividades de categoría
+model ProjectCategoryActivity {
+  id                 Int       @id @default(autoincrement())
+  name               String    @unique
+  description        String?
+  projectCategoryId  Int
+  dateTentativeStart DateTime?
+  dateTentativeEnd   DateTime?
+  observations       String?
+  activityStatusId   Int
+  isActive           Boolean   @default(true)
+  isDeleted          Boolean   @default(false)
+  dateDeleted        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  userId             Int
+  user               User      @relation(fields: [userId], references: [id])
+  projectStatusId    Int?
+
+  activityStatus  ProjectCategoryActivityStatus @relation(fields: [activityStatusId], references: [id])
+  projectCategory ProjectCategory               @relation(fields: [projectCategoryId], references: [id])
+  ProjectStatus   ProjectStatus?                @relation(fields: [projectStatusId], references: [id])
+
+  @@map("d_project_category_activities")
+}
+
+// Bitacora de proyecto
+model ProjectLog {
+  id                Int             @id @default(autoincrement())
+  projectCategoryId Int
+  projectCategory   ProjectCategory @relation(fields: [projectCategoryId], references: [id])
+  dateTimeMessage   DateTime        @default(now())
+  message           String
+  isRead            Boolean         @default(false)
+  readAt            DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  userId            Int
+  user              User            @relation(fields: [userId], references: [id])
+
+  @@map("d_project_logs")
 }
