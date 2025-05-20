@@ -439,6 +439,7 @@ model ProjectRequirements {
   piecesNumber             Int?
   observation              String?
   statusId                 Int                        @default(1)
+  priority                 Int                        @default(1)
   status                   StatusProjectRequest       @relation(fields: [statusId], references: [id])
   isActive                 Boolean                    @default(true)
   isDeleted                Boolean                    @default(false)

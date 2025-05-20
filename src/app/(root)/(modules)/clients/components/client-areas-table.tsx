@@ -14,6 +14,20 @@ import React from "react";
 import { cn } from "@/lib/utils";
 import styles from "./client-areas-table.module.css";
 
+// Función para formatear números telefónicos en el formato XX-XXXX-XXXX
+const formatPhoneNumber = (phone: string | null | undefined): string => {
+  if (!phone) return "";
+  
+  // Eliminar cualquier caracter no numérico
+  const cleaned = phone.replace(/\D/g, "");
+  
+  // Verificar que tengamos 10 dígitos
+  if (cleaned.length !== 10) return phone;
+  
+  // Formatear como XX-XXXX-XXXX
+  return `${cleaned.slice(0, 2)}-${cleaned.slice(2, 6)}-${cleaned.slice(6, 10)}`;
+};
+
 // Componente TableRow personalizado sin hover para las áreas
 const TableRow = React.forwardRef<
   HTMLTableRowElement,
@@ -92,7 +106,7 @@ export const ClientAreasTable = ({
                 <TableCell className={compact ? "py-3" : ""}>{area.areaName}</TableCell>
                 <TableCell className={compact ? "py-3" : ""}>{area.contactName}</TableCell>
                 <TableCell className={compact ? "py-3" : ""}>{area.contactEmail}</TableCell>
-                <TableCell className={compact ? "py-3" : ""}>{area.contactPhone}</TableCell>
+                <TableCell className={compact ? "py-3" : ""}>{formatPhoneNumber(area.contactPhone)}</TableCell>
                 {!compact && onToggleStatus && (
                   <TableCell>
                     <Switch

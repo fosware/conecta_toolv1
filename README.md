@@ -150,7 +150,9 @@ npm run prisma:seed
 
 - Cambiar versión de Node.js:
 ```bash
-nvm use 18
+nvm install 24.0.2
+nvm use 24.0.2
+npm install -g npm@11.4.0
 ```
 
 - Actualizar dependencias:

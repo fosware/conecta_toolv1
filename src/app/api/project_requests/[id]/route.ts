@@ -145,10 +145,14 @@ export async function GET(
                 },
                 status: true,
               },
+              // Ordenar por fecha de creación ascendente para mantener el orden original
+              orderBy: {
+                createdAt: "asc",
+              } as any,
             },
           },
           orderBy: {
-            createdAt: 'desc',
+            priority: 'asc',
           } as any,
         },
       },

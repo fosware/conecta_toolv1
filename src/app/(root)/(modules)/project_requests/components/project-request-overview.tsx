@@ -65,6 +65,7 @@ interface ProjectRequirement {
   requirementName: string;
   piecesNumber?: number | null;
   observation?: string | null;
+  priority?: number;
   statusId: number;
   status: { id: number; name: string };
   isActive: boolean;
@@ -375,11 +376,20 @@ export default function ProjectRequestOverview({
     }
   };
 
-  // Extraer los requerimientos para facilitar su uso
-  const requirements =
-    (data?.ProjectRequirements?.filter(
+  // Extraer los requerimientos para facilitar su uso y ordenarlos por prioridad
+  const requirements = (() => {
+    // Filtrar requerimientos activos y no eliminados
+    const filtered = (data?.ProjectRequirements?.filter(
       (req) => req.isActive && !req.isDeleted
     ) as ProjectRequirement[]) || [];
+    
+    // Ordenar por prioridad (de menor a mayor)
+    return [...filtered].sort((a, b) => {
+      const priorityA = typeof a.priority === 'number' ? a.priority : 999;
+      const priorityB = typeof b.priority === 'number' ? b.priority : 999;
+      return priorityA - priorityB;
+    });
+  })();
 
   // Ejecutar la verificación de NDAs cuando cambian los requerimientos
   useEffect(() => {
@@ -967,7 +977,15 @@ export default function ProjectRequestOverview({
             {/* Contenedor para Requerimientos con sus especialidades, certificaciones y asociados */}
             <div className="border rounded-lg p-4 space-y-6">
               {requirements && requirements.length > 0 ? (
-                requirements.map((requirement, index) => (
+                // Ordenar los requerimientos por prioridad justo antes de renderizarlos
+                [...requirements]
+                  .sort((a, b) => {
+                    // Usar valores por defecto para requerimientos sin prioridad
+                    const priorityA = typeof a.priority === 'number' ? a.priority : 999;
+                    const priorityB = typeof b.priority === 'number' ? b.priority : 999;
+                    return priorityA - priorityB;
+                  })
+                  .map((requirement, index) => (
                   <div
                     key={index}
                     className="border-b pb-4 mb-4 last:border-b-0 last:pb-0 last:mb-0"
@@ -979,6 +997,11 @@ export default function ProjectRequestOverview({
                           <h4 className="text-base font-medium">
                             {requirement.requirementName}
                           </h4>
+                          {typeof requirement.priority === 'number' && (
+                            <Badge variant="outline" className="ml-2 bg-blue-50 text-blue-700 border-blue-200">
+                              Prioridad: {requirement.priority}
+                            </Badge>
+                          )}
                         </div>
 
                         {(requirement.piecesNumber ||

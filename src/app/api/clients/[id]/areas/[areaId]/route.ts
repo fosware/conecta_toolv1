@@ -5,10 +5,11 @@ import { handleRouteParams } from "@/lib/route-params";
 
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string; areaId: string } }
+  { params }: { params: Promise<{ id: string; areaId: string }> }
 ) {
   try {
-    const routeParams = handleRouteParams(params);
+    const paramsValue = await params;
+    const routeParams = handleRouteParams(paramsValue);
     const { id, areaId } = routeParams;
     const clientId = parseInt(id);
     const areaIdInt = parseInt(areaId);
@@ -59,10 +60,11 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string; areaId: string } }
+  { params }: { params: Promise<{ id: string; areaId: string }> }
 ) {
   try {
-    const routeParams = handleRouteParams(params);
+    const paramsValue = await params;
+    const routeParams = handleRouteParams(paramsValue);
     const { id, areaId } = routeParams;
     const clientId = parseInt(id);
     const areaIdInt = parseInt(areaId);
@@ -91,10 +93,11 @@ export async function DELETE(
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string; areaId: string } }
+  { params }: { params: Promise<{ id: string; areaId: string }> }
 ) {
   try {
-    const routeParams = handleRouteParams(params);
+    const paramsValue = await params;
+    const routeParams = handleRouteParams(paramsValue);
     const { id, areaId } = routeParams;
     const clientId = parseInt(id);
     const areaIdInt = parseInt(areaId);

@@ -56,6 +56,7 @@ const requirementFormSchema = z.object({
     .min(1, "El nombre del requerimiento es obligatorio"),
   piecesNumber: z.coerce.number().optional().nullable(),
   observation: z.string().optional(),
+  priority: z.coerce.number().min(1, "La prioridad debe ser al menos 1").default(1),
 });
 
 type RequirementFormValues = z.infer<typeof requirementFormSchema>;
@@ -67,6 +68,7 @@ interface Requirement {
   projectRequestId: number;
   piecesNumber?: number | null;
   observation?: string;
+  priority: number;
   isActive?: boolean;
   isDeleted?: boolean;
 }
@@ -107,6 +109,7 @@ export function ProjectRequestRequirementsModal({
       requirementName: "",
       piecesNumber: undefined,
       observation: "",
+      priority: 1,
     },
   });
 
@@ -117,12 +120,14 @@ export function ProjectRequestRequirementsModal({
         requirementName: requirementToEdit.requirementName,
         piecesNumber: requirementToEdit.piecesNumber,
         observation: requirementToEdit.observation || "",
+        priority: requirementToEdit.priority || 1,
       });
     } else if (!editMode) {
       form.reset({
         requirementName: "",
         piecesNumber: undefined,
         observation: "",
+        priority: 1,
       });
     }
   }, [editMode, requirementToEdit, form]);
@@ -196,6 +201,7 @@ export function ProjectRequestRequirementsModal({
             requirementName: values.requirementName,
             piecesNumber: values.piecesNumber,
             observation: values.observation,
+            priority: values.priority,
             projectRequestId: projectRequest.id,
           }),
         }
@@ -239,6 +245,7 @@ export function ProjectRequestRequirementsModal({
             requirementName: values.requirementName,
             piecesNumber: values.piecesNumber,
             observation: values.observation,
+            priority: values.priority,
           }),
         }
       );
@@ -263,6 +270,7 @@ export function ProjectRequestRequirementsModal({
         requirementName: "",
         piecesNumber: undefined,
         observation: "",
+        priority: 1,
       });
 
       // Llamar al callback de éxito para actualizar la vista principal sin necesidad de colapsar/expandir
@@ -390,29 +398,51 @@ export function ProjectRequestRequirementsModal({
                       )}
                     />
 
-                    <FormField
-                      control={form.control}
-                      name="piecesNumber"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Número de Piezas</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              placeholder="Ej: 10"
-                              {...field}
-                              value={
-                                field.value === null ||
-                                field.value === undefined
-                                  ? ""
-                                  : field.value
-                              }
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="piecesNumber"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Número de Piezas</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                placeholder="Ej: 10"
+                                {...field}
+                                value={
+                                  field.value === null ||
+                                  field.value === undefined
+                                    ? ""
+                                    : field.value
+                                }
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="priority"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Prioridad</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                min="1"
+                                placeholder="Ej: 1"
+                                {...field}
+                                value={field.value || 1}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
 
                     <FormField
                       control={form.control}
@@ -484,6 +514,7 @@ export function ProjectRequestRequirementsModal({
                     <Table>
                       <TableHeader>
                         <TableRow>
+                          <TableHead>Prioridad</TableHead>
                           <TableHead>Requerimiento</TableHead>
                           <TableHead>Piezas</TableHead>
                           <TableHead>Observación</TableHead>
@@ -493,8 +524,11 @@ export function ProjectRequestRequirementsModal({
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {requirements.map((req) => (
+                        {[...requirements]
+                          .sort((a, b) => (a.priority || 1) - (b.priority || 1))
+                          .map((req) => (
                           <TableRow key={req.id}>
+                            <TableCell className="font-medium">{req.priority || 1}</TableCell>
                             <TableCell>{req.requirementName}</TableCell>
                             <TableCell>{req.piecesNumber}</TableCell>
                             <TableCell>{req.observation}</TableCell>

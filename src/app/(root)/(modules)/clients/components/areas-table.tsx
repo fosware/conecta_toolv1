@@ -11,6 +11,20 @@ import { Pencil, Trash2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { type ClientArea } from "@/lib/schemas/client";
 
+// Función para formatear números telefónicos en el formato XX-XXXX-XXXX
+const formatPhoneNumber = (phone: string | null | undefined): string => {
+  if (!phone) return "";
+  
+  // Eliminar cualquier caracter no numérico
+  const cleaned = phone.replace(/\D/g, "");
+  
+  // Verificar que tengamos 10 dígitos
+  if (cleaned.length !== 10) return phone;
+  
+  // Formatear como XX-XXXX-XXXX
+  return `${cleaned.slice(0, 2)}-${cleaned.slice(2, 6)}-${cleaned.slice(6, 10)}`;
+};
+
 interface AreasTableProps {
   areas: ClientArea[];
   isLoading: boolean;
@@ -45,7 +59,7 @@ export const AreasTable = ({
               <TableCell>{area.areaName}</TableCell>
               <TableCell>{area.contactName}</TableCell>
               <TableCell>{area.contactEmail}</TableCell>
-              <TableCell>{area.contactPhone}</TableCell>
+              <TableCell>{formatPhoneNumber(area.contactPhone)}</TableCell>
               <TableCell>
                 <Switch
                   checked={area.isActive}

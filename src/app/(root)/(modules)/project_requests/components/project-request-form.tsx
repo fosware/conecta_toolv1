@@ -29,6 +29,12 @@ import {
 import { getToken } from "@/lib/auth";
 import { toast } from "sonner";
 
+// Definición de interfaces
+interface Client {
+  id: number;
+  name: string;
+}
+
 interface ClientArea {
   id: number;
   areaName: string;
@@ -57,9 +63,15 @@ export function ProjectRequestForm({
   validationErrors = [],
   onCancel,
 }: ProjectRequestFormProps) {
+  // Estados para manejar los datos y la UI
   const [clientAreas, setClientAreas] = useState<ClientArea[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [filteredAreas, setFilteredAreas] = useState<ClientArea[]>([]);
+  const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(false);
 
+  // Configuración del formulario
   const form = useForm<ProjectRequestCreate>({
     resolver: zodResolver(projectRequestCreateSchema),
     defaultValues: {
@@ -72,7 +84,7 @@ export function ProjectRequestForm({
     },
   });
 
-  // Cargar áreas de clientes
+  // Cargar datos de la API
   useEffect(() => {
     const loadClientAreas = async () => {
       try {
@@ -88,7 +100,25 @@ export function ProjectRequestForm({
         }
 
         const data = await response.json();
-        setClientAreas(data.items || []);
+        const areas: ClientArea[] = data.items || [];
+        setClientAreas(areas);
+
+        // Extraer clientes únicos de las áreas
+        const uniqueClients: Client[] = [];
+        const clientMap = new Map<number, boolean>();
+
+        areas.forEach((area: ClientArea) => {
+          if (!clientMap.has(area.client.id)) {
+            clientMap.set(area.client.id, true);
+            uniqueClients.push({
+              id: area.client.id,
+              name: area.client.name,
+            });
+          }
+        });
+
+        setClients(uniqueClients);
+        setDataLoaded(true);
       } catch (error) {
         console.error("Error:", error);
         toast.error("Error al cargar las áreas de clientes");
@@ -99,6 +129,21 @@ export function ProjectRequestForm({
 
     loadClientAreas();
   }, []);
+
+  // Inicializar selección cuando se cargan los datos o cambia initialData
+  useEffect(() => {
+    if (dataLoaded && initialData?.clientAreaId && clientAreas.length > 0) {
+      const selectedArea = clientAreas.find((area) => area.id === initialData.clientAreaId);
+      if (selectedArea) {
+        // Establecer el cliente seleccionado
+        setSelectedClientId(selectedArea.clientId);
+
+        // Filtrar áreas para mostrar solo las del cliente seleccionado
+        const filtered = clientAreas.filter((area) => area.clientId === selectedArea.clientId);
+        setFilteredAreas(filtered);
+      }
+    }
+  }, [dataLoaded, initialData, clientAreas]);
 
   // Aplicar errores de validación externos
   useEffect(() => {
@@ -142,50 +187,112 @@ export function ProjectRequestForm({
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="clientAreaId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Área del cliente</FormLabel>
-              <Select
-                onValueChange={(value) => field.onChange(parseInt(value))}
-                value={field.value?.toString()}
-                disabled={isSubmitting || loading}
-              >
-                <FormControl>
-                  <SelectTrigger className="min-h-[40px] py-2">
-                    <SelectValue placeholder="Seleccione un área de cliente" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent className="max-h-[300px]">
-                  {loading ? (
-                    <div className="flex items-center justify-center p-4">
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      <span>Cargando...</span>
-                    </div>
-                  ) : clientAreas.length === 0 ? (
-                    <div className="p-4 text-center text-sm">
-                      No hay áreas de clientes disponibles
-                    </div>
-                  ) : (
-                    clientAreas.map((area) => (
-                      <SelectItem
-                        key={area.id}
-                        value={area.id.toString()}
-                        className="py-3"
-                      >
-                        {area.client.name} - {area.areaName} -{" "}
-                        {area.contactName}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {/* Selección de Cliente */}
+        <div className="space-y-6">
+          <FormItem>
+            <FormLabel>Cliente</FormLabel>
+            <Select
+              onValueChange={(value) => {
+                const clientId = parseInt(value);
+                setSelectedClientId(clientId);
+
+                // Filtrar áreas por el cliente seleccionado
+                const filtered = clientAreas.filter((area) => area.clientId === clientId);
+                setFilteredAreas(filtered);
+
+                // Limpiar la selección de área si cambia el cliente
+                // Usamos 0 como valor temporal para evitar errores de tipo
+                // El formulario no se enviará con este valor ya que el Select estará vacío
+                form.setValue("clientAreaId", 0);
+              }}
+              value={selectedClientId?.toString() || ""}
+              disabled={isSubmitting || loading}
+            >
+              <FormControl>
+                <SelectTrigger className="min-h-[40px] py-2">
+                  <SelectValue placeholder="Seleccione un cliente" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent className="max-h-[300px]">
+                {loading ? (
+                  <div className="flex items-center justify-center p-4">
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    <span>Cargando...</span>
+                  </div>
+                ) : clients.length === 0 ? (
+                  <div className="p-4 text-center text-sm">
+                    No hay clientes disponibles
+                  </div>
+                ) : (
+                  clients.map((client) => (
+                    <SelectItem
+                      key={client.id}
+                      value={client.id.toString()}
+                      className="py-3"
+                    >
+                      {client.name}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+          </FormItem>
+
+          {/* Selección de Área del Cliente */}
+          <FormField
+            control={form.control}
+            name="clientAreaId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Área / Contacto</FormLabel>
+                <Select
+                  onValueChange={(value) => field.onChange(parseInt(value))}
+                  value={field.value?.toString() || ""}
+                  disabled={isSubmitting || loading || !selectedClientId}
+                >
+                  <FormControl>
+                    <SelectTrigger className="min-h-[40px] py-2">
+                      <SelectValue
+                        placeholder={
+                          selectedClientId
+                            ? "Seleccione un área/contacto"
+                            : "Primero seleccione un cliente"
+                        }
+                      />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent className="max-h-[300px]">
+                    {loading ? (
+                      <div className="flex items-center justify-center p-4">
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        <span>Cargando...</span>
+                      </div>
+                    ) : !selectedClientId ? (
+                      <div className="p-4 text-center text-sm">
+                        Primero seleccione un cliente
+                      </div>
+                    ) : filteredAreas.length === 0 ? (
+                      <div className="p-4 text-center text-sm">
+                        No hay áreas disponibles para este cliente
+                      </div>
+                    ) : (
+                      filteredAreas.map((area) => (
+                        <SelectItem
+                          key={area.id}
+                          value={area.id.toString()}
+                          className="py-3"
+                        >
+                          {area.areaName} - {area.contactName}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <FormField
           control={form.control}

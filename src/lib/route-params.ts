@@ -14,6 +14,12 @@ export function extractRouteId(params: any): string {
     return params;
   }
   
+  // Si params es una promesa, no intentar acceder a sus propiedades
+  // El llamante debe usar await antes de pasar params a esta función
+  if (params && typeof params === 'object' && typeof params.then === 'function') {
+    throw new Error('params debe ser esperado (await) antes de usar extractRouteId');
+  }
+  
   // Si params tiene una propiedad id, devolverla
   if (params && typeof params === 'object' && 'id' in params) {
     return String(params.id);
@@ -29,9 +35,22 @@ export function extractRouteId(params: any): string {
 }
 
 /**
- * Mantener esta función por compatibilidad con el código existente
- * @deprecated Usar extractRouteId en su lugar
+ * Función para manejar los parámetros de ruta en Next.js 15
+ * @param params Objeto de parámetros de ruta (ya esperado con await)
+ * @returns Objeto con los parámetros de ruta como strings
  */
 export function handleRouteParams<T extends Record<string, any>>(params: T): Record<string, string> {
-  return { id: extractRouteId(params) };
+  // Crear un objeto para almacenar todos los parámetros
+  const result: Record<string, string> = {};
+  
+  // Copiar todas las propiedades del objeto params
+  if (params && typeof params === 'object') {
+    for (const key in params) {
+      if (Object.prototype.hasOwnProperty.call(params, key)) {
+        result[key] = String(params[key]);
+      }
+    }
+  }
+  
+  return result;
 }

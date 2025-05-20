@@ -5,11 +5,11 @@ import { handleRouteParams } from "@/lib/route-params";
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const paramsValue = await params;
-    const routeParams = handleRouteParams(params);
+    const routeParams = handleRouteParams(paramsValue);
     const { id } = routeParams;
     const clientId = parseInt(id);
 
@@ -36,11 +36,11 @@ export async function GET(
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const paramsValue = await params;
-    const routeParams = handleRouteParams(params);
+    const routeParams = handleRouteParams(paramsValue);
     const { id } = routeParams;
     const clientId = parseInt(id);
     const body = await request.json();

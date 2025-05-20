@@ -21,6 +21,23 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { type ClientArea, clientAreaCreateSchema } from "@/lib/schemas/client";
 
+// Función para formatear números telefónicos en el formato XX-XXXX-XXXX para visualización
+const formatPhoneDisplay = (phone: string | null | undefined): string => {
+  if (!phone) return "";
+  
+  // Eliminar cualquier caracter no numérico
+  const cleaned = phone.replace(/\D/g, "");
+  
+  // Formatear de forma progresiva mientras el usuario escribe
+  if (cleaned.length <= 2) {
+    return cleaned;
+  } else if (cleaned.length <= 6) {
+    return `${cleaned.slice(0, 2)}-${cleaned.slice(2)}`;
+  } else {
+    return `${cleaned.slice(0, 2)}-${cleaned.slice(2, 6)}-${cleaned.slice(6, 10)}`;
+  }
+};
+
 interface AreaFormProps {
   isOpen: boolean;
   onClose: () => void;
@@ -159,12 +176,40 @@ export const AreaForm = ({
                   <FormControl>
                     <Input
                       placeholder="Teléfono del contacto"
-                      {...field}
                       disabled={isSubmitting}
-                      maxLength={10}
+                      maxLength={12} // Ajustado para el formato XX-XXXX-XXXX
+                      value={formatPhoneDisplay(field.value)}
                       onChange={(e) => {
-                        const value = e.target.value.replace(/[^0-9]/g, "");
-                        field.onChange(value);
+                        // Obtener la posición del cursor antes del cambio
+                        const cursorPosition = e.target.selectionStart || 0;
+                        
+                        // Obtener el valor actual y el nuevo valor
+                        const currentFormattedValue = formatPhoneDisplay(field.value);
+                        const newRawValue = e.target.value;
+                        
+                        // Eliminar caracteres no numéricos para almacenamiento
+                        const numericValue = newRawValue.replace(/[^0-9-]/g, "").replace(/-/g, "");
+                        
+                        // Limitar a 10 dígitos
+                        if (numericValue.length <= 10) {
+                          // Actualizar el valor en el formulario (solo números)
+                          field.onChange(numericValue);
+                          
+                          // Calcular el ajuste de posición del cursor debido al formateo
+                          // Si estamos agregando un guión, mover el cursor una posición adicional
+                          setTimeout(() => {
+                            // Determinar si se agregó un guión en la posición actual
+                            const newFormattedValue = formatPhoneDisplay(numericValue);
+                            const addedHyphen = 
+                              (numericValue.length === 2 && currentFormattedValue.length < newFormattedValue.length) ||
+                              (numericValue.length === 6 && currentFormattedValue.length < newFormattedValue.length);
+                            
+                            // Ajustar la posición del cursor si se agregó un guión
+                            if (addedHyphen && e.target.selectionStart) {
+                              e.target.setSelectionRange(cursorPosition + 1, cursorPosition + 1);
+                            }
+                          }, 0);
+                        }
                       }}
                     />
                   </FormControl>

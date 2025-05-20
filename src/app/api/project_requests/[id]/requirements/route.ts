@@ -12,6 +12,7 @@ const createRequirementSchema = z.object({
   projectRequestId: z.number().int().positive(),
   piecesNumber: z.number().int().optional().nullable(),
   observation: z.string().optional(),
+  priority: z.number().int().min(1).default(1),
 });
 
 // GET: Obtener todos los requerimientos de una solicitud de proyecto
@@ -87,9 +88,14 @@ export async function GET(
           },
         },
       },
-      orderBy: {
-        createdAt: "desc",
-      },
+      orderBy: [
+        {
+          priority: "asc",
+        },
+        {
+          id: "asc",
+        }
+      ],
     });
 
     return NextResponse.json({
@@ -163,6 +169,7 @@ export async function POST(
         projectRequestId: parsedId,
         piecesNumber: validationResult.data.piecesNumber,
         observation: validationResult.data.observation,
+        priority: validationResult.data.priority,
         userId: userId,
       },
     });

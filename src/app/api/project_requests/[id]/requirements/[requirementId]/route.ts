@@ -11,6 +11,7 @@ const updateRequirementSchema = z.object({
     .min(1, "El nombre del requerimiento es obligatorio"),
   piecesNumber: z.number().int().optional().nullable(),
   observation: z.string().optional(),
+  priority: z.number().int().min(1).default(1),
 });
 
 // PUT: Actualizar un requerimiento específico
@@ -73,6 +74,7 @@ export async function PUT(
         requirementName: validationResult.data.requirementName,
         piecesNumber: validationResult.data.piecesNumber,
         observation: validationResult.data.observation,
+        priority: validationResult.data.priority,
       },
     });
 

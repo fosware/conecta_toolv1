@@ -292,19 +292,13 @@ export function RequirementParticipantsModal({
       case "both": // Cumplen con ambos requisitos
         return matchesSpecialties && matchesCertifications;
       case "specialties": // Solo cumplen con especialidades
-        return (
-          matchesSpecialties &&
-          (totalCertifications === 0 || !matchesCertifications)
-        );
+        return matchesSpecialties;
       case "certifications": // Solo cumplen con certificaciones
-        return (
-          matchesCertifications &&
-          (totalSpecialties === 0 || !matchesSpecialties)
-        );
+        return matchesCertifications;
       case "none": // No cumplen con ninguno
         return (
-          (!matchesSpecialties || totalSpecialties === 0) &&
-          (!matchesCertifications || totalCertifications === 0)
+          (totalSpecialties > 0 && !matchesSpecialties) || 
+          (totalCertifications > 0 && !matchesCertifications)
         );
       default:
         return true;
@@ -439,7 +433,7 @@ export function RequirementParticipantsModal({
                       onClick={() => setFilterType("specialties")}
                       className="text-xs h-8"
                     >
-                      Solo especialidades
+                      Cumple con Especialidad
                     </Button>
                     <Button
                       variant={
@@ -449,7 +443,7 @@ export function RequirementParticipantsModal({
                       onClick={() => setFilterType("certifications")}
                       className="text-xs h-8"
                     >
-                      Solo certificaciones
+                      Cumple con Certificación
                     </Button>
                     <Button
                       variant={filterType === "none" ? "default" : "outline"}
