@@ -228,9 +228,9 @@ export function RequirementParticipantsModal({
         
         // Para depuración
         if (company.id === 1 || company.id === 2) {
-          console.log("Verificando NDA para empresa:", company.id, company.comercialName);
-          console.log("NDAs disponibles:", ndasData.ndaResults);
-          console.log("NDA encontrado:", nda);
+          // Verificar NDA para empresa
+          // NDAs disponibles
+          // NDA encontrado
         }
         
         const hasNDA = nda?.hasNDA || false;

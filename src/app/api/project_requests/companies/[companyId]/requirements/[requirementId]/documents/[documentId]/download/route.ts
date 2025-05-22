@@ -80,11 +80,12 @@ export async function GET(
     }
 
     // Obtener el documento
-    const document = await prisma.projectRequestRequirementDocuments.findFirst({
+    const document = await prisma.projectRequestDocuments.findFirst({
       where: {
         id: parsedDocumentId,
-        projectRequestCompanyId: association.id,
+        projectRequestId: requirementExists.projectRequestId,
         isDeleted: false,
+        isActive: true,
       },
     });
 

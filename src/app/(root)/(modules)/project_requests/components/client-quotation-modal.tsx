@@ -87,6 +87,7 @@ interface SelectedCompany {
   statusId?: number;
   projectRequirementsId?: number;
   quotationId?: number;
+  nonApprovalReason?: string | null;
 }
 
 interface ApprovalItem {
@@ -228,7 +229,7 @@ export function ClientQuotationModal({
   useEffect(() => {
     // Actualizar el precio al cliente siempre que cambie la selección de cotizaciones
     const formattedPrice = formatCurrency(totalPrice);
-    console.log("Actualizando precio al cliente a:", formattedPrice);
+    // Actualizar precio al cliente
     setClientPrice(formattedPrice);
   }, [totalPrice]);
 
@@ -245,7 +246,7 @@ export function ClientQuotationModal({
   // Inicializar el estado de aprobación cuando se cargan los datos
   useEffect(() => {
     if (requirementsWithQuotations.length > 0) {
-      console.log("Inicializando estado de aprobación con datos existentes");
+      // Inicializar estado de aprobación con datos existentes
 
       // Crear un nuevo objeto de estado de aprobación
       const newApprovalState: ApprovalState = {};
@@ -258,14 +259,10 @@ export function ClientQuotationModal({
             isApproved: company.isClientApproved,
             rejectionReason: company.nonApprovalReason || "",
           };
-
-          console.log(
-            `Inicializado: Cotización ${company.id} - ${company.companyName} - Aprobado: ${company.isClientApproved} - Motivo: ${company.nonApprovalReason || "N/A"}`
-          );
         });
       });
 
-      console.log("Estado de aprobación inicializado:", newApprovalState);
+      // Estado de aprobación inicializado
       setApprovalState(newApprovalState);
 
       // Calcular totales iniciales
@@ -280,7 +277,7 @@ export function ClientQuotationModal({
         setLoading(true);
       }
       
-      console.log("Cargando datos para el proyecto ID:", projectRequestId);
+      // Cargar datos para el proyecto
       
       // Paralelizar las peticiones para mejorar el rendimiento
       const [projectResponse, quotationsResponse] = await Promise.all([
@@ -302,7 +299,7 @@ export function ClientQuotationModal({
       // Procesar la respuesta del proyecto
       if (projectResponse.ok) {
         const projectData = await projectResponse.json();
-        console.log("Datos del proyecto recibidos:", projectData);
+        // Datos del proyecto recibidos
         
         if (projectData.client && projectData.client.name) {
           setClientName(projectData.client.name);
@@ -320,22 +317,22 @@ export function ClientQuotationModal({
       }
 
       const companiesData = await quotationsResponse.json();
-      console.log("Datos de cotizaciones recibidos:", companiesData);
+      // Datos de cotizaciones recibidos
 
       // Filtrar requerimientos que tienen al menos una cotización
       let requirementsWithData: RequirementWithQuotations[] = [];
       
       // Verificar si hay empresas seleccionadas en la respuesta
       if (companiesData && companiesData.selectedCompanies && Array.isArray(companiesData.selectedCompanies)) {
-        console.log(`Se encontraron ${companiesData.selectedCompanies.length} empresas con cotizaciones`);
+        // Procesar empresas con cotizaciones
         
         // Agrupar las cotizaciones por requerimiento
         const requirementGroups: Record<number, RequirementWithQuotations> = {};
         
         // Procesar cada empresa con su cotización
         companiesData.selectedCompanies.forEach((company: SelectedCompany) => {
-          console.log(`Procesando cotización de empresa: ${company.companyName} (ID: ${company.id})`);
-          console.log(`Estado de la cotización: statusId=${company.statusId}, isClientApproved=${company.isClientApproved}`);
+          // Procesar cotización de empresa
+          // Verificar estado de la cotización
           
           // Usar el ID del requerimiento como clave, o 1 si no existe
           const reqId = company.projectRequirementsId || 1;
@@ -359,7 +356,7 @@ export function ClientQuotationModal({
             price: company.price || 0,
             isClientSelected: company.isClientSelected || false,
             isClientApproved: company.isClientApproved || false,
-            nonApprovalReason: null,
+            nonApprovalReason: company.nonApprovalReason || null,
             statusId: company.statusId || 0,
             requirementId: reqId,
             requirementName: "Requerimiento " + reqId,
@@ -370,12 +367,12 @@ export function ClientQuotationModal({
         
         // Convertir el objeto de grupos a un array
         requirementsWithData = Object.values(requirementGroups);
-        console.log(`Datos agrupados en ${requirementsWithData.length} requerimientos`);
+        // Datos agrupados por requerimientos
       } else {
-        console.warn("No se encontraron cotizaciones en la respuesta");
+        console.error("No se encontraron cotizaciones en la respuesta");
       }
       
-      console.log("Requerimientos con cotizaciones:", requirementsWithData);
+      // Requerimientos con cotizaciones procesados
       setRequirementsWithQuotations(requirementsWithData);
 
       // Cargar la cotización para cliente existente (si hay)
@@ -423,7 +420,7 @@ export function ClientQuotationModal({
             const selectedIds = clientQuotationData.selectedCompanies.map(
               (c: any) => c.id
             );
-            console.log("IDs de empresas seleccionadas:", selectedIds);
+            // IDs de empresas seleccionadas
 
             // Actualizar correctamente el estado de requirementsWithQuotations
             setRequirementsWithQuotations((prevRequirements) => {
@@ -480,7 +477,7 @@ export function ClientQuotationModal({
 
   // Nueva función para manejar la aprobación/rechazo de cotizaciones
   const handleApprovalChange = (quotationId: number, isApproved: boolean) => {
-    console.log("Cambiando aprobación:", quotationId, isApproved);
+    // Cambiar estado de aprobación
 
     // Actualizar el estado de aprobación
     setApprovalState((prev) => {
@@ -505,17 +502,12 @@ export function ClientQuotationModal({
         })
       );
 
-      console.log(
-        "Cotizaciones seleccionadas después del cambio:",
-        newSelectedQuotations
-      );
-
       const newTotalPrice = newSelectedQuotations.reduce(
         (sum, company) => sum + (company.price ?? 0),
         0
       );
 
-      console.log("Nuevo precio total calculado:", newTotalPrice);
+      // Actualizar precio total
 
       // Actualizar el precio al cliente directamente
       setClientPrice(formatCurrency(newTotalPrice));
@@ -537,11 +529,9 @@ export function ClientQuotationModal({
 
   // Función para guardar las aprobaciones/rechazos de cotizaciones
   const saveApprovals = async () => {
-    console.log(
-      "Guardando aprobaciones/rechazos para todos los requerimientos"
-    );
-    console.log("Estado de aprobación actual:", approvalState);
-    console.log("Requerimientos con cotizaciones:", requirementsWithQuotations);
+    // Guardar aprobaciones/rechazos para todos los requerimientos
+    // Verificar estado de aprobación actual
+    // Verificar requerimientos con cotizaciones
 
     // Verificar que todas las cotizaciones tengan una decisión
     const pendingDecisions = requirementsWithQuotations.flatMap((req) =>
@@ -585,26 +575,18 @@ export function ClientQuotationModal({
 
       // Procesar todas las cotizaciones de todos los requerimientos
       requirementsWithQuotations.forEach((req) => {
-        console.log(
-          `Procesando requerimiento: ${req.id} - ${req.requirementName}`
-        );
+        // Procesar requerimiento
 
         req.quotations.forEach((company) => {
-          console.log(
-            `Procesando cotización: ${company.id} - ${company.companyName}`
-          );
+          // Procesar cotización
 
           // Obtener el estado actual de aprobación
           const currentApprovalState = approvalState[company.id]?.isApproved;
           const currentReason =
             approvalState[company.id]?.rejectionReason || "";
 
-          console.log(
-            `Estado actual: ${currentApprovalState}, Estado guardado: ${company.isClientApproved}`
-          );
-          console.log(
-            `Motivo actual: "${currentReason}", Motivo guardado: "${company.nonApprovalReason || ""}"`
-          );
+          // Verificar estado actual vs guardado
+          // Verificar motivo actual vs guardado
 
           // Siempre enviar el estado actual para todas las cotizaciones
           updates.push({
@@ -615,12 +597,12 @@ export function ClientQuotationModal({
         });
       });
 
-      console.log("Actualizaciones a enviar:", updates);
+      // Preparar actualizaciones para enviar
 
       // Enviar todas las actualizaciones en una sola llamada
       if (updates.length > 0) {
         try {
-          console.log("Enviando actualizaciones...");
+          // Enviar actualizaciones
           const response = await fetch(
             `/api/project_requests/${projectRequestId}/requirement-quotation-approval`,
             {
@@ -642,7 +624,7 @@ export function ClientQuotationModal({
             return false;
           }
 
-          console.log("Actualizaciones enviadas con éxito");
+          // Actualizaciones enviadas con éxito
 
           // Actualizar el estado local para reflejar los cambios
           setRequirementsWithQuotations((prevRequirements) => {
@@ -664,12 +646,12 @@ export function ClientQuotationModal({
               }),
             }));
 
-            console.log("Requerimientos actualizados:", updatedRequirements);
+            // Requerimientos actualizados
             return updatedRequirements;
           });
 
           // Recargar los datos para asegurar que tenemos la información más actualizada
-          console.log("Recargando datos...");
+          // Recargar datos
           await loadData(false);
 
           return true;
@@ -679,7 +661,7 @@ export function ClientQuotationModal({
           return false;
         }
       } else {
-        console.log("No hay cambios para enviar");
+        // No hay cambios para enviar
         return true;
       }
     } catch (error: any) {
@@ -717,12 +699,7 @@ export function ClientQuotationModal({
       ? parseFloat(clientPrice.replace(/[^0-9.]/g, ""))
       : 0;
 
-    console.log("Precio del cliente para validación:", {
-      original: clientPrice,
-      limpio: clientPriceValue,
-    });
-
-    // Validar que se haya ingresado un precio para el cliente
+    // Validar precio del cliente
     if (clientPriceValue <= 0) {
       toast.error("Debe ingresar un precio válido para el cliente");
       return;
@@ -775,15 +752,6 @@ export function ClientQuotationModal({
       // Agregar los IDs de las cotizaciones seleccionadas al formData
       formData.append("selectedQuotationIds", JSON.stringify(selectedQuotationIds));
 
-      console.log("Enviando datos de cotización:", {
-        clientPrice: formattedPrice,
-        clientPriceOriginal: clientPrice,
-        dateQuotationClient: currentDate,
-        observations,
-        hasFile: !!file,
-        selectedQuotationIds,
-      });
-
       const response = await fetch(
         `/api/project_requests/${projectRequestId}/client-quotation`,
         {
@@ -834,7 +802,7 @@ export function ClientQuotationModal({
 
   // Función para calcular los totales basados en las cotizaciones seleccionadas
   const calculateTotals = useCallback(() => {
-    console.log("Calculando totales basados en cotizaciones seleccionadas");
+    // Calcular totales basados en cotizaciones seleccionadas
 
     let totalMaterialCost = 0;
     let totalDirectCost = 0;
@@ -878,16 +846,6 @@ export function ClientQuotationModal({
       clientPrice: clientPrice
         ? parseFloat(clientPrice.replace(/[^0-9.]/g, ""))
         : totalPrice, // Mantener el precio al cliente si ya existe
-    });
-
-    console.log("Totales calculados:", {
-      materialCost: totalMaterialCost,
-      directCost: totalDirectCost,
-      indirectCost: totalIndirectCost,
-      price: totalPrice,
-      clientPrice: clientPrice
-        ? parseFloat(clientPrice.replace(/[^0-9.]/g, ""))
-        : totalPrice,
     });
   }, [requirementsWithQuotations, approvalState, clientPrice]);
 

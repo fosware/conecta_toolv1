@@ -92,6 +92,7 @@ export async function GET(
           price: item.Quotation?.price || 0,
           isClientApproved: item.Quotation?.isClientApproved || false,
           isClientSelected: item.Quotation?.isClientSelected || false,
+          nonApprovalReason: item.Quotation?.nonApprovalReason || null, // Incluir el motivo de rechazo
           statusId: item.statusId, // Incluir el estado para depuración
           projectRequirementsId: item.projectRequirementsId, // Incluir el ID del requerimiento
           quotationId: item.Quotation?.id // Incluir el ID de la cotización
@@ -167,7 +168,7 @@ export async function POST(
       if (selectedQuotationIds) {
         try {
           selectedIds = JSON.parse(selectedQuotationIds as string);
-          console.log("IDs de cotizaciones seleccionadas:", selectedIds);
+          // Procesar IDs de cotizaciones seleccionadas
         } catch (error) {
           console.error("Error al parsear los IDs de cotizaciones seleccionadas:", error);
         }

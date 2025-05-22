@@ -34,6 +34,7 @@ import { ProjectRequestWithRelations } from "@/lib/schemas/project_request";
 import { TechnicalDocumentsDialog } from "./technical-documents-dialog";
 import { ClientQuotationModal } from "./client-quotation-modal";
 import { ViewQuotationDialog } from "./view-quotation-dialog";
+import { ProjectRequestDocuments } from "./project-request-documents";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -677,8 +678,8 @@ export default function ProjectRequestOverview({
             (company: { isClientSelected: boolean }) => company.isClientSelected === true
           );
           
-          console.log("Cotizaciones disponibles:", companies.length);
-          console.log("Cotizaciones seleccionadas para totales:", selectedCompanies.length);
+          // Cotizaciones disponibles
+          // Cotizaciones seleccionadas para totales
           
           // Calcular los totales usando SOLO las cotizaciones seleccionadas
           const materialCostTotal = selectedCompanies.reduce(
@@ -759,9 +760,6 @@ export default function ProjectRequestOverview({
     companyName: string,
     requirementName: string
   ) => {
-    console.log(
-      `Abriendo modal de bitácora para Compañía=${companyId}, Requerimiento=${requirementId}`
-    );
     setSelectedCompanyForLogs({
       companyId,
       requirementId,
@@ -950,6 +948,12 @@ export default function ProjectRequestOverview({
               )}
             </div>
           </div>
+
+          {/* Fila 4: Documentos Técnicos */}
+          <ProjectRequestDocuments 
+            projectRequestId={data.id} 
+            onDocumentsChanged={onRefreshData}
+          />
 
           {/* Divisor */}
           <div className="border-t border-gray-200 my-2"></div>
@@ -1273,30 +1277,6 @@ export default function ProjectRequestOverview({
                                       companyId={participant.Company.id}
                                       requirementId={requirement.id}
                                     />
-                                  </Button>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="flex items-center gap-1"
-                                    onClick={() =>
-                                      handleOpenTechnicalDocs(
-                                        participant,
-                                        requirement.id
-                                      )
-                                    }
-                                    title={
-                                      validNdas[participant.Company.id]
-                                        ? "Ver documentos técnicos"
-                                        : "Se requiere un NDA válido"
-                                    }
-                                    disabled={
-                                      !validNdas[participant.Company.id]
-                                    }
-                                  >
-                                    <File className="h-3 w-3" />
-                                    <span className="text-xs">
-                                      Documentos técnicos
-                                    </span>
                                   </Button>
                                   {companiesWithQuotations[participant.id] && (
                                     <div className="flex gap-2">

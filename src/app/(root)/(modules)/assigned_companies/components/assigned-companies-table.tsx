@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Table,
   TableBody,
@@ -64,9 +64,57 @@ export function AssignedCompaniesTable({
   const [selectedItem, setSelectedItem] = useState<AssignedCompany | null>(
     null
   );
-  
+  const [companiesWithQuotations, setCompaniesWithQuotations] = useState<Record<number, boolean>>({});
+  const [requirementsWithDocuments, setRequirementsWithDocuments] = useState<Record<number, boolean>>({});
+
   // Obtener el item expandido de los datos
   const expandedItem = data.find(item => item.id === expandedId);
+  
+  // Verificar la disponibilidad de documentos técnicos cuando cambian los datos
+  React.useEffect(() => {
+    if (data.length > 0) {
+      checkDocumentsAvailability();
+    }
+  }, [data]);
+  
+  // Función para verificar la disponibilidad de documentos técnicos
+  const checkDocumentsAvailability = async () => {
+    try {
+      // Crear un mapa para almacenar la disponibilidad de documentos
+      const docsAvailabilityMap: Record<number, boolean> = {};
+      
+      // Para cada item, verificar si hay documentos técnicos disponibles
+      for (const item of data) {
+        // Obtener el ID de la solicitud de proyecto
+        const projectRequestId = item.ProjectRequest?.id;
+        if (!projectRequestId) continue;
+        
+        // Si ya verificamos este projectRequestId, reutilizar el resultado
+        if (docsAvailabilityMap[projectRequestId] !== undefined) {
+          docsAvailabilityMap[item.id] = docsAvailabilityMap[projectRequestId];
+          continue;
+        }
+        
+        // Verificar si hay documentos técnicos para esta solicitud
+        const response = await fetch(`/api/project_requests/${projectRequestId}/documents`);
+        
+        if (response.ok) {
+          const responseData = await response.json();
+          const hasDocuments = Array.isArray(responseData.documents) && responseData.documents.length > 0;
+          
+          // Guardar el resultado para este projectRequestId y para este item
+          docsAvailabilityMap[projectRequestId] = hasDocuments;
+          docsAvailabilityMap[item.id] = hasDocuments;
+        } else {
+          docsAvailabilityMap[item.id] = false;
+        }
+      }
+      
+      setRequirementsWithDocuments(docsAvailabilityMap);
+    } catch (error) {
+      console.error("Error checking documents availability:", error);
+    }
+  };
 
   const handleDownloadQuote = async (item: AssignedCompany) => {
     try {
@@ -240,9 +288,23 @@ export function AssignedCompaniesTable({
     }
   };
 
-  const shouldShowQuoteButton = (statusId: number) => {
-    // Mostrar el botón para los estados: "Documentos técnicos enviados", "Cotización enviada", "No seleccionado", "Cotización aprobada"
-    return [6, 7, 8, 9].includes(statusId);
+  const shouldShowQuoteButton = (item: AssignedCompany) => {
+    // Verificar si el estado permite subir cotización
+    // Incluimos el estado 2 (Asociado Seleccionado) y excluimos el estado 8 (No seleccionado)
+    const validStatus = item.status && [2, 6, 7, 9].includes(item.status.id);
+    
+    // Verificar si hay documentos técnicos disponibles para este requerimiento
+    const hasDocuments = requirementsWithDocuments[item.id] === true;
+    
+    // NOTA: Temporalmente deshabilitada la validación de NDA firmado
+    // ya que la propiedad hasNDA no está siendo asignada correctamente
+    // const hasNDA = (item as any).hasNDA === true;
+    
+    // Solo mostrar el botón si: 
+    // 1. El estado es válido
+    // 2. Hay documentos técnicos disponibles
+    // (Temporalmente no se valida el NDA firmado)
+    return validStatus && hasDocuments; // && hasNDA;
   };
 
   const handleUploadQuote = (item: AssignedCompany) => {
@@ -370,7 +432,7 @@ export function AssignedCompaniesTable({
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end space-x-2">
-                    {item.status && shouldShowQuoteButton(item.status.id) && (
+                    {item.status && shouldShowQuoteButton(item) && (
                       <Button
                         variant="ghost"
                         size="icon"

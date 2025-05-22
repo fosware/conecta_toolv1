@@ -106,7 +106,7 @@ export async function GET(request: NextRequest) {
       includeConfig = {
         Company: true,
         status: true,
-        Documents: true,
+        // Documents: true, // Este campo no existe en el modelo ProjectRequestCompany
         Quotation: true,
         ProjectRequirements: {
           include: {
@@ -141,19 +141,19 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Si es modo básico, devolver directamente los resultados sin procesamiento adicional
+    // Si solo se solicita la vista básica, procesar los resultados de forma simple
     if (basic) {
-      // Procesar los items para incluir solo la información necesaria para la tabla
-      const processedItems = items.map(item => {
-        // Convertir el item a un objeto que cumpla con la interfaz AssignedCompany
+      // Procesar los resultados para la vista básica
+      const processedItems = items.map((item) => {
+        // Crear un objeto base con las propiedades principales
         const processedItem: Partial<AssignedCompany> = {
           id: item.id,
+          createdAt: item.createdAt,
+          updatedAt: item.updatedAt,
+          isActive: item.isActive,
           companyId: item.companyId,
-          projectRequirementsId: item.projectRequirementsId,
           statusId: item.statusId,
-          createdAt: item.createdAt,  // Incluir la fecha de creación
-          updatedAt: item.updatedAt,  // Incluir la fecha de actualización
-          unreadMessagesCount: 0,     // Valor por defecto
+          projectRequirementsId: item.projectRequirementsId,
         };
         
         // Acceder a las propiedades relacionadas de forma segura
@@ -206,22 +206,22 @@ export async function GET(request: NextRequest) {
     }
 
     // Para el modo detallado, continuar con el procesamiento completo
-    // Obtener los projectRequests asociados en una consulta separada
-    const projectRequestIds = items
-      .map((item) => {
-        // Acceder a las propiedades de forma segura usando type assertion
-        const typedItem = item as unknown as {
-          ProjectRequirements?: {
-            ProjectRequest?: { id?: number }
-          }
-        };
-        return typedItem.ProjectRequirements?.ProjectRequest?.id;
-      })
-      .filter(Boolean) as number[];
+    // Extraer los IDs de las solicitudes de proyecto
+    const projectRequestIds: number[] = [];
+    items.forEach((item) => {
+      // Acceder a las propiedades de forma segura usando type assertion
+      const typedItem = item as unknown as {
+        ProjectRequirements?: {
+          ProjectRequest?: { id?: number }
+        }
+      };
+      
+      const projectRequestId = typedItem.ProjectRequirements?.ProjectRequest?.id;
+      if (projectRequestId && !projectRequestIds.includes(projectRequestId)) {
+        projectRequestIds.push(projectRequestId);
+      }
+    });
 
-    // Obtener los requerimientos para cada ProjectRequestCompany
-    const requirementsIds = items.map((item) => item.projectRequirementsId);
-    
     // Crear un mapa de requerimientos por ID
     const requirementsMap = new Map();
     items.forEach((item) => {
@@ -351,6 +351,7 @@ export async function GET(request: NextRequest) {
       items,
     });
   } catch (error) {
+    console.error("Error al obtener las empresas asignadas:", error);
     return NextResponse.json(
       { error: "Error al obtener las empresas asignadas" },
       { status: 500 }

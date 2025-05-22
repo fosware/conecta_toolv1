@@ -33,7 +33,7 @@ model User {
   RequirementCertification           RequirementCertification[]
   RequirementSpecialty               RequirementSpecialty[]
   ProjectRequestCompany              ProjectRequestCompany[]
-  ProjectRequestRequirementDocuments ProjectRequestRequirementDocuments[]
+  ProjectRequestDocuments            ProjectRequestDocuments[]
   ProjectRequestRequirementQuotation ProjectRequestRequirementQuotation[]
   StatusProjectRequest               StatusProjectRequest[]
   ProjectRequirements                ProjectRequirements[]
@@ -423,8 +423,9 @@ model ProjectRequest {
   clientAreaId Int
   clientArea   ClientAreas @relation(fields: [clientAreaId], references: [id])
 
-  ProjectRequirements    ProjectRequirements[]
+  ProjectRequirements     ProjectRequirements[]
   ClientQuotationSummary ClientQuotationSummary[]
+  ProjectRequestDocuments ProjectRequestDocuments[]
   status                 StatusProjectRequest     @relation(fields: [statusId], references: [id])
 
   @@index([isDeleted, isActive])
@@ -544,7 +545,6 @@ model ProjectRequestCompany {
   Company                        Company                              @relation(fields: [companyId], references: [id])
   ProjectRequirements            ProjectRequirements                  @relation(fields: [projectRequirementsId], references: [id])
   Quotation                      ProjectRequestRequirementQuotation?
-  Documents                      ProjectRequestRequirementDocuments[]
   ProjectRequestCompanyStatusLog ProjectRequestCompanyStatusLog[]
   Project                        Project?                             @relation(fields: [projectId], references: [id])
   projectId                      Int?
@@ -553,23 +553,23 @@ model ProjectRequestCompany {
   @@map("d_project_request_companies")
 }
 
-// Documentación técnica enviada por el cliente (solo si hay un NDA firmado)
-model ProjectRequestRequirementDocuments {
-  id                      Int       @id @default(autoincrement())
-  projectRequestCompanyId Int
-  documentFile            Bytes?
-  documentFileName        String?
-  isActive                Boolean   @default(true)
-  isDeleted               Boolean   @default(false)
-  dateDeleted             DateTime?
-  createdAt               DateTime  @default(now())
-  updatedAt               DateTime  @updatedAt
-  userId                  Int
-  user                    User      @relation(fields: [userId], references: [id])
+// Documentación técnica enviada por el cliente (disponible para asociados con NDA firmado)
+model ProjectRequestDocuments {
+  id                Int       @id @default(autoincrement())
+  projectRequestId Int
+  documentFile     Bytes?
+  documentFileName String?
+  isActive         Boolean   @default(true)
+  isDeleted        Boolean   @default(false)
+  dateDeleted      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  userId           Int
+  user             User      @relation(fields: [userId], references: [id])
 
-  ProjectRequestCompany ProjectRequestCompany @relation(fields: [projectRequestCompanyId], references: [id])
+  ProjectRequest ProjectRequest @relation(fields: [projectRequestId], references: [id])
 
-  @@index([projectRequestCompanyId])
+  @@index([projectRequestId])
   @@index([isDeleted, isActive])
   @@map("d_project_request_documents")
 }

@@ -105,9 +105,9 @@ export async function POST(
     const fileBytes = Buffer.from(fileBuffer);
 
     // Guardar el documento en la base de datos
-    const document = await prisma.projectRequestRequirementDocuments.create({
+    const document = await prisma.projectRequestDocuments.create({
       data: {
-        projectRequestCompanyId: association.id,
+        projectRequestId: requirementExists.projectRequestId,
         documentFile: fileBytes,
         documentFileName: file.name,
         userId: userId,

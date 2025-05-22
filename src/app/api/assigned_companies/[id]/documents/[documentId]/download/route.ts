@@ -63,7 +63,7 @@ const { id, documentId  } = routeParams;
     }
 
     // Obtener el documento
-    const document = await prisma.projectRequestRequirementDocuments.findUnique({
+    const document = await prisma.projectRequestDocuments.findUnique({
       where: {
         id: parsedDocumentId,
         isDeleted: false,

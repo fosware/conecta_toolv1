@@ -28,12 +28,12 @@ export async function GET(
         isDeleted: false,
       },
       include: {
-        Documents: {
-          where: {
-            isDeleted: false,
-          },
-        },
-      },
+        ProjectRequirements: {
+          include: {
+            ProjectRequest: true
+          }
+        }
+      }
     });
 
     if (!projectRequestCompany) {
@@ -42,10 +42,33 @@ export async function GET(
         { status: 404 }
       );
     }
+    
+    // Obtener los documentos asociados a la solicitud de proyecto
+    const projectRequestId = projectRequestCompany.ProjectRequirements?.ProjectRequest?.id;
+    
+    if (!projectRequestId) {
+      return NextResponse.json({
+        documents: [],
+      });
+    }
+    
+    // Buscar los documentos usando el nuevo modelo
+    const documents = await prisma.projectRequestDocuments.findMany({
+      where: {
+        projectRequestId: projectRequestId,
+        isDeleted: false,
+      },
+      select: {
+        id: true,
+        documentFileName: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
 
     // Devolver los documentos
     return NextResponse.json({
-      documents: projectRequestCompany.Documents || [],
+      documents: documents,
     });
   } catch (error) {
     console.error("Error en GET /api/assigned_companies/[id]/documents:", error);

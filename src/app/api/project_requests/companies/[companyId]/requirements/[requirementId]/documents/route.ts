@@ -98,9 +98,9 @@ export async function GET(
     }
 
     // Obtener los documentos técnicos (sin incluir el contenido del archivo)
-    const documents = await prisma.projectRequestRequirementDocuments.findMany({
+    const documents = await prisma.projectRequestDocuments.findMany({
       where: {
-        projectRequestCompanyId: association.id,
+        projectRequestId: requirementExists.projectRequestId,
         isDeleted: false,
       },
       select: {

@@ -84,10 +84,10 @@ export async function DELETE(
     }
 
     // Verificar que el documento existe
-    const document = await prisma.projectRequestRequirementDocuments.findFirst({
+    const document = await prisma.projectRequestDocuments.findFirst({
       where: {
         id: parsedDocumentId,
-        projectRequestCompanyId: association.id,
+        projectRequestId: requirementExists.projectRequestId,
         isDeleted: false,
       },
     });
@@ -100,7 +100,7 @@ export async function DELETE(
     }
 
     // Marcar el documento como eliminado (borrado lógico)
-    await prisma.projectRequestRequirementDocuments.update({
+    await prisma.projectRequestDocuments.update({
       where: {
         id: parsedDocumentId,
       },
@@ -113,9 +113,9 @@ export async function DELETE(
     // Verificar si quedan documentos activos para esta asociación
     //console.log("[TECHNICAL_DOCUMENT_DELETE] Verificando si quedan documentos activos");
     const remainingDocuments =
-      await prisma.projectRequestRequirementDocuments.count({
+      await prisma.projectRequestDocuments.count({
         where: {
-          projectRequestCompanyId: association.id,
+          projectRequestId: requirementExists.projectRequestId,
           isDeleted: false,
         },
       });

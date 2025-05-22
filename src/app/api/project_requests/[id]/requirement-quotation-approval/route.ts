@@ -38,8 +38,6 @@ export async function POST(
     // Verificar si es una actualización individual o en lote
     if (data.updates && Array.isArray(data.updates)) {
       // Procesamiento en lote
-      console.log("Procesando actualizaciones en lote:", data.updates);
-      
       const results = [];
       const errors = [];
       
