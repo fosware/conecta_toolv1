@@ -18,7 +18,7 @@ export async function GET(
     }
 
     // Obtener el ID de la empresa asignada
-    const routeParams = handleRouteParams(params);
+    const routeParams = await handleRouteParams(params);
 const { id  } = routeParams;
     const assignedCompanyId = parseInt(id);
 

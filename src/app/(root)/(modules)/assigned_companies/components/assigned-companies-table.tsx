@@ -64,52 +64,167 @@ export function AssignedCompaniesTable({
   const [selectedItem, setSelectedItem] = useState<AssignedCompany | null>(
     null
   );
-  const [companiesWithQuotations, setCompaniesWithQuotations] = useState<Record<number, boolean>>({});
-  const [requirementsWithDocuments, setRequirementsWithDocuments] = useState<Record<number, boolean>>({});
+  const [companiesWithQuotations, setCompaniesWithQuotations] = useState<
+    Record<number, boolean>
+  >({});
+  const [requirementsWithDocuments, setRequirementsWithDocuments] = useState<
+    Record<number, boolean>
+  >({});
+  const [companiesWithNDAs, setCompaniesWithNDAs] = useState<
+    Record<number, boolean>
+  >({});
 
   // Obtener el item expandido de los datos
-  const expandedItem = data.find(item => item.id === expandedId);
-  
-  // Verificar la disponibilidad de documentos técnicos cuando cambian los datos
+  const expandedItem = data.find((item) => item.id === expandedId);
+
+  // Verificar la disponibilidad de documentos técnicos y NDAs solo cuando cambian los datos
   React.useEffect(() => {
     if (data.length > 0) {
-      checkDocumentsAvailability();
+      // Solo realizar las verificaciones cuando se carga inicialmente la tabla
+      // o cuando cambia significativamente el número de registros
+      Promise.all([
+        checkDocumentsAvailability(),
+        checkNDAsAvailability()
+      ]);
     }
-  }, [data]);
+  }, [data.length]); // Solo ejecutar cuando cambia la cantidad de datos, no su contenido
   
+  // Función para verificar la disponibilidad de NDAs firmados
+  const checkNDAsAvailability = async () => {
+    try {
+      // Crear un mapa para almacenar la disponibilidad de NDAs
+      const ndasAvailabilityMap: Record<number, boolean> = {};
+      
+      // Agrupar por clientId y companyId para reducir drásticamente el número de consultas
+      const clientCompanyGroups: Record<string, {itemId: number}[]> = {};
+      
+      // Agrupar los items por cliente y compañía
+      for (const item of data) {
+        const clientId = item.ProjectRequest?.clientArea?.client?.id;
+        const companyId = item.companyId;
+        
+        // Inicializar con false por defecto
+        ndasAvailabilityMap[item.id] = false;
+        
+        // Solo agrupar si tenemos los datos necesarios
+        if (clientId && companyId) {
+          const key = `${clientId}-${companyId}`;
+          if (!clientCompanyGroups[key]) {
+            clientCompanyGroups[key] = [];
+          }
+          
+          clientCompanyGroups[key].push({
+            itemId: item.id
+          });
+        }
+      }
+      
+      // Realizar consultas en paralelo para cada par cliente-compañía
+      const keys = Object.keys(clientCompanyGroups);
+      
+      // Si hay demasiadas consultas, limitar el número
+      const batchSize = 5; // Procesar en lotes de 5 consultas a la vez
+      
+      // Procesar en lotes para evitar sobrecarga
+      for (let i = 0; i < keys.length; i += batchSize) {
+        const batch = keys.slice(i, i + batchSize);
+        
+        await Promise.all(batch.map(async (key) => {
+          try {
+            const [clientId, companyId] = key.split('-').map(Number);
+            
+            // Usar el endpoint de verificación de NDA por cliente y compañía
+            const response = await fetch(`/api/client_company_nda/check-exists`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ clientId, companyId })
+            });
+            
+            if (!response.ok) {
+              console.error(`Error al verificar NDA para cliente ${clientId} y compañía ${companyId}:`, response.statusText);
+              return;
+            }
+            
+            const responseData = await response.json();
+            const hasNDA = responseData.exists === true;
+            
+            // Actualizar todos los items de este grupo
+            for (const group of clientCompanyGroups[key]) {
+              ndasAvailabilityMap[group.itemId] = hasNDA;
+            }
+          } catch (error) {
+            console.error(`Error al verificar NDA para ${key}:`, error);
+          }
+        }));
+      }
+      
+      // Actualizar el estado
+      setCompaniesWithNDAs(ndasAvailabilityMap);
+    } catch (error) {
+      console.error("Error checking NDAs availability:", error);
+    }
+  };
+
   // Función para verificar la disponibilidad de documentos técnicos
   const checkDocumentsAvailability = async () => {
     try {
       // Crear un mapa para almacenar la disponibilidad de documentos
       const docsAvailabilityMap: Record<number, boolean> = {};
+
+      // Agrupar por projectRequestId para reducir drásticamente el número de consultas
+      const projectGroups: Record<number, {itemId: number}[]> = {};
       
-      // Para cada item, verificar si hay documentos técnicos disponibles
+      // Agrupar los items por proyecto
       for (const item of data) {
-        // Obtener el ID de la solicitud de proyecto
         const projectRequestId = item.ProjectRequest?.id;
+        
+        // Inicializar con false por defecto
+        docsAvailabilityMap[item.id] = false;
+        
         if (!projectRequestId) continue;
         
-        // Si ya verificamos este projectRequestId, reutilizar el resultado
-        if (docsAvailabilityMap[projectRequestId] !== undefined) {
-          docsAvailabilityMap[item.id] = docsAvailabilityMap[projectRequestId];
-          continue;
+        // Agrupar por proyecto
+        if (!projectGroups[projectRequestId]) {
+          projectGroups[projectRequestId] = [];
         }
         
-        // Verificar si hay documentos técnicos para esta solicitud
-        const response = await fetch(`/api/project_requests/${projectRequestId}/documents`);
-        
-        if (response.ok) {
-          const responseData = await response.json();
-          const hasDocuments = Array.isArray(responseData.documents) && responseData.documents.length > 0;
-          
-          // Guardar el resultado para este projectRequestId y para este item
-          docsAvailabilityMap[projectRequestId] = hasDocuments;
-          docsAvailabilityMap[item.id] = hasDocuments;
-        } else {
-          docsAvailabilityMap[item.id] = false;
-        }
+        projectGroups[projectRequestId].push({
+          itemId: item.id
+        });
       }
       
+      // Procesar cada proyecto en lotes para evitar sobrecarga
+      const projectIds = Object.keys(projectGroups).map(Number);
+      const batchSize = 3; // Procesar en lotes de 3 proyectos a la vez
+      
+      for (let i = 0; i < projectIds.length; i += batchSize) {
+        const batch = projectIds.slice(i, i + batchSize);
+        
+        await Promise.all(batch.map(async (projectRequestId) => {
+          try {
+            // Verificar documentos a nivel de proyecto
+            const response = await fetch(`/api/project_requests/${projectRequestId}/documents`);
+            
+            if (!response.ok) {
+              console.error(`Error al obtener documentos para el proyecto ${projectRequestId}:`, response.statusText);
+              return;
+            }
+            
+            const responseData = await response.json();
+            const hasDocuments = Array.isArray(responseData.documents) && responseData.documents.length > 0;
+            
+            // Actualizar todos los items de este proyecto
+            for (const group of projectGroups[projectRequestId]) {
+              docsAvailabilityMap[group.itemId] = hasDocuments;
+            }
+          } catch (error) {
+            console.error(`Error al verificar documentos para el proyecto ${projectRequestId}:`, error);
+          }
+        }));
+      }
+
       setRequirementsWithDocuments(docsAvailabilityMap);
     } catch (error) {
       console.error("Error checking documents availability:", error);
@@ -119,7 +234,7 @@ export function AssignedCompaniesTable({
   const handleDownloadQuote = async (item: AssignedCompany) => {
     try {
       setDownloadingQuote(item.id);
-      
+
       // Primero, obtener el nombre del archivo de la cotización
       const quoteInfoResponse = await fetch(
         `/api/assigned_companies/${item.id}/quotation-info`
@@ -137,7 +252,8 @@ export function AssignedCompaniesTable({
         return;
       }
 
-      const fileName = quoteInfo.quotationFileName || `cotizacion-${item.id}.xlsx`;
+      const fileName =
+        quoteInfo.quotationFileName || `cotizacion-${item.id}.xlsx`;
 
       // Luego, descargar el archivo
       const response = await fetch(
@@ -274,9 +390,10 @@ export function AssignedCompaniesTable({
   const formatDate = (dateValue?: Date | string) => {
     if (!dateValue) return "N/A";
     try {
-      const date = typeof dateValue === 'string' ? new Date(dateValue) : dateValue;
+      const date =
+        typeof dateValue === "string" ? new Date(dateValue) : dateValue;
       if (isNaN(date.getTime())) return "N/A";
-      
+
       return date.toLocaleDateString("es-MX", {
         year: "numeric",
         month: "2-digit",
@@ -288,25 +405,20 @@ export function AssignedCompaniesTable({
     }
   };
 
+  // Determinar si se debe mostrar el botón de subir cotización
   const shouldShowQuoteButton = (item: AssignedCompany) => {
     // Verificar si el estado permite subir cotización
     // Incluimos el estado 2 (Asociado Seleccionado) y excluimos el estado 8 (No seleccionado)
     const validStatus = item.status && [2, 6, 7, 9].includes(item.status.id);
-    
+
     // Verificar si hay documentos técnicos disponibles para este requerimiento
     const hasDocuments = requirementsWithDocuments[item.id] === true;
-    
-    // NOTA: Temporalmente deshabilitada la validación de NDA firmado
-    // ya que la propiedad hasNDA no está siendo asignada correctamente
-    // const hasNDA = (item as any).hasNDA === true;
-    
-    // Solo mostrar el botón si: 
-    // 1. El estado es válido
-    // 2. Hay documentos técnicos disponibles
-    // (Temporalmente no se valida el NDA firmado)
-    return validStatus && hasDocuments; // && hasNDA;
+
+    // Solo mostrar el botón si el estado es válido Y hay documentos técnicos disponibles
+    return validStatus && hasDocuments;
   };
 
+  // Manejar la subida de cotizaciones
   const handleUploadQuote = (item: AssignedCompany) => {
     setSelectedItem(item);
     setUploadQuoteDialogOpen(true);
@@ -317,12 +429,12 @@ export function AssignedCompaniesTable({
     if (onRefreshData) {
       onRefreshData(false);
     }
-    
+
     // Si tenemos el ID del item actualizado y es el mismo que está expandido actualmente
     if (updatedItemId && expandedId === updatedItemId) {
       // Primero, actualizar optimistamente el estado del item en la UI
       // Esto mostrará inmediatamente que la cotización está disponible
-      const updatedItem = data.find(item => item.id === updatedItemId);
+      const updatedItem = data.find((item) => item.id === updatedItemId);
       if (updatedItem && updatedItem.status) {
         // Si el estado es menor a 5 (cotización disponible), actualizarlo a 5
         if (updatedItem.status.id < 5) {
@@ -330,16 +442,18 @@ export function AssignedCompaniesTable({
           toast.success("Cotización subida correctamente");
         }
       }
-      
+
       // Simular un clic en el botón de bitácora para refrescar los datos de logs
       // Usamos un timeout para asegurar que la UI se haya actualizado
       setTimeout(() => {
-        const logsButton = document.querySelector(`[data-logs-button="${updatedItemId}"]`);
+        const logsButton = document.querySelector(
+          `[data-logs-button="${updatedItemId}"]`
+        );
         if (logsButton) {
           (logsButton as HTMLButtonElement).click();
         } else {
           // Si no se encuentra el botón, intentar abrir los logs directamente
-          const item = data.find(i => i.id === updatedItemId);
+          const item = data.find((i) => i.id === updatedItemId);
           if (item && onOpenLogs) {
             onOpenLogs(item);
           }
@@ -365,9 +479,7 @@ export function AssignedCompaniesTable({
   }
 
   // Filtrar los datos para mostrar solo los activos
-  const filteredData = data.filter(
-    (item) => item.isActive !== false
-  );
+  const filteredData = data.filter((item) => item.isActive !== false);
 
   return (
     <div className="rounded-md border">
@@ -418,7 +530,9 @@ export function AssignedCompaniesTable({
                   {item.Company?.companyName || "N/A"}
                 </TableCell>
                 <TableCell className="py-2">
-                  {item.ProjectRequirements?.requirementName || item.requirementName || "N/A"}
+                  {item.ProjectRequirements?.requirementName ||
+                    item.requirementName ||
+                    "N/A"}
                 </TableCell>
                 <TableCell>
                   {item.status && (
@@ -432,7 +546,8 @@ export function AssignedCompaniesTable({
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end space-x-2">
-                    {item.status && shouldShowQuoteButton(item) && (
+                    {/* Solo mostrar el botón de subir cotización si hay un NDA firmado */}
+                    {item.status && companiesWithNDAs[item.id] === true && (
                       <Button
                         variant="ghost"
                         size="icon"
@@ -446,19 +561,22 @@ export function AssignedCompaniesTable({
                         <Upload className="h-4 w-4 text-muted-foreground" />
                       </Button>
                     )}
-                    
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      title="Ver documentos"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onViewDocuments(item);
-                      }}
-                      className="h-8 w-8"
-                    >
-                      <Eye className="h-4 w-4 text-muted-foreground" />
-                    </Button>
+
+                    {/* Solo mostrar el botón de ver documentos si hay un NDA firmado */}
+                    {companiesWithNDAs[item.id] === true && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Ver documentos"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onViewDocuments(item);
+                        }}
+                        className="h-8 w-8"
+                      >
+                        <Eye className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                    )}
 
                     <Button
                       variant="ghost"
@@ -473,13 +591,15 @@ export function AssignedCompaniesTable({
                     >
                       <div className="relative">
                         <MessageSquare className="h-4 w-4" />
-                        {item.ProjectRequest?.id && item.companyId && item.projectRequirementsId && (
-                          <UnreadIndicator
-                            projectRequestId={item.ProjectRequest.id}
-                            companyId={item.companyId}
-                            requirementId={item.projectRequirementsId}
-                          />
-                        )}
+                        {item.ProjectRequest?.id &&
+                          item.companyId &&
+                          item.projectRequirementsId && (
+                            <UnreadIndicator
+                              projectRequestId={item.ProjectRequest.id}
+                              companyId={item.companyId}
+                              requirementId={item.projectRequirementsId}
+                            />
+                          )}
                       </div>
                     </Button>
                   </div>
@@ -489,12 +609,16 @@ export function AssignedCompaniesTable({
               {expandedId === item.id && (
                 <TableRow className="bg-muted/30">
                   <TableCell colSpan={9} className="p-0 border-t-0">
-                    {expandedItem && 'loading' in expandedItem && expandedItem.loading ? (
+                    {expandedItem &&
+                    "loading" in expandedItem &&
+                    expandedItem.loading ? (
                       <div className="px-4">
                         <div className="p-6 bg-card rounded-lg shadow-lg mt-4 mb-6 flex justify-center items-center">
                           <div className="flex flex-col items-center space-y-2">
                             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                            <p className="text-sm text-muted-foreground">Cargando detalles...</p>
+                            <p className="text-sm text-muted-foreground">
+                              Cargando detalles...
+                            </p>
                           </div>
                         </div>
                       </div>
@@ -513,152 +637,170 @@ export function AssignedCompaniesTable({
                               </Badge>
                             )}
                           </div>
-                        <div className="grid grid-cols-3 gap-4">
-                          <div>
-                            <h3 className="font-semibold mb-2 border-b p-1 text-center bg-slate-500 text-slate-100 dark:bg-slate-800">
-                              Detalles de la Solicitud
-                            </h3>
-                            <div className="space-y-1 text-sm p-1">
-                              <p>
-                                <span className="font-semibold">Cliente:</span>{" "}
-                                {item.ProjectRequest?.clientArea?.client?.name ||
-                                  "N/A"}
-                              </p>
-                              <p>
-                                <span className="font-semibold">Área:</span>{" "}
-                                {item.ProjectRequest?.clientArea?.areaName || "N/A"}
-                              </p>
-                              <p>
-                                <span className="font-semibold">Proyecto:</span>{" "}
-                                {item.ProjectRequest?.title || "N/A"}
-                              </p>
-                              <p>
-                                <span className="font-semibold">
-                                  Fecha de Asignación:
-                                </span>{" "}
-                                {formatDate(item.createdAt)}
-                              </p>
-                              <p>
-                                <span className="font-semibold">
-                                  Última Actualización:
-                                </span>{" "}
-                                {formatDate(item.updatedAt)}
-                              </p>
-                              <p>
-                                <span className="font-semibold">
-                                  Fecha Solicitud:
-                                </span>{" "}
-                                {formatDate(item.updatedAt)}
-                              </p>
+                          <div className="grid grid-cols-3 gap-4">
+                            <div>
+                              <h3 className="font-semibold mb-2 border-b p-1 text-center bg-slate-500 text-slate-100 dark:bg-slate-800">
+                                Detalles de la Solicitud
+                              </h3>
+                              <div className="space-y-1 text-sm p-1">
+                                <p>
+                                  <span className="font-semibold">
+                                    Cliente:
+                                  </span>{" "}
+                                  {item.ProjectRequest?.clientArea?.client
+                                    ?.name || "N/A"}
+                                </p>
+                                <p>
+                                  <span className="font-semibold">Área:</span>{" "}
+                                  {item.ProjectRequest?.clientArea?.areaName ||
+                                    "N/A"}
+                                </p>
+                                <p>
+                                  <span className="font-semibold">
+                                    Proyecto:
+                                  </span>{" "}
+                                  {item.ProjectRequest?.title || "N/A"}
+                                </p>
+                                <p>
+                                  <span className="font-semibold">
+                                    Fecha de Asignación:
+                                  </span>{" "}
+                                  {formatDate(item.createdAt)}
+                                </p>
+                                <p>
+                                  <span className="font-semibold">
+                                    Última Actualización:
+                                  </span>{" "}
+                                  {formatDate(item.updatedAt)}
+                                </p>
+                                <p>
+                                  <span className="font-semibold">
+                                    Fecha Solicitud:
+                                  </span>{" "}
+                                  {formatDate(item.updatedAt)}
+                                </p>
+                              </div>
                             </div>
-                          </div>
-                          <div>
-                            <h3 className="font-semibold mb-2 border-b p-1 text-center bg-slate-500 text-slate-100 dark:bg-slate-800">
-                              Requerimientos
-                            </h3>
-                            <div className="space-y-1 text-sm p-1">
-                              {item.ProjectRequirements ? (
-                                <div className="mb-2 pb-2 border-b last:border-0">
-                                  <p className="font-medium">{item.ProjectRequirements.requirementName}</p>
-                                  
-                                  {/* Verificar si hay especialidades en el formato directo o en RequirementSpecialty */}
-                                  {(item.ProjectRequirements.specialties && item.ProjectRequirements.specialties.length > 0) ? (
-                                    <div className="mt-1">
-                                      <p className="text-xs font-semibold text-muted-foreground">
-                                        Especialidades:
-                                      </p>
-                                      <ul className="list-disc pl-4 text-xs">
-                                        {item.ProjectRequirements.specialties.map(
-                                          (spec, idx) => (
-                                            <li key={idx}>
-                                              {spec.specialty?.name || "N/A"}
-                                            </li>
-                                          )
-                                        )}
-                                      </ul>
-                                    </div>
-                                  ) : ((item.ProjectRequirements as any).RequirementSpecialty && (item.ProjectRequirements as any).RequirementSpecialty.length > 0) ? (
-                                    <div className="mt-1">
-                                      <p className="text-xs font-semibold text-muted-foreground">
-                                        Especialidades:
-                                      </p>
-                                      <ul className="list-disc pl-4 text-xs">
-                                        {((item.ProjectRequirements as any).RequirementSpecialty as any[]).map(
-                                          (rs, idx) => (
+                            <div>
+                              <h3 className="font-semibold mb-2 border-b p-1 text-center bg-slate-500 text-slate-100 dark:bg-slate-800">
+                                Requerimientos
+                              </h3>
+                              <div className="space-y-1 text-sm p-1">
+                                {item.ProjectRequirements ? (
+                                  <div className="mb-2 pb-2 border-b last:border-0">
+                                    <p className="font-medium">
+                                      {item.ProjectRequirements.requirementName}
+                                    </p>
+
+                                    {/* Verificar si hay especialidades en el formato directo o en RequirementSpecialty */}
+                                    {item.ProjectRequirements.specialties &&
+                                    item.ProjectRequirements.specialties
+                                      .length > 0 ? (
+                                      <div className="mt-1">
+                                        <p className="text-xs font-semibold text-muted-foreground">
+                                          Especialidades:
+                                        </p>
+                                        <ul className="list-disc pl-4 text-xs">
+                                          {item.ProjectRequirements.specialties.map(
+                                            (spec, idx) => (
+                                              <li key={idx}>
+                                                {spec.specialty?.name || "N/A"}
+                                              </li>
+                                            )
+                                          )}
+                                        </ul>
+                                      </div>
+                                    ) : (item.ProjectRequirements as any)
+                                        .RequirementSpecialty &&
+                                      (item.ProjectRequirements as any)
+                                        .RequirementSpecialty.length > 0 ? (
+                                      <div className="mt-1">
+                                        <p className="text-xs font-semibold text-muted-foreground">
+                                          Especialidades:
+                                        </p>
+                                        <ul className="list-disc pl-4 text-xs">
+                                          {(
+                                            (item.ProjectRequirements as any)
+                                              .RequirementSpecialty as any[]
+                                          ).map((rs, idx) => (
                                             <li key={idx}>
                                               {rs.specialty?.name || "N/A"}
                                             </li>
-                                          )
-                                        )}
-                                      </ul>
-                                    </div>
-                                  ) : null}
-                                  
-                                  {/* Mostrar certificaciones si están disponibles */}
-                                  {((item.ProjectRequirements as any).RequirementCertification && (item.ProjectRequirements as any).RequirementCertification.length > 0) ? (
-                                    <div className="mt-3">
-                                      <p className="text-xs font-semibold text-muted-foreground">
-                                        Certificaciones:
-                                      </p>
-                                      <ul className="list-disc pl-4 text-xs">
-                                        {((item.ProjectRequirements as any).RequirementCertification as any[]).map(
-                                          (cert, idx) => (
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    ) : null}
+
+                                    {/* Mostrar certificaciones si están disponibles */}
+                                    {(item.ProjectRequirements as any)
+                                      .RequirementCertification &&
+                                    (item.ProjectRequirements as any)
+                                      .RequirementCertification.length > 0 ? (
+                                      <div className="mt-3">
+                                        <p className="text-xs font-semibold text-muted-foreground">
+                                          Certificaciones:
+                                        </p>
+                                        <ul className="list-disc pl-4 text-xs">
+                                          {(
+                                            (item.ProjectRequirements as any)
+                                              .RequirementCertification as any[]
+                                          ).map((cert, idx) => (
                                             <li key={idx}>
-                                              {cert.certification?.name || "N/A"}
+                                              {cert.certification?.name ||
+                                                "N/A"}
                                             </li>
-                                          )
-                                        )}
-                                      </ul>
-                                    </div>
-                                  ) : null}
-                                </div>
-                              ) : (
-                                <p className="text-muted-foreground">
-                                  No hay requerimientos disponibles
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                          <div>
-                            <h3 className="font-semibold mb-2 border-b p-1 text-center bg-slate-500 text-slate-100 dark:bg-slate-800">
-                              Cotización
-                            </h3>
-                            <div className="space-y-1 text-sm p-1">
-                              {item.status && item.status.id >= 5 ? (
-                                <p>
-                                  <span className="font-semibold">
-                                    Estado:
-                                  </span>{" "}
-                                  Cotización disponible
-                                </p>
-                              ) : (
-                                <p className="text-muted-foreground">
-                                  Pendiente de cotización
-                                </p>
-                              )}
-                              <div className="mt-4">
-                                {item.status && item.status.id >= 5 && (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handleDownloadQuote(item)}
-                                    disabled={downloadingQuote === item.id}
-                                    className="w-full"
-                                  >
-                                    {downloadingQuote === item.id ? (
-                                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                    ) : (
-                                      <Download className="h-4 w-4 mr-2" />
-                                    )}
-                                    Descargar Cotización
-                                  </Button>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    ) : null}
+                                  </div>
+                                ) : (
+                                  <p className="text-muted-foreground">
+                                    No hay requerimientos disponibles
+                                  </p>
                                 )}
+                              </div>
+                            </div>
+                            <div>
+                              <h3 className="font-semibold mb-2 border-b p-1 text-center bg-slate-500 text-slate-100 dark:bg-slate-800">
+                                Cotización
+                              </h3>
+                              <div className="space-y-1 text-sm p-1">
+                                {item.status && item.status.id >= 5 ? (
+                                  <p>
+                                    <span className="font-semibold">
+                                      Estado:
+                                    </span>{" "}
+                                    Cotización disponible
+                                  </p>
+                                ) : (
+                                  <p className="text-muted-foreground">
+                                    Pendiente de cotización
+                                  </p>
+                                )}
+                                <div className="mt-4">
+                                  {item.status && item.status.id >= 5 && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleDownloadQuote(item)}
+                                      disabled={downloadingQuote === item.id}
+                                      className="w-full"
+                                    >
+                                      {downloadingQuote === item.id ? (
+                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                      ) : (
+                                        <Download className="h-4 w-4 mr-2" />
+                                      )}
+                                      Descargar Cotización
+                                    </Button>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </div>
                         </div>
                       </div>
-                    </div>
                     )}
                   </TableCell>
                 </TableRow>

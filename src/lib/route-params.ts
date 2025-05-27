@@ -35,19 +35,22 @@ export function extractRouteId(params: any): string {
 }
 
 /**
- * Función para manejar los parámetros de ruta en Next.js 15
- * @param params Objeto de parámetros de ruta (ya esperado con await)
+ * Función para manejar los parámetros de ruta en Next.js 13+
+ * @param params Objeto de parámetros de ruta (debe ser esperado con await)
  * @returns Objeto con los parámetros de ruta como strings
  */
-export function handleRouteParams<T extends Record<string, any>>(params: T): Record<string, string> {
+export async function handleRouteParams<T extends Record<string, any>>(params: T): Promise<Record<string, string>> {
   // Crear un objeto para almacenar todos los parámetros
   const result: Record<string, string> = {};
   
+  // Asegurarse de que params sea un objeto y no una promesa
+  const resolvedParams = await params;
+  
   // Copiar todas las propiedades del objeto params
-  if (params && typeof params === 'object') {
-    for (const key in params) {
-      if (Object.prototype.hasOwnProperty.call(params, key)) {
-        result[key] = String(params[key]);
+  if (resolvedParams && typeof resolvedParams === 'object') {
+    for (const key in resolvedParams) {
+      if (Object.prototype.hasOwnProperty.call(resolvedParams, key)) {
+        result[key] = String(resolvedParams[key]);
       }
     }
   }

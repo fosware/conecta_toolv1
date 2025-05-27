@@ -8,9 +8,9 @@ export async function GET(
   { params }: { params: { id: string; documentId: string } }
 ) {
   try {
-    // Obtener los IDs de la URL siguiendo las mejores prácticas de Next.js 15
-    const routeParams = handleRouteParams(params);
-const { id, documentId  } = routeParams;
+    // Obtener los IDs de la URL siguiendo las mejores prácticas de Next.js 13+
+    const routeParams = await handleRouteParams(params);
+    const { id, documentId } = routeParams;
     const parsedId = parseInt(id);
     const parsedDocumentId = parseInt(documentId);
 

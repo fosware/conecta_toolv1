@@ -308,62 +308,112 @@ export default function ProjectRequestOverview({
 
       // Crear un nuevo objeto para almacenar el estado actualizado
       const newNdaState: Record<number, boolean> = { ...validNdas }; // Mantener el estado anterior
-
-      // Procesar los requerimientos de forma secuencial para evitar sobrecarga
-      for (const requirement of requirements) {
+      
+      // Obtener el cliente del proyecto para verificar NDAs directamente
+      const clientId = data.clientArea?.client?.id;
+      
+      if (clientId) {
         try {
+          // Verificar NDAs por cliente en lugar de por requerimiento
+          // Esto reduce drásticamente el número de peticiones
           const token = await getToken();
-          const response = await fetch(
-            `/api/project_requests/${data.id}/requirements/${requirement.id}/check_ndas`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-              // Añadir un timeout para evitar solicitudes que nunca terminen
-              signal: AbortSignal.timeout(10000), // 10 segundos de timeout
-            }
-          );
-
-          if (response.ok) {
-            const ndaData = await response.json();
-
-            // Para cada asociado en el requerimiento, verificar si tiene un NDA válido
-            if (
-              ndaData &&
-              ndaData.ndaResults &&
-              ndaData.ndaResults.length > 0
-            ) {
-              ndaData.ndaResults.forEach((item: any) => {
-                if (item.companyId && item.hasNDA) {
-                  newNdaState[item.companyId] = true;
-                } else if (item.companyId) {
-                  newNdaState[item.companyId] = false;
-                }
+          
+          // Obtener todas las compañías asociadas a los requerimientos
+          const companyIds = new Set<number>();
+          requirements.forEach(req => {
+            if (req.ProjectRequestCompany && Array.isArray(req.ProjectRequestCompany)) {
+              req.ProjectRequestCompany.forEach(prc => {
+                if (prc.companyId) companyIds.add(prc.companyId);
               });
             }
-          } else {
-            console.error(
-              `Error al verificar NDAs para requerimiento ${requirement.id}:`,
-              response.statusText
-            );
+          });
+          
+          // Si no hay compañías, no es necesario verificar NDAs
+          if (companyIds.size === 0) {
+            setValidNdas(newNdaState);
+            setNdasChecked(true);
+            setIsCheckingNdas(false);
+            return;
           }
-
-          // Añadir un pequeño retraso entre solicitudes para evitar sobrecarga
-          await new Promise((resolve) => setTimeout(resolve, 300));
+          
+          // Verificar NDAs en lotes para reducir el número de peticiones
+          const batchSize = 5;
+          const companyIdsArray = Array.from(companyIds);
+          
+          // Procesar en lotes
+          for (let i = 0; i < companyIdsArray.length; i += batchSize) {
+            const batch = companyIdsArray.slice(i, i + batchSize);
+            
+            // Verificar NDAs para este lote de compañías
+            await Promise.all(batch.map(async (companyId) => {
+              try {
+                // Usar el endpoint de verificación de NDA por cliente y compañía
+                const response = await fetch(`/api/client_company_nda/check-exists`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                  },
+                  body: JSON.stringify({ clientId, companyId }),
+                  signal: AbortSignal.timeout(5000), // 5 segundos de timeout
+                });
+                
+                if (response.ok) {
+                  const responseData = await response.json();
+                  newNdaState[companyId] = responseData.exists === true;
+                }
+              } catch (error) {
+                console.error(`Error al verificar NDA para compañía ${companyId}:`, error);
+              }
+            }));
+            
+            // Pequeño retraso entre lotes
+            if (i + batchSize < companyIdsArray.length) {
+              await new Promise(resolve => setTimeout(resolve, 200));
+            }
+          }
         } catch (error) {
-          // Capturar errores por requerimiento para que un error no detenga todo el proceso
-          if (error instanceof DOMException && error.name === "AbortError") {
-            console.error(
-              `Timeout al verificar NDAs para requerimiento ${requirement.id}`
-            );
-          } else {
-            console.error(
-              `Error al verificar NDAs para requerimiento ${requirement.id}:`,
-              error
-            );
+          console.error("Error al verificar NDAs por cliente:", error);
+        }
+      } else {
+        // Si no hay cliente, usar el método anterior pero con optimizaciones
+        // Limitar el número de requerimientos a procesar en paralelo
+        const batchSize = 3;
+        for (let i = 0; i < requirements.length; i += batchSize) {
+          const batch = requirements.slice(i, i + batchSize);
+          
+          await Promise.all(batch.map(async (requirement) => {
+            try {
+              const token = await getToken();
+              const response = await fetch(
+                `/api/project_requests/${data.id}/requirements/${requirement.id}/check_ndas`,
+                {
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                  },
+                  signal: AbortSignal.timeout(5000), // 5 segundos de timeout
+                }
+              );
+
+              if (response.ok) {
+                const ndaData = await response.json();
+                if (ndaData?.ndaResults?.length > 0) {
+                  ndaData.ndaResults.forEach((item: any) => {
+                    if (item.companyId) {
+                      newNdaState[item.companyId] = item.hasNDA === true;
+                    }
+                  });
+                }
+              }
+            } catch (error) {
+              console.error(`Error al verificar NDAs para requerimiento ${requirement.id}:`, error);
+            }
+          }));
+          
+          // Pequeño retraso entre lotes
+          if (i + batchSize < requirements.length) {
+            await new Promise(resolve => setTimeout(resolve, 200));
           }
-          // Continuar con el siguiente requerimiento
-          continue;
         }
       }
 
@@ -462,37 +512,110 @@ export default function ProjectRequestOverview({
   const checkQuotationsForCompanies = async () => {
     try {
       const quotationsMap: { [key: number]: boolean } = {};
+      const token = await getToken();
 
-      // Recorrer todos los requerimientos y sus asociados
+      // Recopilar todos los IDs de participantes para hacer menos peticiones
+      const allParticipantIds: number[] = [];
+      const participantsByRequirement: { [requirementId: number]: number[] } = {};
+      
       if (data.ProjectRequirements) {
         for (const requirement of data.ProjectRequirements) {
           if (
             requirement.ProjectRequestCompany &&
             requirement.ProjectRequestCompany.length > 0
           ) {
+            participantsByRequirement[requirement.id] = [];
+            
             for (const participant of requirement.ProjectRequestCompany) {
-              try {
-                // Verificar si existe una cotización para este asociado
-                const response = await fetch(
-                  `/api/assigned_companies/${participant.id}/quotation-info`
-                );
-
-                if (response.ok) {
-                  const data = await response.json();
-                  // Si hay datos de cotización, marcar como true
-                  quotationsMap[participant.id] = !!data;
-                }
-              } catch (error) {
-                console.error("Error checking quotation for company:", error);
+              if (participant.id) {
+                allParticipantIds.push(participant.id);
+                participantsByRequirement[requirement.id].push(participant.id);
+                // Inicializar todos como false
+                quotationsMap[participant.id] = false;
               }
             }
           }
         }
       }
+      
+      // Si no hay participantes, no es necesario hacer peticiones
+      if (allParticipantIds.length === 0) {
+        setCompaniesWithQuotations(quotationsMap);
+        return;
+      }
+      
+      // Verificar cotizaciones por lotes para reducir el número de peticiones
+      const batchSize = 5;
+      
+      // Primero intentar obtener todas las cotizaciones del proyecto en una sola petición
+      try {
+        const projectResponse = await fetch(
+          `/api/project_requests/${data.id}/quotations/all`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            signal: AbortSignal.timeout(5000), // 5 segundos de timeout
+          }
+        );
+        
+        if (projectResponse.ok) {
+          const quotationsData = await projectResponse.json();
+          
+          // Si el endpoint devuelve un mapa de cotizaciones, usarlo directamente
+          if (quotationsData && typeof quotationsData === 'object') {
+            // Actualizar el mapa con los datos recibidos
+            Object.keys(quotationsData).forEach(participantIdStr => {
+              const participantId = parseInt(participantIdStr, 10);
+              if (!isNaN(participantId)) {
+                quotationsMap[participantId] = !!quotationsData[participantIdStr];
+              }
+            });
+            
+            // Establecer el estado y terminar
+            setCompaniesWithQuotations(quotationsMap);
+            return;
+          }
+        }
+      } catch (error) {
+        console.error("Error al obtener cotizaciones del proyecto:", error);
+        // Continuar con el método de respaldo si falla el endpoint principal
+      }
+      
+      // Método de respaldo: procesar en lotes si el endpoint anterior no existe o falla
+      for (let i = 0; i < allParticipantIds.length; i += batchSize) {
+        const batch = allParticipantIds.slice(i, i + batchSize);
+        
+        await Promise.all(batch.map(async (participantId) => {
+          try {
+            const response = await fetch(
+              `/api/assigned_companies/${participantId}/quotation-info`,
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+                signal: AbortSignal.timeout(3000), // 3 segundos de timeout
+              }
+            );
+
+            if (response.ok) {
+              const responseData = await response.json();
+              quotationsMap[participantId] = !!responseData;
+            }
+          } catch (error) {
+            console.error(`Error al verificar cotización para asociado ${participantId}:`, error);
+          }
+        }));
+        
+        // Pequeño retraso entre lotes
+        if (i + batchSize < allParticipantIds.length) {
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
+      }
 
       setCompaniesWithQuotations(quotationsMap);
     } catch (error) {
-      console.error("Error checking quotations:", error);
+      console.error("Error general al verificar cotizaciones:", error);
     }
   };
 

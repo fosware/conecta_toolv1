@@ -11,7 +11,7 @@ export async function GET(
   try {
     const userId = await getUserFromToken();
     const paramsValue = await params;
-    const routeParams = handleRouteParams(params);
+    const routeParams = await handleRouteParams(params);
     const { id  } = routeParams;
     const scopeId = parseInt(id);
 

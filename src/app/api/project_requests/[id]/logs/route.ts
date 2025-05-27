@@ -9,7 +9,7 @@ export async function GET(
 ) {
   try {
     // Extraer el ID correctamente según Next.js 15
-    const routeParams = handleRouteParams(params);
+    const routeParams = await handleRouteParams(params);
 const { id  } = routeParams;
     const projectRequestId = parseInt(id);
 
