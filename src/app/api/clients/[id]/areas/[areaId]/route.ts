@@ -9,7 +9,7 @@ export async function PUT(
 ) {
   try {
     const paramsValue = await params;
-    const routeParams = handleRouteParams(paramsValue);
+    const routeParams = await handleRouteParams(paramsValue);
     const { id, areaId } = routeParams;
     const clientId = parseInt(id);
     const areaIdInt = parseInt(areaId);
@@ -64,7 +64,7 @@ export async function DELETE(
 ) {
   try {
     const paramsValue = await params;
-    const routeParams = handleRouteParams(paramsValue);
+    const routeParams = await handleRouteParams(paramsValue);
     const { id, areaId } = routeParams;
     const clientId = parseInt(id);
     const areaIdInt = parseInt(areaId);
@@ -97,7 +97,7 @@ export async function PATCH(
 ) {
   try {
     const paramsValue = await params;
-    const routeParams = handleRouteParams(paramsValue);
+    const routeParams = await handleRouteParams(paramsValue);
     const { id, areaId } = routeParams;
     const clientId = parseInt(id);
     const areaIdInt = parseInt(areaId);

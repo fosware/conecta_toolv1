@@ -9,7 +9,7 @@ export async function GET(
 ) {
   try {
     const paramsValue = await params;
-    const routeParams = handleRouteParams(paramsValue);
+    const routeParams = await handleRouteParams(paramsValue);
     const { id } = routeParams;
     const clientId = parseInt(id);
 
@@ -40,7 +40,7 @@ export async function POST(
 ) {
   try {
     const paramsValue = await params;
-    const routeParams = handleRouteParams(paramsValue);
+    const routeParams = await handleRouteParams(paramsValue);
     const { id } = routeParams;
     const clientId = parseInt(id);
     const body = await request.json();

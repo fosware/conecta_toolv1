@@ -546,8 +546,8 @@ export function AssignedCompaniesTable({
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end space-x-2">
-                    {/* Solo mostrar el botón de subir cotización si hay un NDA firmado */}
-                    {item.status && companiesWithNDAs[item.id] === true && (
+                    {/* Solo mostrar el botón de subir cotización si hay un NDA firmado y el estado no es "No seleccionado" */}
+                    {item.status && companiesWithNDAs[item.id] === true && item.status.id !== 8 && (
                       <Button
                         variant="ghost"
                         size="icon"
@@ -562,8 +562,8 @@ export function AssignedCompaniesTable({
                       </Button>
                     )}
 
-                    {/* Solo mostrar el botón de ver documentos si hay un NDA firmado */}
-                    {companiesWithNDAs[item.id] === true && (
+                    {/* Solo mostrar el botón de ver documentos si hay un NDA firmado y el estado no es "No seleccionado" */}
+                    {companiesWithNDAs[item.id] === true && item.status && item.status.id !== 8 && (
                       <Button
                         variant="ghost"
                         size="icon"

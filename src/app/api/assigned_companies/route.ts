@@ -137,7 +137,7 @@ export async function GET(request: NextRequest) {
       where: baseFilter,
       include: includeConfig,
       orderBy: {
-        updatedAt: "desc",
+        createdAt: "desc",
       },
     });
 
