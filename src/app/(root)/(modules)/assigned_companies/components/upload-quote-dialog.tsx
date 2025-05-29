@@ -96,9 +96,23 @@ export function UploadQuoteDialog({
     }
   }, [open, item]);
 
+  // Estado para rastrear si el usuario ha modificado manualmente el precio
+  const [userModifiedPrice, setUserModifiedPrice] = useState(false);
+
+  // Efecto para calcular automáticamente el precio cuando cambian los costos
   useEffect(() => {
-    setPrice(calculateTotalCost().toString());
-  }, [materialCost, directCost, indirectCost]);
+    // Solo calcular automáticamente si el usuario NO ha modificado manualmente el precio
+    if (!userModifiedPrice) {
+      const calculatedPrice = calculateTotalCost().toString();
+      setPrice(calculatedPrice);
+    }
+  }, [materialCost, directCost, indirectCost, userModifiedPrice]);
+  
+  // Manejador para cuando el usuario modifica manualmente el precio
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPrice(e.target.value);
+    setUserModifiedPrice(true);
+  };
 
   const loadExistingQuote = async (id: number) => {
     try {
@@ -119,7 +133,11 @@ export function UploadQuoteDialog({
           setMaterialCost(data.quotation.materialCost?.toString() || "");
           setDirectCost(data.quotation.directCost?.toString() || "");
           setIndirectCost(data.quotation.indirectCost?.toString() || "");
+          
+          // Establecer el precio guardado y marcar que no ha sido modificado manualmente
+          // para esta sesión de edición
           setPrice(data.quotation.price?.toString() || "");
+          setUserModifiedPrice(false);
           setAdditionalDetails(data.quotation.additionalDetails || "");
 
           // Establecer el tipo de cotización basado en projectTypesId
@@ -483,7 +501,7 @@ export function UploadQuoteDialog({
                         type="number"
                         placeholder="0.00"
                         value={price}
-                        onChange={(e) => setPrice(e.target.value)}
+                        onChange={handlePriceChange}
                         disabled={uploading}
                         className="pl-7 w-48"
                       />
