@@ -96,22 +96,10 @@ export function UploadQuoteDialog({
     }
   }, [open, item]);
 
-  // Estado para rastrear si el usuario ha modificado manualmente el precio
-  const [userModifiedPrice, setUserModifiedPrice] = useState(false);
-
-  // Efecto para calcular automáticamente el precio cuando cambian los costos
-  useEffect(() => {
-    // Solo calcular automáticamente si el usuario NO ha modificado manualmente el precio
-    if (!userModifiedPrice) {
-      const calculatedPrice = calculateTotalCost().toString();
-      setPrice(calculatedPrice);
-    }
-  }, [materialCost, directCost, indirectCost, userModifiedPrice]);
-  
-  // Manejador para cuando el usuario modifica manualmente el precio
-  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPrice(e.target.value);
-    setUserModifiedPrice(true);
+  // Función para actualizar el precio basado en los costos
+  const updatePriceFromCosts = () => {
+    const calculatedPrice = calculateTotalCost().toString();
+    setPrice(calculatedPrice);
   };
 
   const loadExistingQuote = async (id: number) => {
@@ -128,16 +116,20 @@ export function UploadQuoteDialog({
         const data = await response.json();
 
         if (data.quotation) {
+          // Guardar una referencia del precio original para asegurar que se use exactamente ese valor
+          const savedPrice = data.quotation.price?.toString() || "";
+          
+          // Establecer todos los valores de la cotización
           setExistingQuotation(true);
           setExistingFileName(data.quotation.quotationFileName || "");
           setMaterialCost(data.quotation.materialCost?.toString() || "");
           setDirectCost(data.quotation.directCost?.toString() || "");
           setIndirectCost(data.quotation.indirectCost?.toString() || "");
           
-          // Establecer el precio guardado y marcar que no ha sido modificado manualmente
-          // para esta sesión de edición
-          setPrice(data.quotation.price?.toString() || "");
-          setUserModifiedPrice(false);
+          // IMPORTANTE: Establecer el precio exactamente como viene de la base de datos
+          // Sin ningún cálculo automático
+          console.log("Precio cargado desde la BD:", savedPrice);
+          setPrice(savedPrice);
           setAdditionalDetails(data.quotation.additionalDetails || "");
 
           // Establecer el tipo de cotización basado en projectTypesId
@@ -492,19 +484,30 @@ export function UploadQuoteDialog({
                 <div className="flex justify-between items-center">
                   <div className="space-y-2">
                     <Label htmlFor="price">Precio</Label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
-                        $
-                      </span>
-                      <Input
-                        id="price"
-                        type="number"
-                        placeholder="0.00"
-                        value={price}
-                        onChange={handlePriceChange}
+                    <div className="flex items-center space-x-2">
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+                          $
+                        </span>
+                        <Input
+                          id="price"
+                          type="number"
+                          placeholder="0.00"
+                          value={price}
+                          onChange={(e) => setPrice(e.target.value)}
+                          disabled={uploading}
+                          className="pl-7 w-48"
+                        />
+                      </div>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm"
+                        onClick={updatePriceFromCosts}
                         disabled={uploading}
-                        className="pl-7 w-48"
-                      />
+                      >
+                        Calcular
+                      </Button>
                     </div>
                   </div>
 
