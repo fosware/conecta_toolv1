@@ -11,8 +11,11 @@ export interface MenuItem {
 }
 
 export const menuItems: MenuItem[] = [
-  { name: "Asociados", path: "/companies", icon: "/icons/global-partner.svg" },
-  { name: "Clientes", path: "/clients", icon: "/icons/users.svg" },
+  {
+    name: "Proyectos",
+    path: "/projects",
+    icon: "/icons/boxes.svg",
+  },
   {
     name: "Solicitud de Proyectos",
     path: "/project_requests",
@@ -23,6 +26,8 @@ export const menuItems: MenuItem[] = [
     path: "/assigned_companies",
     icon: "/icons/user-check.svg",
   },
+  { name: "Asociados", path: "/companies", icon: "/icons/global-partner.svg" },
+  { name: "Clientes", path: "/clients", icon: "/icons/users.svg" },
   {
     name: "Cat Especialidades",
     path: "/cat_especialidades",

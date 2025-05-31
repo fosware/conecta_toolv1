@@ -424,9 +424,9 @@ model ProjectRequest {
   clientArea   ClientAreas @relation(fields: [clientAreaId], references: [id])
 
   ProjectRequirements     ProjectRequirements[]
-  ClientQuotationSummary ClientQuotationSummary[]
+  ClientQuotationSummary  ClientQuotationSummary[]
   ProjectRequestDocuments ProjectRequestDocuments[]
-  status                 StatusProjectRequest     @relation(fields: [statusId], references: [id])
+  status                  StatusProjectRequest      @relation(fields: [statusId], references: [id])
 
   @@index([isDeleted, isActive])
   @@map("d_project_requests")
@@ -530,23 +530,23 @@ model ClientCompanyNDA {
 
 // Asociados que cumplen los requisitos
 model ProjectRequestCompany {
-  id                             Int                                  @id @default(autoincrement())
+  id                             Int                                 @id @default(autoincrement())
   companyId                      Int
   projectRequirementsId          Int
-  statusId                       Int                                  @default(1)
-  status                         StatusProjectRequest                 @relation(fields: [statusId], references: [id])
-  isActive                       Boolean                              @default(true)
-  isDeleted                      Boolean                              @default(false)
+  statusId                       Int                                 @default(1)
+  status                         StatusProjectRequest                @relation(fields: [statusId], references: [id])
+  isActive                       Boolean                             @default(true)
+  isDeleted                      Boolean                             @default(false)
   dateDeleted                    DateTime?
-  createdAt                      DateTime                             @default(now())
-  updatedAt                      DateTime                             @updatedAt
+  createdAt                      DateTime                            @default(now())
+  updatedAt                      DateTime                            @updatedAt
   userId                         Int
-  user                           User                                 @relation(fields: [userId], references: [id])
-  Company                        Company                              @relation(fields: [companyId], references: [id])
-  ProjectRequirements            ProjectRequirements                  @relation(fields: [projectRequirementsId], references: [id])
+  user                           User                                @relation(fields: [userId], references: [id])
+  Company                        Company                             @relation(fields: [companyId], references: [id])
+  ProjectRequirements            ProjectRequirements                 @relation(fields: [projectRequirementsId], references: [id])
   Quotation                      ProjectRequestRequirementQuotation?
   ProjectRequestCompanyStatusLog ProjectRequestCompanyStatusLog[]
-  Project                        Project?                             @relation(fields: [projectId], references: [id])
+  Project                        Project?                            @relation(fields: [projectId], references: [id])
   projectId                      Int?
 
   @@index([isDeleted, isActive])
@@ -555,7 +555,7 @@ model ProjectRequestCompany {
 
 // Documentación técnica enviada por el cliente (disponible para asociados con NDA firmado)
 model ProjectRequestDocuments {
-  id                Int       @id @default(autoincrement())
+  id               Int       @id @default(autoincrement())
   projectRequestId Int
   documentFile     Bytes?
   documentFileName String?
@@ -691,28 +691,26 @@ model UserLogReadStatus {
 
 // Estatus de proyectos
 model ProjectStatus {
-  id                      Int                       @id @default(autoincrement())
-  name                    String                    @unique
-  description             String?
-  isActive                Boolean                   @default(true)
-  isDeleted               Boolean                   @default(false)
-  dateDeleted             DateTime?
-  createdAt               DateTime                  @default(now())
-  updatedAt               DateTime                  @updatedAt
-  userId                  Int
-  user                    User                      @relation(fields: [userId], references: [id])
-  ProjectCategoryActivity ProjectCategoryActivity[]
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  isActive    Boolean   @default(true)
+  isDeleted   Boolean   @default(false)
+  dateDeleted DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  userId      Int
+  user        User      @relation(fields: [userId], references: [id])
+  Project     Project[]
 
-  @@map("d_project_status")
+  @@map("c_project_status")
 }
 
 // Proyectos
 model Project {
   id                    Int                     @id @default(autoincrement())
-  id_company            String                  @unique
-  id_project_request    String?
-  project_status        Boolean                 @default(true)
-  project_observations  String?
+  projectRequestId      Int
+  projectStatusId       Int
+  observations          String?
   isDeleted             Boolean                 @default(false)
   dateDeleted           DateTime?
   createdAt             DateTime                @default(now())
@@ -720,8 +718,11 @@ model Project {
   userId                Int
   user                  User                    @relation(fields: [userId], references: [id])
   ProjectRequestCompany ProjectRequestCompany[]
+  ProjectStatus         ProjectStatus           @relation(fields: [projectStatusId], references: [id])
+  ProjectLog            ProjectLog[]
+  ProjectCategory       ProjectCategory[]
 
-  @@map("d_proyects")
+  @@map("c_projects")
 }
 
 // Categorias de proyecto
@@ -729,6 +730,7 @@ model ProjectCategory {
   id                      Int                       @id @default(autoincrement())
   name                    String                    @unique
   description             String?
+  projectId               Int
   isActive                Boolean                   @default(true)
   isDeleted               Boolean                   @default(false)
   dateDeleted             DateTime?
@@ -736,10 +738,10 @@ model ProjectCategory {
   updatedAt               DateTime                  @updatedAt
   userId                  Int
   user                    User                      @relation(fields: [userId], references: [id])
+  Project                 Project                   @relation(fields: [projectId], references: [id])
   ProjectCategoryActivity ProjectCategoryActivity[]
-  ProjectLog              ProjectLog[]
 
-  @@map("d_project_categories")
+  @@map("c_project_categories")
 }
 
 // Estatus actividades de categoria
@@ -755,48 +757,46 @@ model ProjectCategoryActivityStatus {
   user                    User                      @relation(fields: [userId], references: [id])
   ProjectCategoryActivity ProjectCategoryActivity[]
 
-  @@map("d_project_category_activity_status")
+  @@map("c_project_category_activity_status")
 }
 
 // Actividades de categoría
 model ProjectCategoryActivity {
-  id                 Int       @id @default(autoincrement())
-  name               String    @unique
-  description        String?
-  projectCategoryId  Int
-  dateTentativeStart DateTime?
-  dateTentativeEnd   DateTime?
-  observations       String?
-  activityStatusId   Int
-  isActive           Boolean   @default(true)
-  isDeleted          Boolean   @default(false)
-  dateDeleted        DateTime?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-  userId             Int
-  user               User      @relation(fields: [userId], references: [id])
-  projectStatusId    Int?
+  id                              Int       @id @default(autoincrement())
+  name                            String    @unique
+  description                     String?
+  projectCategoryId               Int
+  projectCategoryActivityStatusId Int
+  dateTentativeStart              DateTime?
+  dateTentativeEnd                DateTime?
+  observations                    String?
+  isActive                        Boolean   @default(true)
+  isDeleted                       Boolean   @default(false)
+  dateDeleted                     DateTime?
+  createdAt                       DateTime  @default(now())
+  updatedAt                       DateTime  @updatedAt
+  userId                          Int
+  user                            User      @relation(fields: [userId], references: [id])
 
-  activityStatus  ProjectCategoryActivityStatus @relation(fields: [activityStatusId], references: [id])
-  projectCategory ProjectCategory               @relation(fields: [projectCategoryId], references: [id])
-  ProjectStatus   ProjectStatus?                @relation(fields: [projectStatusId], references: [id])
+  ProjectCategory              ProjectCategory               @relation(fields: [projectCategoryId], references: [id])
+  ProjectCategorActivityStatus ProjectCategoryActivityStatus @relation(fields: [projectCategoryActivityStatusId], references: [id])
 
   @@map("d_project_category_activities")
 }
 
 // Bitacora de proyecto
 model ProjectLog {
-  id                Int             @id @default(autoincrement())
-  projectCategoryId Int
-  projectCategory   ProjectCategory @relation(fields: [projectCategoryId], references: [id])
-  dateTimeMessage   DateTime        @default(now())
-  message           String
-  isRead            Boolean         @default(false)
-  readAt            DateTime?
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
-  userId            Int
-  user              User            @relation(fields: [userId], references: [id])
+  id              Int       @id @default(autoincrement())
+  projectId       Int
+  dateTimeMessage DateTime  @default(now())
+  message         String
+  isRead          Boolean   @default(false)
+  readAt          DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  userId          Int
+  user            User      @relation(fields: [userId], references: [id])
+  Project         Project   @relation(fields: [projectId], references: [id])
 
   @@map("d_project_logs")
 }
