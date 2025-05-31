@@ -2,7 +2,7 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-const projectStatusValues = [
+const projectApprovedStatusValues = [
   { name: "Por Iniciar", userId: 1 },
   { name: "En Proceso", userId: 1 },
   { name: "Finalizado", userId: 1 },
@@ -10,11 +10,14 @@ const projectStatusValues = [
 ];
 
 export async function seedProjectApprovedStatus() {
-  for (const projectStatus of projectStatusValues) {
-    await prisma.projectStatus.upsert({
-      where: { name: projectStatus.name, userId: projectStatus.userId },
+  for (const projectApprovedStatus of projectApprovedStatusValues) {
+    await prisma.projectApprovedStatus.upsert({
+      where: {
+        name: projectApprovedStatus.name,
+        userId: projectApprovedStatus.userId,
+      },
       update: {},
-      create: projectStatus,
+      create: projectApprovedStatus,
     });
   }
   console.log("Status de proyectos aprobados sembrados correctamente.");

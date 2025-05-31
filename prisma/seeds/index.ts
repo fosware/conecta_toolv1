@@ -9,6 +9,8 @@ import { seedCertifications } from "./certifications.js";
 import { seedLocationStates } from "./locationStates.js";
 import { seedProjectTypes } from "./projectTypes.js";
 import { seedProjectStatus } from "./statusProjectRequest.js";
+import { seedProjectApprovedStatus } from "./projectsApprovedStatus.js";
+import { seedProjectCategoryActivityStatus } from "./projectCategoryActivityStatus.js";
 
 export async function seedAll() {
   try {
@@ -35,7 +37,10 @@ export async function seedAll() {
     console.log("Tipos de proyecto sembrados correctamente.");
     await seedProjectStatus();
     console.log("Status de proyecto sembrados correctamente.");
-
+    await seedProjectApprovedStatus();
+    console.log("Status de proyecto aprobado sembrados correctamente.");
+    await seedProjectCategoryActivityStatus();
+    console.log("Status de actividades sembrados correctamente.");
     console.log("Semillas completadas.");
   } catch (error) {
     console.error("Error al ejecutar semillas:", error);
