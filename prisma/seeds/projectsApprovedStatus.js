@@ -11,7 +11,7 @@ const projectApprovedStatusValues = [
 
 export async function seedProjectApprovedStatus() {
   for (const projectApprovedStatus of projectApprovedStatusValues) {
-    await prisma.projectApprovedStatus.upsert({
+    await prisma.projectStatus.upsert({
       where: {
         name: projectApprovedStatus.name,
         userId: projectApprovedStatus.userId,
