@@ -16,7 +16,7 @@ const projectSatatusValues = [
   { name: "Cotización enviada al Cliente", userId: 1 },
   { name: "Cotización rechazada por el Cliente", userId: 1 },
   { name: "Cotización seleccionada", userId: 1 },
-  { name: "Cotización aprobada por el cliente", userId: 1 },
+  { name: "Cotización aprobada por el Cliente", userId: 1 },
   { name: "Finalizado", userId: 1 },
   { name: "En espera de aprobación", userId: 1 },
   { name: "Recibida", userId: 1 },

@@ -49,17 +49,28 @@ export async function PUT(
 
     const requirementIds = requirements.map(req => req.id);
 
-    // Actualizar el estado de TODOS los asociados seleccionados a "Cotización aprobada por el cliente" (ID 14)
-    // Esto incluye los que están en "En espera de aprobación" (ID 16)
+    // Actualizar el estado de los asociados seleccionados a "Cotización aprobada por el cliente" (ID 14)
+    // Esto incluye los que están en "En espera de aprobación" (ID 16) y los que tienen "Cotización rechazada por el Cliente"
     // IMPORTANTE: La tabla ProjectRequestCompany es la misma que se usa en la vista de assigned_companies
     // por lo que al actualizar aquí, se actualiza en ambas vistas
+    
+    // Buscar el ID del estado "Cotización rechazada por el Cliente"
+    const rejectedStatus = await prisma.statusProjectRequest.findFirst({
+      where: {
+        name: "Cotización rechazada por el Cliente",
+      },
+    });
+    
+    const rejectedStatusId = rejectedStatus ? rejectedStatus.id : 0;
+    
+    // Actualizar los asociados que están en espera de aprobación O con cotización rechazada
     const updatedCompanies = await prisma.projectRequestCompany.updateMany({
       where: {
         projectRequirementsId: {
           in: requirementIds,
         },
-        // Actualizar solo los asociados que fueron seleccionados (están en espera de aprobación)
-        statusId: 16, // En espera de aprobación
+        // Actualizar los asociados que están en espera de aprobación O con cotización rechazada
+        statusId: { in: [16, rejectedStatusId] }, // 16 = En espera de aprobación
         isActive: true,
         isDeleted: false,
       },
@@ -67,6 +78,9 @@ export async function PUT(
         statusId: 14, // Cotización aprobada por el cliente
       },
     });
+    
+    // Contador de actualizaciones
+    const updatedCount = updatedCompanies.count;
     
     // Forzar una actualización en la tabla ProjectRequestCompany para asegurar que los cambios
     // se reflejen en todas las vistas (project_requests y assigned_companies)
@@ -120,15 +134,15 @@ export async function PUT(
       });
     }
 
-    // Actualizar el estado de la solicitud principal a "Aceptada" (ID 22)
+    // Actualizar el estado de la solicitud principal a "Cotización aprobada por el Cliente" (ID 14)
     await prisma.projectRequest.update({
       where: { id: parsedId },
-      data: { statusId: 22 }, // Estado "Aceptada"
+      data: { statusId: 14 }, // Estado "Cotización aprobada por el Cliente"
     });
 
     return NextResponse.json({
       message: "Cotizaciones aprobadas correctamente",
-      updatedCount: updatedCompanies.count,
+      updatedCount: updatedCount,
     });
   } catch (error) {
     console.error("Error al aprobar cotizaciones:", error);

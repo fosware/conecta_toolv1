@@ -1209,12 +1209,12 @@ export function ClientQuotationModal({
                           <button
                             type="button"
                             onClick={handleDownloadQuotation}
-                            className="ml-2 text-sm text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary/20 rounded px-1"
-                            title="Haz clic para descargar el archivo"
+                            className="ml-2 text-sm text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary/20 rounded px-1 max-w-[250px]"
+                            title={`Descargar: ${existingFileName}`}
                           >
                             <span className="flex items-center">
-                              <FileIcon className="h-3.5 w-3.5 mr-1" />
-                              {existingFileName}
+                              <FileIcon className="h-3.5 w-3.5 mr-1 flex-shrink-0" />
+                              <span className="truncate">{existingFileName}</span>
                             </span>
                           </button>
                         )}

@@ -4,7 +4,7 @@ const prisma = new PrismaClient();
 
 const projectApprovedStatusValues = [
   { name: "Por Iniciar", userId: 1 },
-  { name: "En Proceso", userId: 1 },
+  { name: "En Progreso", userId: 1 },
   { name: "Finalizado", userId: 1 },
   { name: "Cancelado", userId: 1 },
 ];

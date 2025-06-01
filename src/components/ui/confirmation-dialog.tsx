@@ -35,7 +35,7 @@ export const ConfirmationDialog = ({
       <DialogTrigger asChild onClick={(e) => e.stopPropagation()}>
         {trigger}
       </DialogTrigger>
-      <DialogContent className="bg-background text-foreground">
+      <DialogContent className="bg-background text-foreground dark:bg-slate-800 dark:text-slate-100 dark:border-slate-700">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold">Confirmación</DialogTitle>
           <DialogDescription className="text-muted-foreground">
@@ -51,9 +51,8 @@ export const ConfirmationDialog = ({
             Cancelar
           </Button>
           <Button
-            variant="destructive"
+            variant="default"
             onClick={handleConfirm}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
             Eliminar
           </Button>

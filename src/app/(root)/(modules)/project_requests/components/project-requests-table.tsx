@@ -295,13 +295,15 @@ export function ProjectRequestsTable({
                       {formatDateForDisplay(item.requestDate || item.createdAt)}
                     </TableCell>
                     <TableCell>
-                      <span className={`text-sm ${
-                        item.statusId === 17 ? "text-blue-600" : 
-                        item.statusId === 18 ? "text-indigo-600" : 
-                        item.statusId === 19 ? "text-yellow-600" : 
-                        item.statusId === 20 ? "text-orange-600" : 
-                        item.statusId === 21 ? "text-red-600" : 
-                        item.statusId === 22 ? "text-green-600" : "text-gray-600"
+                      <span className={`text-sm font-semibold ${
+                        // Colores más intensos y basados en el nombre del estado en lugar de solo el ID
+                        item.status?.name?.includes("En proceso") ? "text-blue-600 dark:text-blue-400" : 
+                        item.status?.name?.includes("Cotización generada") ? "text-blue-700 dark:text-blue-300" :
+                        item.status?.name?.includes("espera") ? "text-amber-600 dark:text-amber-400" :
+                        item.status?.name?.includes("enviada") ? "text-purple-600 dark:text-purple-400" :
+                        item.status?.name?.includes("Rechazada") ? "text-red-600 dark:text-red-400" :
+                        item.status?.name?.includes("aprobada") || item.status?.name?.includes("Aceptada") ? "text-green-600 dark:text-green-400" :
+                        "text-gray-700 dark:text-gray-300"
                       }`}>
                         {item.status?.name || "No definido"}
                       </span>

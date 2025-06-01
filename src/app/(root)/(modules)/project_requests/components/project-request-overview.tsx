@@ -23,6 +23,7 @@ import {
   MessageSquare,
   Pencil,
   Plus,
+  Rocket,
   Send,
   Upload,
   User,
@@ -268,9 +269,9 @@ export default function ProjectRequestOverview({
     requirementName: string;
   } | null>(null);
   const [updatingQuotationStatus, setUpdatingQuotationStatus] = useState(false);
-  const [approvingClientQuotation, setApprovingClientQuotation] =
-    useState(false);
-  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [approvingClientQuotation, setApprovingClientQuotation] = useState(false);
+  const [rejectingClientQuotation, setRejectingClientQuotation] = useState(false);
+  const [approvingProject, setApprovingProject] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
   const [viewQuotationOpen, setViewQuotationOpen] = useState(false);
   const [selectedQuotationCompany, setSelectedQuotationCompany] =
@@ -959,6 +960,40 @@ export default function ProjectRequestOverview({
       setApprovingClientQuotation(false);
     }
   };
+  
+
+
+  // Función para manejar la aprobación final del proyecto
+  const handleApproveProject = async () => {
+    try {
+      setApprovingProject(true);
+      const response = await fetch(
+        `/api/project_requests/${data.id}/approve-project`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Error al aprobar el proyecto");
+      }
+
+      toast.success("¡Proyecto aprobado correctamente!");
+
+      // Refrescar los datos
+      if (onRefreshData) {
+        onRefreshData();
+      }
+    } catch (error) {
+      console.error("Error al aprobar el proyecto:", error);
+      toast.error("Error al aprobar el proyecto");
+    } finally {
+      setApprovingProject(false);
+    }
+  };
 
   const handleRejectClientQuotation = async () => {
     if (!rejectionReason.trim()) {
@@ -986,7 +1021,7 @@ export default function ProjectRequestOverview({
       }
 
       toast.success("Cotización para cliente rechazada correctamente");
-      setRejectDialogOpen(false);
+      setRejectingClientQuotation(false);
       setRejectionReason("");
 
       // Refrescar los datos
@@ -1502,8 +1537,8 @@ export default function ProjectRequestOverview({
                           ? "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100"
                           : data.statusId === 21
                             ? "bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
-                            : data.statusId === 22
-                              ? "bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
+                            : data.statusId === 14 || data.statusId === 22
+                              ? "bg-green-100 text-green-800 border-green-200 hover:bg-green-200"
                               : ""
                     }
                   >
@@ -1620,16 +1655,17 @@ export default function ProjectRequestOverview({
                           <Button
                             variant="outline"
                             size="sm"
-                            className="flex items-center gap-2"
+                            className="flex items-center gap-2 max-w-full"
                             onClick={handleDownloadClientQuotation}
                             disabled={downloadingClientQuotation}
+                            title={`Descargar: ${clientQuotationData.quotationFileName}`}
                           >
                             {downloadingClientQuotation ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
+                              <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" />
                             ) : (
-                              <Download className="h-4 w-4" />
+                              <Download className="h-4 w-4 flex-shrink-0" />
                             )}
-                            <span className="text-sm">
+                            <span className="text-sm truncate">
                               {clientQuotationData.quotationFileName}
                             </span>
                           </Button>
@@ -1673,7 +1709,7 @@ export default function ProjectRequestOverview({
                         variant="outline"
                         size="sm"
                         className="text-destructive border-destructive hover:bg-red-50"
-                        onClick={() => setRejectDialogOpen(true)}
+                        onClick={() => setRejectingClientQuotation(true)}
                         disabled={approvingClientQuotation}
                       >
                         <X className="mr-2 h-4 w-4" />
@@ -1681,6 +1717,23 @@ export default function ProjectRequestOverview({
                       </Button>
                     </div>
                   </div>
+                  
+                  {/* Botón de Aprobar Proyecto - Solo aparece cuando la cotización ha sido aprobada por el cliente */}
+                  {data.statusId === 14 && (
+                    <Button 
+                      className="w-full mt-6 bg-green-600 hover:bg-green-700 text-white font-bold py-2 flex items-center justify-center gap-2"
+                      size="lg"
+                      onClick={handleApproveProject}
+                      disabled={approvingProject}
+                    >
+                      {approvingProject ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <Rocket className="h-5 w-5" />
+                      )}
+                      <span>{approvingProject ? "Aprobando proyecto..." : "¡Aprobar proyecto!"}</span>
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <div className="flex items-center justify-center py-8 text-muted-foreground">
@@ -1747,7 +1800,7 @@ export default function ProjectRequestOverview({
       </AlertDialog>
 
       {/* Diálogo para rechazar cotización */}
-      <AlertDialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+      <AlertDialog open={rejectingClientQuotation} onOpenChange={setRejectingClientQuotation}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Rechazar Cotización</AlertDialogTitle>
@@ -1772,7 +1825,7 @@ export default function ProjectRequestOverview({
             </div>
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setRejectDialogOpen(false)}>
+            <AlertDialogCancel onClick={() => setRejectingClientQuotation(false)}>
               Cancelar
             </AlertDialogCancel>
             <AlertDialogAction
