@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { getToken } from "@/lib/auth";
 import { Loader2 } from "lucide-react";
 import { ProjectWithRelations } from "@/lib/schemas/project";
+import { createSystemLog } from "@/app/(root)/(modules)/project_logs/utils/create-system-log";
 
 interface ProjectStatus {
   id: number;
@@ -113,6 +114,34 @@ export function ProjectEditModal({
       }
 
       toast.success("Proyecto actualizado correctamente");
+      
+      // Obtener el nombre del nuevo estado del proyecto
+      const newStatusName = projectStatuses.find(
+        (status) => status.id === parseInt(formData.projectStatusId)
+      )?.name || "Desconocido";
+      
+      // Verificar si el estado del proyecto ha cambiado
+      if (project.projectStatusId !== parseInt(formData.projectStatusId)) {
+        // Obtener el nombre del estado anterior
+        const previousStatusName = projectStatuses.find(
+          (status) => status.id === project.projectStatusId
+        )?.name || "Desconocido";
+        
+        // Crear log automático del sistema para el cambio de estado
+        createSystemLog(
+          project.id,
+          `El estado del proyecto ha cambiado de "${previousStatusName}" a "${newStatusName}"`
+        );
+      }
+      
+      // Si las observaciones han cambiado, crear un log
+      if (project.observations !== formData.observations) {
+        createSystemLog(
+          project.id,
+          `Se han actualizado las observaciones del proyecto`
+        );
+      }
+      
       onSuccess && onSuccess();
       onClose();
     } catch (error) {

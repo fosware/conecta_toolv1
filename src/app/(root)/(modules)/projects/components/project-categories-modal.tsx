@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { getToken } from "@/lib/auth";
+import { createSystemLog } from "@/app/(root)/(modules)/project_logs/utils/create-system-log";
 import {
   Table,
   TableBody,
@@ -160,6 +161,13 @@ export function ProjectCategoriesModal({
       }
 
       toast.success("Categoría eliminada correctamente");
+      
+      // Crear log automático del sistema para la eliminación
+      createSystemLog(
+        projectId,
+        `Se ha eliminado la categoría: "${categoryToDelete.name}"`
+      );
+      
       fetchCategories();
       
       // Llamar al callback de éxito para actualización optimista
@@ -221,6 +229,14 @@ export function ProjectCategoriesModal({
         editingCategory 
           ? "Categoría actualizada exitosamente" 
           : "Categoría creada exitosamente"
+      );
+      
+      // Crear log automático del sistema
+      createSystemLog(
+        projectId,
+        editingCategory
+          ? `Se ha actualizado la categoría: "${categoryName}"`
+          : `Se ha creado una nueva categoría: "${categoryName}"`
       );
       
       resetForm();

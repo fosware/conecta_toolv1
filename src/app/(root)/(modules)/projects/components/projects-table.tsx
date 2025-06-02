@@ -23,10 +23,13 @@ import {
   Loader2,
   Building2,
   ListChecks,
+  MessageSquare,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 import { ProjectWithRelations } from "@/lib/schemas/project";
+import { ProjectLogsModal } from "@/app/(root)/(modules)/project_logs/components/project-logs-modal";
+import UnreadIndicator from "@/app/(root)/(modules)/project_logs/components/unread-indicator";
 
 type Project = ProjectWithRelations;
 
@@ -51,33 +54,28 @@ const formatDateForDisplay = (date: string | Date | null) => {
 };
 
 interface ProjectsTableProps {
-  data?: Project[];
-  loading?: boolean;
-  onEdit?: (item: Project) => void;
-  onDelete?: (item: Project) => void;
-  onToggleStatus?: (id: number, currentStatus: boolean) => void;
-  onViewDetails?: (item: Project) => void;
-  onRowClick?: (item: Project) => void;
-  expandedId?: number | null;
+  data: Project[];
+  isLoading?: boolean;
   isStaff?: boolean;
-  selectedProjectDetails?: Project | null;
-  onRefreshData?: () => void;
+  onRowClick?: (project: Project) => void;
+  onViewDetails?: (project: Project) => void;
+  onEdit?: (project: Project) => void;
+  onOpenLogs?: (project: Project) => void;
 }
 
 export function ProjectsTable({
   data,
-  loading = false,
-  onEdit,
-  onDelete,
-  onToggleStatus,
-  onViewDetails,
-  onRowClick,
-  expandedId = null,
+  isLoading = false,
   isStaff = false,
-  selectedProjectDetails = null,
-  onRefreshData,
+  onRowClick,
+  onViewDetails,
+  onEdit,
+  onOpenLogs,
 }: ProjectsTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [selectedProjectDetails, setSelectedProjectDetails] = useState<Project | null>(null);
+  const [projectForLogs, setProjectForLogs] = useState<Project | null>(null);
 
   // Tabla de ejemplo con datos ficticios si no se proporcionan datos
   const mockData: Project[] = [
@@ -128,20 +126,30 @@ export function ProjectsTable({
   });
 
   // Renderizar esqueleto de carga si está cargando
-  if (loading) {
+  if (isLoading) {
     return <TableSkeleton columns={6} rows={5} />;
   }
 
   return (
     <div className="space-y-4">
+      {/* Modal de bitácora */}
+      <ProjectLogsModal
+        open={!!projectForLogs}
+        onOpenChange={(isOpen: boolean) => {
+          if (!isOpen) setProjectForLogs(null);
+        }}
+        projectId={projectForLogs?.id || 0}
+        projectTitle={projectForLogs?.ProjectRequestCompany?.Company?.name || "Proyecto"}
+      />
+      
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 w-full max-w-sm">
-          <Search className="h-4 w-4 text-muted-foreground" />
+        <div className="relative w-full max-w-sm">
+          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar proyectos..."
+            className="pl-8"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="h-9"
           />
         </div>
       </div>
@@ -215,16 +223,32 @@ export function ProjectsTable({
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onViewDetails && onViewDetails(item);
-                        }}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                      <div className="flex justify-end items-center space-x-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onViewDetails && onViewDetails(item);
+                          }}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        
+                        <div className="relative">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setProjectForLogs(item);
+                            }}
+                          >
+                            <MessageSquare className="h-4 w-4" />
+                            <UnreadIndicator projectId={item.id} />
+                          </Button>
+                        </div>
+                      </div>
                     </TableCell>
                   </TableRow>
                   {expandedId === item.id && selectedProjectDetails && (

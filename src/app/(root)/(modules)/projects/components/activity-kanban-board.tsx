@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { getToken } from "@/lib/auth";
+import { createSystemLog } from "@/app/(root)/(modules)/project_logs/utils/create-system-log";
 import { 
   Calendar, 
   Clock, 
@@ -204,6 +205,24 @@ export function ActivityKanbanBoard({ projectId, categoryId, onActivityStatusCha
       }, 0);
       
       toast.success("Estado de la actividad actualizado", { id: toastId });
+      
+      // Crear log automático del sistema para el cambio de estado
+      const statusName = columns.find(col => col.id === newStatusId)?.name || "Desconocido";
+      
+      // Buscar el nombre de la actividad en todas las columnas
+      let activityName = "Actividad";
+      for (const col of columns) {
+        const foundActivity = col.activities.find(activity => activity.id === activityId);
+        if (foundActivity) {
+          activityName = foundActivity.name;
+          break;
+        }
+      }
+      
+      createSystemLog(
+        projectId,
+        `La actividad "${activityName}" ha sido movida al estado "${statusName}"`
+      );
     } catch (error) {
       console.error('Error al actualizar estado:', error);
       toast.error("Error al actualizar el estado de la actividad", { id: toastId });
@@ -277,6 +296,22 @@ export function ActivityKanbanBoard({ projectId, categoryId, onActivityStatusCha
       
       setColumns(newColumns);
       toast.success("Actividad eliminada con éxito", { id: toastId });
+      
+      // Crear log automático del sistema para la eliminación
+      // Buscar el nombre de la actividad en todas las columnas antes de eliminarla
+      let activityName = "Actividad";
+      for (const col of columns) {
+        const foundActivity = col.activities.find(activity => activity.id === activityId);
+        if (foundActivity) {
+          activityName = foundActivity.name;
+          break;
+        }
+      }
+      
+      createSystemLog(
+        projectId,
+        `La actividad "${activityName}" ha sido eliminada`
+      );
     } catch (error) {
       console.error("Error deleting activity:", error);
       toast.error("Error al eliminar la actividad", { id: toastId });

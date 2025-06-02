@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { getProjectStatusById, type ProjectStatusId, getProjectStatusByKey } from "@/config/project-status";
 import { ActivityKanbanBoard } from "./activity-kanban-board";
 
+
 interface ProjectCategory {
   id: number;
   name: string;
@@ -70,6 +71,7 @@ export default function ProjectOverview({
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loadingActivities, setLoadingActivities] = useState(false);
   const [progressValue, setProgressValue] = useState<number>(0);
+
   const [projectStatusBadge, setProjectStatusBadge] = useState<{ text: string; class: string }>({
     text: "Por iniciar", 
     class: "bg-slate-100 text-slate-700"
@@ -373,9 +375,12 @@ export default function ProjectOverview({
   return (
     <div className="p-6 bg-card rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-200 mt-4 mb-6">
       <div className="flex flex-col space-y-6">
-        {/* Título y Progreso */}
+        {/* Título, Progreso y Botón de Bitácora */}
         <div className="flex flex-col items-center space-y-3">
-          <h2 className="text-xl font-semibold text-center">{projectTitle}</h2>
+          <div className="flex items-center justify-center w-full">
+            <h2 className="text-xl font-semibold text-center">{projectTitle}</h2>
+          </div>
+
           <div className="flex items-center space-x-2 text-sm">
             <span className="text-sm font-medium">{progressValue}% completado</span>
             <Badge variant="outline" className={projectStatusBadge.class}>
@@ -565,6 +570,8 @@ export default function ProjectOverview({
 
         {/* Se eliminó el resumen de progreso a petición del usuario */}
       </div>
+
+
     </div>
   );
 }

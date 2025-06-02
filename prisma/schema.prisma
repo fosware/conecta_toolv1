@@ -48,6 +48,7 @@ model User {
   ProjectCategoryActivityStatus      ProjectCategoryActivityStatus[]
   ProjectCategoryActivity            ProjectCategoryActivity[]
   ProjectLog                         ProjectLog[]
+  UserLogReadStatusProject           UserLogReadStatusProject[]
 
   @@unique([email, isDeleted])
   @@unique([username, isDeleted])
@@ -788,17 +789,35 @@ model ProjectCategoryActivity {
 
 // Bitacora de proyecto
 model ProjectLog {
-  id              Int       @id @default(autoincrement())
-  projectId       Int
-  dateTimeMessage DateTime  @default(now())
-  message         String
-  isRead          Boolean   @default(false)
-  readAt          DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  userId          Int
-  user            User      @relation(fields: [userId], references: [id])
-  Project         Project   @relation(fields: [projectId], references: [id])
+  id                       Int                        @id @default(autoincrement())
+  projectId                Int
+  dateTimeMessage          DateTime                   @default(now())
+  message                  String
+  isRead                   Boolean                    @default(false)
+  readAt                   DateTime?
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime                   @updatedAt
+  userId                   Int
+  user                     User                       @relation(fields: [userId], references: [id])
+  Project                  Project                    @relation(fields: [projectId], references: [id])
+  UserLogReadStatusProject UserLogReadStatusProject[]
 
   @@map("d_project_logs")
+}
+
+// Registra el estado de lectura de logs para bitácora de proyectos
+model UserLogReadStatusProject {
+  id        Int        @id @default(autoincrement())
+  logId     Int
+  isRead    Boolean    @default(false)
+  readAt    DateTime?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  userId    Int
+  user      User       @relation(fields: [userId], references: [id])
+  log       ProjectLog @relation(fields: [logId], references: [id])
+
+  @@unique([userId, logId])
+  @@index([userId, isRead])
+  @@map("d_user_log_read_status_project")
 }

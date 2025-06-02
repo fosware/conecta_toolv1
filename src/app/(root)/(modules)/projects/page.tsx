@@ -27,12 +27,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { TableSkeleton } from "@/components/table-skeleton";
-import { Search, ListFilter, FileText, ChevronRight, ChevronDown } from "lucide-react";
+import { Search, ChevronDown, ChevronRight, FileText, LayoutList, MessageSquare } from "lucide-react";
 import { useUserRole } from "@/hooks/use-user-role";
 import { getToken } from "@/lib/auth";
 import { toast } from "sonner";
 import { ProjectCategoriesModal } from "./components/project-categories-modal";
 import ProjectOverview from "./components/project-overview";
+import { ProjectLogsModal } from "@/app/(root)/(modules)/project_logs/components/project-logs-modal";
+import UnreadIndicator from "@/app/(root)/(modules)/project_logs/components/unread-indicator";
 
 // Definir interfaces para los tipos de datos
 interface Company {
@@ -133,6 +135,7 @@ export default function ProjectsPage() {
   const [categoriesModalOpen, setCategoriesModalOpen] = useState(false);
   const [expandedProjectId, setExpandedProjectId] = useState<number | null>(null);
   const [refreshKey, setRefreshKey] = useState<number>(0);
+  const [projectForLogs, setProjectForLogs] = useState<ProjectWithRelations | null>(null);
   
   // Función para refrescar el ProjectOverview
   const refreshProjectOverview = () => {
@@ -238,6 +241,18 @@ export default function ProjectsPage() {
 
   return (
     <>
+      {/* Modal de Bitácora */}
+      <ProjectLogsModal
+        open={!!projectForLogs}
+        onOpenChange={(isOpen: boolean) => {
+          if (!isOpen) setProjectForLogs(null);
+        }}
+        projectId={projectForLogs?.id || 0}
+        projectTitle={projectForLogs?.projectRequestTitle || "Proyecto"}
+        categoryName={projectForLogs?.ProjectStatus?.name}
+        associateName={projectForLogs?.ProjectRequestCompany?.Company?.companyName || projectForLogs?.ProjectRequestCompany?.Company?.comercialName || ""}
+      />
+      
       <div className="container mx-auto py-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">Proyectos</h1>
@@ -374,9 +389,11 @@ export default function ProjectsPage() {
                                 <TableCell>
                                   <span
                                     className={`px-2 py-1 rounded-md text-xs font-medium ${
-                                      project.ProjectStatus?.color
-                                        ? `bg-${project.ProjectStatus.color}-100 text-${project.ProjectStatus.color}-800`
-                                        : "bg-gray-100 text-gray-800"
+                                      project.projectStatusId === 3
+                                        ? "bg-green-100 text-green-700" // Completado
+                                        : project.projectStatusId === 2
+                                        ? "bg-blue-100 text-blue-700" // En progreso
+                                        : "bg-slate-100 text-slate-700" // Por iniciar
                                     }`}
                                   >
                                     {project.ProjectStatus?.name || "Sin estado"}
@@ -396,8 +413,22 @@ export default function ProjectsPage() {
                                       }}
                                       title="Categorías"
                                     >
-                                      <ListFilter className="h-4 w-4" />
+                                      <LayoutList className="h-4 w-4" />
                                     </Button>
+                                    
+                                    <div className="relative">
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => {
+                                          setProjectForLogs(project);
+                                        }}
+                                        title="Bitácora"
+                                      >
+                                        <MessageSquare className="h-4 w-4" />
+                                        <UnreadIndicator projectId={project.id} />
+                                      </Button>
+                                    </div>
                                   </div>
                                 </TableCell>
                               </TableRow>

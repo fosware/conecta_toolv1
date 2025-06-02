@@ -63,6 +63,75 @@ export async function PATCH(
         projectCategoryActivityStatusId: data.statusId,
       },
     });
+    
+    // Si cambió el estado de la actividad, actualizar el estado del proyecto
+    if (data.statusId !== existingActivity.projectCategoryActivityStatusId) {
+      
+      // Verificar si hay actividades en progreso
+      const activitiesInProgress = await prisma.projectCategoryActivity.count({
+        where: {
+          ProjectCategory: {
+            projectId: projectId,
+          },
+          projectCategoryActivityStatusId: 2, // ID para "En progreso"
+          isDeleted: false,
+        },
+      });
+      
+      // Si hay al menos una actividad en progreso, actualizar el proyecto a "En progreso"
+      if (activitiesInProgress > 0) {
+        await prisma.project.update({
+          where: {
+            id: projectId,
+          },
+          data: {
+            projectStatusId: 2, // ID para "En progreso"
+          },
+        });
+      } else {
+        // Verificar si todas las actividades están completadas
+        const totalActivities = await prisma.projectCategoryActivity.count({
+          where: {
+            ProjectCategory: {
+              projectId: projectId,
+            },
+            isDeleted: false,
+          },
+        });
+        
+        const completedActivities = await prisma.projectCategoryActivity.count({
+          where: {
+            ProjectCategory: {
+              projectId: projectId,
+            },
+            projectCategoryActivityStatusId: 3, // ID para "Completada"
+            isDeleted: false,
+          },
+        });
+        
+        // Si todas las actividades están completadas, marcar el proyecto como completado
+        if (totalActivities > 0 && totalActivities === completedActivities) {
+          await prisma.project.update({
+            where: {
+              id: projectId,
+            },
+            data: {
+              projectStatusId: 3, // ID para "Completado"
+            },
+          });
+        } else if (completedActivities === 0) {
+          // Si no hay actividades completadas ni en progreso, volver a "Por iniciar"
+          await prisma.project.update({
+            where: {
+              id: projectId,
+            },
+            data: {
+              projectStatusId: 1, // ID para "Por iniciar"
+            },
+          });
+        }
+      }
+    }
 
     return NextResponse.json(updatedActivity);
   } catch (error) {
