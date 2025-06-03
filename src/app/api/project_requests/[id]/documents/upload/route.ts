@@ -49,14 +49,8 @@ export async function POST(
       );
     }
 
-    // Verificar el tamaño del archivo (máximo 10MB)
-    const maxSize = 10 * 1024 * 1024; // 10MB
-    if (file.size > maxSize) {
-      return NextResponse.json(
-        { error: "El archivo excede el tamaño máximo permitido (10MB)" },
-        { status: 400 }
-      );
-    }
+    // Se ha eliminado la restricción de tamaño de archivo
+    // Los usuarios pueden subir archivos de cualquier tamaño
 
     // Leer el archivo como un ArrayBuffer
     const fileBuffer = await file.arrayBuffer();

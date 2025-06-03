@@ -131,7 +131,7 @@ export function ClientCompanyNDATable({
             ndaItems.map((item) => (
               <TableRow key={item.id}>
                 <TableCell>{item.clientName}</TableCell>
-                <TableCell>{item.companyName}</TableCell>
+                <TableCell>{item.comercialName || item.companyName}</TableCell>
                 <TableCell>
                   {item.ndaExpirationDate
                     ? (() => {

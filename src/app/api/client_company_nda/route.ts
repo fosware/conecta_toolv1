@@ -75,6 +75,7 @@ export async function GET(request: NextRequest) {
           select: {
             id: true,
             companyName: true,
+            comercialName: true,
           },
         },
       },
@@ -90,6 +91,7 @@ export async function GET(request: NextRequest) {
       clientName: nda.Client.name,
       companyId: nda.companyId,
       companyName: nda.Company.companyName,
+      comercialName: nda.Company.comercialName,
       ndaSignedFileName: nda.ndaSignedFileName,
       ndaExpirationDate: nda.ndaExpirationDate?.toISOString() || null,
       createdAt: nda.createdAt.toISOString(),

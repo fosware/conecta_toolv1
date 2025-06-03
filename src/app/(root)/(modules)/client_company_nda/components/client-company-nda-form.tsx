@@ -42,6 +42,7 @@ interface Client {
 interface Company {
   id: number;
   companyName: string;
+  comercialName?: string;
 }
 
 const formSchema = z.object({
@@ -351,7 +352,7 @@ export function ClientCompanyNDAForm({
                             key={company.id}
                             value={company.id.toString()}
                           >
-                            {company.companyName}
+                            {company.comercialName || company.companyName}
                           </SelectItem>
                         ))}
                       </SelectContent>

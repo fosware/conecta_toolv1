@@ -527,7 +527,7 @@ export function AssignedCompaniesTable({
                   {formatDate(item.createdAt)}
                 </TableCell>
                 <TableCell className="py-2">
-                  {item.Company?.companyName || "N/A"}
+                  {item.Company?.comercialName || item.Company?.companyName || "N/A"}
                 </TableCell>
                 <TableCell className="py-2">
                   {item.ProjectRequirements?.requirementName ||

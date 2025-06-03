@@ -3,8 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { getUserFromToken } from "@/lib/get-user-from-token";
 import { handleRouteParams } from "@/lib/route-params";
 
-// Tamaño máximo de archivo: 10MB
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
+// Se ha eliminado la restricción de tamaño máximo de archivo
+// Los usuarios pueden subir archivos de cualquier tamaño
 
 export async function POST(
   request: NextRequest,
@@ -92,13 +92,8 @@ export async function POST(
       );
     }
 
-    // Validar tamaño del archivo
-    if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json(
-        { error: "El archivo excede el tamaño máximo permitido (10MB)" },
-        { status: 400 }
-      );
-    }
+    // Se ha eliminado la validación de tamaño del archivo
+    // Los usuarios pueden subir archivos de cualquier tamaño
 
     // Convertir el archivo a bytes
     const fileBuffer = await file.arrayBuffer();

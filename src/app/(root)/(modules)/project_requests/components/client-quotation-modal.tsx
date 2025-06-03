@@ -129,7 +129,6 @@ export function ClientQuotationModal({
     price: 0,
     clientPrice: null,
   });
-  
 
   const [clientName, setClientName] = useState<string>("");
 
@@ -219,7 +218,7 @@ export function ClientQuotationModal({
       directCost: totalDirectCost,
       indirectCost: totalIndirectCost,
       price: totalPrice,
-      clientPrice: totals.clientPrice
+      clientPrice: totals.clientPrice,
     });
   }, [totalMaterialCost, totalDirectCost, totalIndirectCost, totalPrice]);
 
@@ -276,75 +275,109 @@ export function ClientQuotationModal({
       if (showLoading) {
         setLoading(true);
       }
-      
+
       // Cargar datos para el proyecto
-      
+
       // Paralelizar las peticiones para mejorar el rendimiento
-      const [projectResponse, quotationsResponse] = await Promise.all([
+      const [projectResponse, quotationsResponse, requirementsResponse] = await Promise.all([
         // Petición 1: Cargar información del proyecto para obtener el nombre del cliente
         fetch(`/api/project_requests/${projectRequestId}`, {
           headers: {
             Authorization: `Bearer ${getToken()}`,
           },
         }),
-        
+
         // Petición 2: Cargar cotizaciones para el cliente
         fetch(`/api/project_requests/${projectRequestId}/client-quotation`, {
           headers: {
             Authorization: `Bearer ${getToken()}`,
           },
-        })
+        }),
+        
+        // Petición 3: Cargar los requerimientos del proyecto para obtener sus nombres
+        fetch(`/api/project_requests/${projectRequestId}/requirements`, {
+          headers: {
+            Authorization: `Bearer ${getToken()}`,
+          },
+        }),
       ]);
-      
+
       // Procesar la respuesta del proyecto
       if (projectResponse.ok) {
         const projectData = await projectResponse.json();
         // Datos del proyecto recibidos
-        
+
         if (projectData.client && projectData.client.name) {
           setClientName(projectData.client.name);
         } else if (projectData.clientName) {
           setClientName(projectData.clientName);
         }
       } else {
-        console.error("Error al cargar datos del proyecto:", projectResponse.status);
+        console.error(
+          "Error al cargar datos del proyecto:",
+          projectResponse.status
+        );
       }
-      
+
       // Usar la respuesta de cotizaciones ya obtenida
       if (!quotationsResponse.ok) {
-        console.error("Error en la respuesta de cotizaciones:", quotationsResponse.status);
+        console.error(
+          "Error en la respuesta de cotizaciones:",
+          quotationsResponse.status
+        );
         throw new Error("Error al cargar las cotizaciones");
       }
 
       const companiesData = await quotationsResponse.json();
-      // Datos de cotizaciones recibidos
+      
+      // Procesar la respuesta de los requerimientos
+      let requirementsMap: Record<number, string> = {};
+      if (requirementsResponse.ok) {
+        const requirementsData = await requirementsResponse.json();
+        if (requirementsData.items && Array.isArray(requirementsData.items)) {
+          // Crear un mapa de ID de requerimiento a nombre de requerimiento
+          requirementsData.items.forEach((req: any) => {
+            if (req.id && req.requirementName) {
+              requirementsMap[req.id] = req.requirementName;
+            }
+          });
+        }
+      } else {
+        console.error("Error al cargar los requerimientos:", requirementsResponse.status);
+      }
 
       // Filtrar requerimientos que tienen al menos una cotización
       let requirementsWithData: RequirementWithQuotations[] = [];
       
       // Verificar si hay empresas seleccionadas en la respuesta
-      if (companiesData && companiesData.selectedCompanies && Array.isArray(companiesData.selectedCompanies)) {
+      if (
+        companiesData &&
+        companiesData.selectedCompanies &&
+        Array.isArray(companiesData.selectedCompanies)
+      ) {
         // Procesar empresas con cotizaciones
-        
+
         // Agrupar las cotizaciones por requerimiento
         const requirementGroups: Record<number, RequirementWithQuotations> = {};
-        
+
         // Procesar cada empresa con su cotización
         companiesData.selectedCompanies.forEach((company: SelectedCompany) => {
           // Procesar cotización de empresa
           // Verificar estado de la cotización
-          
+
           // Usar el ID del requerimiento como clave, o 1 si no existe
           const reqId = company.projectRequirementsId || 1;
-          
+
           if (!requirementGroups[reqId]) {
+            // Usar el nombre real del requerimiento si está disponible, de lo contrario usar "Requerimiento " + ID
+            const realRequirementName = requirementsMap[reqId] || "Requerimiento " + reqId;
             requirementGroups[reqId] = {
               id: reqId,
-              requirementName: "Requerimiento " + reqId,
-              quotations: []
+              requirementName: realRequirementName,
+              quotations: [],
             };
           }
-          
+
           // Agregar la cotización al grupo correspondiente
           requirementGroups[reqId].quotations.push({
             id: company.id,
@@ -361,17 +394,17 @@ export function ClientQuotationModal({
             requirementId: reqId,
             requirementName: "Requerimiento " + reqId,
             additionalDetails: null,
-            segments: []
+            segments: [],
           });
         });
-        
+
         // Convertir el objeto de grupos a un array
         requirementsWithData = Object.values(requirementGroups);
         // Datos agrupados por requerimientos
       } else {
         console.error("No se encontraron cotizaciones en la respuesta");
       }
-      
+
       // Requerimientos con cotizaciones procesados
       setRequirementsWithQuotations(requirementsWithData);
 
@@ -388,7 +421,6 @@ export function ClientQuotationModal({
       if (clientQuotationResponse.ok) {
         const clientQuotationData = await clientQuotationResponse.json();
 
-
         if (clientQuotationData.quotation) {
           setExistingQuotation(true);
 
@@ -399,9 +431,7 @@ export function ClientQuotationModal({
           // Asegurarse de que el nombre del archivo se establezca correctamente
           if (fileName) {
             setExistingFileName(fileName);
-
           } else {
-
             setExistingFileName(null);
           }
 
@@ -746,11 +776,18 @@ export function ClientQuotationModal({
       // Obtener los IDs de las cotizaciones seleccionadas (aprobadas)
       const selectedQuotationIds = requirementsWithQuotations
         .flatMap((req) => req.quotations)
-        .filter((company) => approvalState[company.id]?.isApproved === true || company.isClientApproved)
+        .filter(
+          (company) =>
+            approvalState[company.id]?.isApproved === true ||
+            company.isClientApproved
+        )
         .map((company) => company.id);
 
       // Agregar los IDs de las cotizaciones seleccionadas al formData
-      formData.append("selectedQuotationIds", JSON.stringify(selectedQuotationIds));
+      formData.append(
+        "selectedQuotationIds",
+        JSON.stringify(selectedQuotationIds)
+      );
 
       const response = await fetch(
         `/api/project_requests/${projectRequestId}/client-quotation`,
@@ -859,7 +896,7 @@ export function ClientQuotationModal({
   // Función para descargar el archivo de cotización
   const handleDownloadQuotation = async () => {
     if (!existingFileName) return;
-    
+
     try {
       const response = await fetch(
         `/api/project_requests/${projectRequestId}/download-client-quotation`,
@@ -869,24 +906,24 @@ export function ClientQuotationModal({
           },
         }
       );
-      
+
       if (!response.ok) {
         throw new Error("Error al descargar el archivo");
       }
-      
+
       // Convertir la respuesta a blob
       const blob = await response.blob();
-      
+
       // Crear URL para el blob
       const url = window.URL.createObjectURL(blob);
-      
+
       // Crear un elemento <a> para descargar el archivo
       const a = document.createElement("a");
       a.href = url;
       a.download = existingFileName;
       document.body.appendChild(a);
       a.click();
-      
+
       // Limpiar
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
@@ -1015,45 +1052,66 @@ export function ClientQuotationModal({
                                       </span>
                                     </div>
                                   </div>
-                                  
+
                                   {/* Fechas de entrega y observaciones */}
-                                  {company.segments && company.segments.length > 0 && (
-                                    <div className="mt-3 border-t pt-3">
-                                      <h4 className="text-sm font-medium mb-2">Entregas:</h4>
-                                      <div className="space-y-2">
-                                        {company.segments.map((segment) => {
-                                          // Formatear la fecha para mostrarla en formato local
-                                          const date = new Date(segment.estimatedDeliveryDate);
-                                          const formattedDate = date.toLocaleDateString('es-MX', {
-                                            year: 'numeric',
-                                            month: 'long',
-                                            day: 'numeric'
-                                          });
-                                          
-                                          return (
-                                            <div key={segment.id} className="bg-muted/10 p-2 rounded-sm">
-                                              <div className="flex flex-col md:flex-row md:gap-4">
-                                                <div className="md:w-1/3">
-                                                  <span className="text-xs text-muted-foreground block">Fecha de entrega:</span>
-                                                  <span className="text-sm font-medium">{formattedDate}</span>
-                                                </div>
-                                                <div className="md:w-2/3">
-                                                  <span className="text-xs text-muted-foreground block">Observaciones:</span>
-                                                  <span className="text-sm">{segment.description}</span>
+                                  {company.segments &&
+                                    company.segments.length > 0 && (
+                                      <div className="mt-3 border-t pt-3">
+                                        <h4 className="text-sm font-medium mb-2">
+                                          Entregas:
+                                        </h4>
+                                        <div className="space-y-2">
+                                          {company.segments.map((segment) => {
+                                            // Formatear la fecha para mostrarla en formato local
+                                            const date = new Date(
+                                              segment.estimatedDeliveryDate
+                                            );
+                                            const formattedDate =
+                                              date.toLocaleDateString("es-MX", {
+                                                year: "numeric",
+                                                month: "long",
+                                                day: "numeric",
+                                              });
+
+                                            return (
+                                              <div
+                                                key={segment.id}
+                                                className="bg-muted/10 p-2 rounded-sm"
+                                              >
+                                                <div className="flex flex-col md:flex-row md:gap-4">
+                                                  <div className="md:w-1/3">
+                                                    <span className="text-xs text-muted-foreground block">
+                                                      Fecha de entrega:
+                                                    </span>
+                                                    <span className="text-sm font-medium">
+                                                      {formattedDate}
+                                                    </span>
+                                                  </div>
+                                                  <div className="md:w-2/3">
+                                                    <span className="text-xs text-muted-foreground block">
+                                                      Observaciones:
+                                                    </span>
+                                                    <span className="text-sm">
+                                                      {segment.description}
+                                                    </span>
+                                                  </div>
                                                 </div>
                                               </div>
-                                            </div>
-                                          );
-                                        })}
+                                            );
+                                          })}
+                                        </div>
                                       </div>
-                                    </div>
-                                  )}
-                                  
+                                    )}
+
                                   {/* Detalles adicionales */}
                                   {company.additionalDetails && (
                                     <div className="mt-3 border-t pt-3">
-                                      <h4 className="text-sm font-medium mb-1">Detalles adicionales:</h4>
-                                      <p className="text-sm">{company.additionalDetails}</p>
+                                      <h4 className="text-sm font-medium mb-1">
+                                        Detalles adicionales:
+                                      </h4>
+                                      <p className="text-sm">
+                                        {company.additionalDetails}
+                                      </p>
                                     </div>
                                   )}
 
@@ -1214,7 +1272,9 @@ export function ClientQuotationModal({
                           >
                             <span className="flex items-center">
                               <FileIcon className="h-3.5 w-3.5 mr-1 flex-shrink-0" />
-                              <span className="truncate">{existingFileName}</span>
+                              <span className="truncate">
+                                {existingFileName}
+                              </span>
                             </span>
                           </button>
                         )}
