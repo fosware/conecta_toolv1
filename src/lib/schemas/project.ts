@@ -31,6 +31,7 @@ export const ProjectWithRelationsSchema = ProjectSchema.extend({
       id: z.number(),
       name: z.string(),
       logo: z.string().nullable(),
+      comercialName: z.string().nullable().optional(),
     }),
   }),
 });

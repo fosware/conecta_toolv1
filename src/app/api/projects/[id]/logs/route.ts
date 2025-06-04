@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserFromToken } from "@/lib/get-user-from-token";
+import { getDateFromServer } from "@/lib/get-date-from-server";
 
 export async function GET(
   request: NextRequest,
@@ -69,29 +70,34 @@ export async function GET(
       },
     });
 
-    // Crear o actualizar registros de estado de lectura para cada log
-    const updatePromises = unreadLogs.map(async (log) => {
-      return prisma.userLogReadStatusProject.upsert({
+    // Obtener la fecha actual del servidor PostgreSQL
+    const serverDate = await getDateFromServer();
+    console.log("Fecha del servidor PostgreSQL (logs):", serverDate);
+    
+    // Actualizar registros de estado de lectura para cada log
+    for (const log of unreadLogs) {
+      await prisma.userLogReadStatusProject.upsert({
         where: {
           userId_logId: {
-            userId: userId,
+            userId,
             logId: log.id,
           },
         },
         update: {
           isRead: true,
-          readAt: new Date(),
+          readAt: serverDate,
+          updatedAt: serverDate, // Forzamos la fecha del servidor
         },
         create: {
-          userId: userId,
+          userId,
           logId: log.id,
           isRead: true,
-          readAt: new Date(),
+          readAt: serverDate,
+          createdAt: serverDate, // Forzamos la fecha del servidor
+          updatedAt: serverDate, // Forzamos la fecha del servidor
         },
       });
-    });
-
-    await Promise.all(updatePromises);
+    }
 
     // Formatear la respuesta
     const formattedLogs = logs.map((log) => {

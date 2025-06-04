@@ -250,7 +250,8 @@ export default function ProjectsPage() {
         projectId={projectForLogs?.id || 0}
         projectTitle={projectForLogs?.projectRequestTitle || "Proyecto"}
         categoryName={projectForLogs?.ProjectStatus?.name}
-        associateName={projectForLogs?.ProjectRequestCompany?.Company?.companyName || projectForLogs?.ProjectRequestCompany?.Company?.comercialName || ""}
+        associateName={projectForLogs?.ProjectRequestCompany?.Company?.companyName || ""}
+        comercialName={projectForLogs?.ProjectRequestCompany?.Company?.comercialName || ""}
       />
       
       <div className="container mx-auto py-6">

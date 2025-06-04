@@ -2,11 +2,22 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserFromToken } from "@/lib/get-user-from-token";
 import { z } from "zod";
-
+/*
+// Función para obtener la fecha actual en la zona horaria de México
+function getCurrentDateInMexicoCity() {
+  // Crear una fecha en UTC
+  const now = new Date();
+  
+  // Convertir a la zona horaria de México (UTC-6)
+  const mexicoCityDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Mexico_City' }));
+  
+  return mexicoCityDate;
+}
+*/
 // Esquema de validación para los logs de proyectos
 const projectLogSchema = z.object({
   message: z.string().min(1, "El mensaje es requerido"),
-  projectId: z.number().int().positive("ID de proyecto inválido")
+  projectId: z.number().int().positive("ID de proyecto inválido"),
 });
 
 export async function POST(request: NextRequest) {
@@ -14,15 +25,12 @@ export async function POST(request: NextRequest) {
     // Verificar autenticación
     const userId = await getUserFromToken();
     if (!userId) {
-      return NextResponse.json(
-        { error: "No autorizado" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
     // Obtener datos del cuerpo de la solicitud
     const body = await request.json();
-    
+
     // Validar datos con el esquema
     const validationResult = projectLogSchema.safeParse(body);
     if (!validationResult.success) {
@@ -31,7 +39,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    
+
     const { message, projectId } = validationResult.data;
 
     // Verificar que el proyecto existe
@@ -67,11 +75,11 @@ export async function POST(request: NextRequest) {
         message,
         projectId,
         userId,
-        dateTimeMessage: new Date(),
+        dateTimeMessage: new Date(), //getCurrentDateInMexicoCity(),
         isRead: false,
       },
     });
-    
+
     // Obtener información del usuario
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -87,14 +95,11 @@ export async function POST(request: NextRequest) {
         userName: user?.profile?.name || user?.username,
         userRole: user?.role?.name,
         companyName: project?.ProjectRequestCompany?.Company?.comercialName,
-      }, 
+      },
       { status: 201 }
     );
   } catch (error) {
     console.error("Error al crear log:", error);
-    return NextResponse.json(
-      { error: "Error al crear log" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Error al crear log" }, { status: 500 });
   }
 }

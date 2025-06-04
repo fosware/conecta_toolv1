@@ -140,6 +140,8 @@ export function ProjectsTable({
         }}
         projectId={projectForLogs?.id || 0}
         projectTitle={projectForLogs?.ProjectRequestCompany?.Company?.name || "Proyecto"}
+        associateName={projectForLogs?.ProjectRequestCompany?.Company?.name || ""}
+        comercialName={projectForLogs?.ProjectRequestCompany?.Company?.comercialName || ""}
       />
       
       <div className="flex items-center justify-between">
