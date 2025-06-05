@@ -2,22 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserFromToken } from "@/lib/get-user-from-token";
 import { z } from "zod";
-/*
-// Función para obtener la fecha actual en la zona horaria de México
-function getCurrentDateInMexicoCity() {
-  // Crear una fecha en UTC
-  const now = new Date();
-  
-  // Convertir a la zona horaria de México (UTC-6)
-  const mexicoCityDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Mexico_City' }));
-  
-  return mexicoCityDate;
-}
-*/
+import { getCurrentDateInMexicoCity, createDateForDatabaseInMexicoTime } from "@/lib/date-utils";
+
 // Esquema de validación para los logs de proyectos
 const projectLogSchema = z.object({
   message: z.string().min(1, "El mensaje es requerido"),
-  projectId: z.number().int().positive("ID de proyecto inválido"),
+  projectId: z.number().int().positive("El ID del proyecto debe ser un número positivo"),
+  categoryId: z.number().int().positive().optional(),
+  dateTimeMessage: z.string().optional(), // Fecha explícita en formato ISO
+  preventDuplicates: z.boolean().optional(), // Indica si se debe verificar duplicados
 });
 
 export async function POST(request: NextRequest) {
@@ -40,7 +33,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { message, projectId } = validationResult.data;
+    const { message, projectId, dateTimeMessage: providedDateTimeMessage, preventDuplicates } = validationResult.data;
 
     // Verificar que el proyecto existe
     const project = await prisma.project.findFirst({
@@ -69,17 +62,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Crear el log
-    const newLog = await prisma.projectLog.create({
-      data: {
-        message,
-        projectId,
-        userId,
-        dateTimeMessage: new Date(), //getCurrentDateInMexicoCity(),
-        isRead: false,
-      },
-    });
-
+    // Determinar la fecha a usar
+    let mexicoCityDate;
+    
+    if (providedDateTimeMessage) {
+      // Si se proporciona una fecha explícita, convertirla a la zona horaria de México
+      // usando PostgreSQL para asegurar consistencia
+      const dateResult = await prisma.$queryRaw`
+        SELECT ${ providedDateTimeMessage }::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City' as date
+      `;
+      mexicoCityDate = (dateResult as any)[0].date;
+      console.log("Fecha proporcionada convertida a zona horaria México:", mexicoCityDate);
+    } else {
+      // Si no se proporciona fecha, obtener la fecha actual en zona horaria de México
+      const currentDateResult = await prisma.$queryRaw`SELECT NOW() AT TIME ZONE 'America/Mexico_City' as now`;
+      mexicoCityDate = (currentDateResult as any)[0].now;
+      console.log("Fecha actual desde PostgreSQL (America/Mexico_City):", mexicoCityDate);
+    }
+    
     // Obtener información del usuario
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -88,10 +88,53 @@ export async function POST(request: NextRequest) {
         role: true,
       },
     });
+    
+    // No verificamos duplicados aquí, ya que queremos registrar cada acción individual
+    // Si el frontend envía múltiples logs, es porque ocurrieron múltiples acciones
+    
+    // Crear el log usando Prisma con la fecha obtenida directamente de PostgreSQL
+    const newLog = await prisma.projectLog.create({
+      data: {
+        projectId,
+        userId,
+        message,
+        dateTimeMessage: mexicoCityDate,
+        isRead: false,
+        createdAt: mexicoCityDate, // Establecer createdAt explícitamente
+        updatedAt: mexicoCityDate, // Establecer updatedAt explícitamente
+      }
+    });
+    
+    // Obtener el log recién creado
+    const finalLog = await prisma.projectLog.findUnique({
+      where: { id: newLog.id }
+    });
+    
+    if (!finalLog) {
+      return NextResponse.json({ error: "Error al crear log" }, { status: 500 });
+    }
+    
+    console.log("Log creado con fecha:", finalLog.dateTimeMessage);
+    console.log("Log createdAt:", finalLog.createdAt);
+    console.log("Log updatedAt:", finalLog.updatedAt);
 
+    // Asegurarnos de que finalLog no sea undefined (ya verificado anteriormente)
+    if (!finalLog) {
+      return NextResponse.json({ error: "Error al crear log" }, { status: 500 });
+    }
+    
+    // Crear la respuesta con los datos del log y la información adicional
     return NextResponse.json(
       {
-        ...newLog,
+        id: finalLog.id,
+        message: finalLog.message,
+        projectId: finalLog.projectId,
+        userId: finalLog.userId,
+        dateTimeMessage: finalLog.dateTimeMessage,
+        isRead: finalLog.isRead,
+        createdAt: finalLog.createdAt,
+        updatedAt: finalLog.updatedAt,
+        // Información adicional
         userName: user?.profile?.name || user?.username,
         userRole: user?.role?.name,
         companyName: project?.ProjectRequestCompany?.Company?.comercialName,

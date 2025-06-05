@@ -60,29 +60,35 @@ export default function CompanyPage() {
     isOpen: boolean;
     companyId: number | null;
     companyName: string | null;
+    comercialName: string | null;
   }>({
     isOpen: false,
     companyId: null,
     companyName: null,
+    comercialName: null,
   });
   const [specialtiesModal, setSpecialtiesModal] = useState<{
     isOpen: boolean;
     companyId: number | null;
     companyName: string | null;
+    comercialName: string | null;
   }>({
     isOpen: false,
     companyId: null,
     companyName: null,
+    comercialName: null,
   });
 
   const [usersModal, setUsersModal] = useState<{
     isOpen: boolean;
     companyId: number | null;
     companyName: string | null;
+    comercialName: string | null;
   }>({
     isOpen: false,
     companyId: null,
     companyName: null,
+    comercialName: null,
   });
 
   const [selectedCompanyProfile, setSelectedCompanyProfile] =
@@ -187,6 +193,7 @@ export default function CompanyPage() {
       isOpen: true,
       companyId: item.id,
       companyName: item.companyName,
+      comercialName: item.comercialName || null,
     });
   };
 
@@ -195,6 +202,7 @@ export default function CompanyPage() {
       isOpen: true,
       companyId: item.id,
       companyName: item.companyName,
+      comercialName: item.comercialName || null,
     });
   };
 
@@ -203,6 +211,7 @@ export default function CompanyPage() {
       isOpen: true,
       companyId: item.id,
       companyName: item.companyName,
+      comercialName: item.comercialName || null,
     });
   };
 
@@ -321,6 +330,7 @@ export default function CompanyPage() {
                 isOpen: false,
                 companyId: null,
                 companyName: null,
+                comercialName: null,
               });
             }}
             onSuccess={() => {
@@ -331,6 +341,7 @@ export default function CompanyPage() {
             }}
             companyId={certificatesModal.companyId}
             companyName={certificatesModal.companyName || ""}
+            comercialName={certificatesModal.comercialName || ""}
           />
         )}
         {specialtiesModal.companyId && (
@@ -341,6 +352,7 @@ export default function CompanyPage() {
                 isOpen: false,
                 companyId: null,
                 companyName: null,
+                comercialName: null,
               });
             }}
             onSuccess={() => {
@@ -351,6 +363,7 @@ export default function CompanyPage() {
             }}
             companyId={specialtiesModal.companyId}
             companyName={specialtiesModal.companyName || ""}
+            comercialName={specialtiesModal.comercialName || ""}
           />
         )}
         {usersModal.companyId && (
@@ -361,10 +374,12 @@ export default function CompanyPage() {
                 isOpen: false,
                 companyId: null,
                 companyName: null,
+                comercialName: null,
               })
             }
             companyId={usersModal.companyId}
             companyName={usersModal.companyName || ""}
+            comercialName={usersModal.comercialName || ""}
           />
         )}
       </div>

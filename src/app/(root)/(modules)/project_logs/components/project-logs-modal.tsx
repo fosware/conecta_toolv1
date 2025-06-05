@@ -12,6 +12,7 @@ import { ProjectLog } from "../types";
 import { LogMessageType } from "../types";
 import { getToken } from "@/lib/auth";
 import { useUnreadMessages } from "../context/unread-messages-context";
+import { formatDateForMexicoDisplay } from "@/lib/date-utils";
 
 interface ProjectLogsModalProps {
   open: boolean;
@@ -23,23 +24,8 @@ interface ProjectLogsModalProps {
   comercialName?: string;
 }
 
-function formatDateForDisplay(dateString: string | Date | undefined): string {
-  if (!dateString) return "Fecha no disponible";
-
-  const date = new Date(dateString);
-  if (isNaN(date.getTime())) return "Fecha inválida";
-
-  // Usar toLocaleString con opciones específicas para formato de fecha y hora
-  return date.toLocaleString("es-MX", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false, // Usar formato 24 horas
-    timeZone: "America/Mexico_City" // Especificar zona horaria
-  });
-}
+// Usamos la función centralizada de formateo de fechas
+// La implementación se encuentra en @/lib/date-utils.ts
 
 export function ProjectLogsModal({
   open,
@@ -62,17 +48,9 @@ export function ProjectLogsModal({
   useEffect(() => {
     if (open && projectId) {
       fetchLogs();
-
-      // Marcar como leídos inmediatamente al abrir el modal
-      if (projectId) {
-        // Marcar como leídos en el contexto inmediatamente
-        markAsRead(projectId);
-
-        // También enviar la actualización al servidor
-        markLogsAsRead();
-      }
+      markLogsAsRead();
     }
-  }, [open, projectId, markAsRead]);
+  }, [open, projectId]);
 
   useEffect(() => {
     if (logsContainerRef.current) {
@@ -146,7 +124,55 @@ export function ProjectLogsModal({
       const data = await response.json();
 
       // Manejar la estructura de respuesta
-      const logsData = data.logs || data; // Compatibilidad con ambas estructuras
+      let logsData = data.logs || data; // Compatibilidad con ambas estructuras
+      
+      // Depuración: Mostrar las fechas originales y formateadas
+      if (logsData.length > 0) {
+        const originalDate = new Date(logsData[0].dateTimeMessage);
+        console.log("Fecha original del primer log (string):", logsData[0].dateTimeMessage);
+        console.log("Fecha original del primer log (objeto Date):", originalDate);
+        console.log("Fecha original ISO:", originalDate.toISOString());
+        console.log("Fecha original UTC:", 
+          `${originalDate.getUTCDate().toString().padStart(2, '0')}/${(originalDate.getUTCMonth() + 1).toString().padStart(2, '0')}/${originalDate.getUTCFullYear()}, ` +
+          `${originalDate.getUTCHours().toString().padStart(2, '0')}:${originalDate.getUTCMinutes().toString().padStart(2, '0')}`
+        );
+        console.log("Fecha original Local:", 
+          `${originalDate.getDate().toString().padStart(2, '0')}/${(originalDate.getMonth() + 1).toString().padStart(2, '0')}/${originalDate.getFullYear()}, ` +
+          `${originalDate.getHours().toString().padStart(2, '0')}:${originalDate.getMinutes().toString().padStart(2, '0')}`
+        );
+        console.log("Fecha formateada del primer log:", formatDateForMexicoDisplay(logsData[0].dateTimeMessage));
+      }
+      
+      // Ordenar los logs por fecha de creación (más reciente primero)
+      logsData = [...logsData].sort((a, b) => {
+        // Primero intentar ordenar por createdAt
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
+        
+        if (!isNaN(dateA) && !isNaN(dateB)) {
+          return dateB - dateA; // Orden descendente (más reciente primero)
+        }
+        
+        // Si createdAt no está disponible o es inválido, usar dateTimeMessage
+        const msgDateA = new Date(a.dateTimeMessage).getTime();
+        const msgDateB = new Date(b.dateTimeMessage).getTime();
+        
+        if (!isNaN(msgDateA) && !isNaN(msgDateB)) {
+          return msgDateB - msgDateA; // Orden descendente (más reciente primero)
+        }
+        
+        // Si todo falla, ordenar por ID (asumiendo que IDs más altos son más recientes)
+        return b.id - a.id;
+      });
+      
+      console.log("Logs ordenados en el frontend:", 
+        logsData.slice(0, 3).map((log: ProjectLog) => ({
+          id: log.id,
+          message: log.message.substring(0, 20) + '...',
+          createdAt: log.createdAt,
+          dateTimeMessage: log.dateTimeMessage
+        }))
+      );
 
       setLogs(logsData);
     } catch (error) {
@@ -193,14 +219,20 @@ export function ProjectLogsModal({
       }
 
       setNewMessage("");
-      fetchLogs();
-      toast.success("Mensaje enviado correctamente");
+      
+      // Esperar un momento antes de actualizar los logs para asegurar que el mensaje se haya guardado
+      setTimeout(() => {
+        fetchLogs();
+        toast.success("Mensaje enviado correctamente");
+      }, 500);
     } catch (error) {
       toast.error("Error al enviar el mensaje");
     } finally {
       setSendingMessage(false);
     }
   };
+  
+
 
   const getMessageType = (log: ProjectLog): LogMessageType => {
     if (log.message.startsWith("[SISTEMA]")) {
@@ -254,7 +286,9 @@ export function ProjectLogsModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle>Bitácora del Proyecto: {projectTitle}</DialogTitle>
+          <DialogTitle className="text-xl font-bold">
+            Bitácora del Proyecto: {projectTitle}
+          </DialogTitle>
           <div className="text-sm text-muted-foreground">
             {categoryName && <p>Categoría: {categoryName}</p>}
             {associateName && <p>Asociado: {comercialName || associateName}</p>}
@@ -303,7 +337,7 @@ export function ProjectLogsModal({
                             ` - ${log.companyName}`}
                         </span>
                         <span className="text-xs text-gray-500">
-                          {formatDateForDisplay(log.dateTimeMessage)}
+                          {formatDateForMexicoDisplay(log.dateTimeMessage)}
                         </span>
                       </div>
                       <p 

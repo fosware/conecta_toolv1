@@ -4,19 +4,6 @@ import { getUserFromToken } from "@/lib/get-user-from-token";
 import { getDateFromServer } from "@/lib/get-date-from-server";
 import { z } from "zod";
 
-// Función para obtener la fecha actual en la zona horaria de México
-function getCurrentDateInMexicoCity() {
-  // Crear una fecha en UTC
-  const now = new Date();
-
-  // Convertir a la zona horaria de México (UTC-6)
-  const mexicoCityDate = new Date(
-    now.toLocaleString("en-US", { timeZone: "America/Mexico_City" })
-  );
-
-  return mexicoCityDate;
-}
-
 // Esquema de validación para marcar logs como leídos
 const readStatusSchema = z.object({
   projectId: z.number().int().positive("ID de proyecto inválido"),
@@ -83,34 +70,38 @@ export async function PUT(request: NextRequest) {
       });
     }
 
-    // Obtener la fecha actual del servidor PostgreSQL
-    const serverDate = await getDateFromServer();
-    console.log("Fecha del servidor PostgreSQL:", serverDate);
-    
-    // Actualizar registros de estado de lectura para cada log
-    for (const log of unreadLogs) {
-      await prisma.userLogReadStatusProject.upsert({
-        where: {
-          userId_logId: {
-            userId,
-            logId: log.id,
-          },
-        },
-        update: {
-          isRead: true,
-          readAt: serverDate,
-          updatedAt: serverDate, // Forzamos la fecha del servidor
-        },
-        create: {
-          userId,
-          logId: log.id,
-          isRead: true,
-          readAt: serverDate,
-          createdAt: serverDate, // Forzamos la fecha del servidor
-          updatedAt: serverDate, // Forzamos la fecha del servidor
-        },
-      });
-    }
+    // Usamos una transacción para asegurar que todas las operaciones se ejecuten con la misma zona horaria
+    await prisma.$transaction(async (tx) => {
+      // Establecemos explícitamente la zona horaria para esta transacción
+      // Esto asegura que NOW() devuelva la fecha y hora en la zona horaria de México
+      await tx.$executeRawUnsafe(`SET TIME ZONE 'America/Mexico_City';`);
+
+      // Verificamos la fecha actual para depuración
+      const checkDate = await tx.$queryRaw<{ now: Date; now_tz: string }[]>`
+        SELECT 
+          NOW() as now,
+          NOW()::text as now_tz
+      `;
+      console.log(
+        "Fecha actual en PostgreSQL (America/Mexico_City):",
+        checkDate[0].now
+      );
+      console.log("Fecha como texto con zona horaria:", checkDate[0].now_tz);
+
+      // Procesamos cada log usando SQL directo para tener control total sobre todos los campos
+      for (const log of unreadLogs) {
+        // Usamos SQL directo con la zona horaria ya establecida
+        await tx.$executeRaw`
+          INSERT INTO "d_user_log_read_status_project" ("userId", "logId", "isRead", "readAt", "createdAt", "updatedAt")
+          VALUES (${userId}, ${log.id}, true, NOW(), NOW(), NOW())
+          ON CONFLICT ("userId", "logId") 
+          DO UPDATE SET 
+            "isRead" = true, 
+            "readAt" = NOW(),
+            "updatedAt" = NOW()
+        `;
+      }
+    });
 
     return NextResponse.json({
       messagesMarked: unreadLogs.length,

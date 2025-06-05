@@ -44,14 +44,44 @@ export async function GET(
       where: {
         projectId: projectId,
       },
-      orderBy: {
-        dateTimeMessage: "desc",
-      },
+      orderBy: [
+        // Ordenar primero por fecha de creación (más reciente primero)
+        { createdAt: "desc" },
+        // Luego por dateTimeMessage (más reciente primero)
+        { dateTimeMessage: "desc" },
+        // Finalmente por ID (más reciente primero)
+        { id: "desc" }
+      ],
       include: {
         user: true,
         Project: true,
       },
     });
+    
+    console.log(`Recuperados ${logs.length} logs para el proyecto ${projectId}`);
+    // Mostrar los primeros 3 logs para depuración
+    if (logs.length > 0) {
+      logs.slice(0, 3).forEach((log, index) => {
+        // Convertir las fechas a la zona horaria de México para depuración
+        const dateTimeInMexico = new Date(log.dateTimeMessage).toLocaleString("es-MX", {
+          timeZone: "America/Mexico_City",
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false
+        });
+        
+        console.log(`Log ${index + 1}:`, {
+          id: log.id,
+          message: log.message.substring(0, 30) + (log.message.length > 30 ? '...' : ''),
+          dateTimeMessage: log.dateTimeMessage,
+          createdAt: log.createdAt,
+          dateTimeInMexico: dateTimeInMexico
+        });
+      });
+    }
 
     // Marcar los logs como leídos para este usuario
     // Primero, obtener los IDs de los logs no leídos
@@ -70,34 +100,35 @@ export async function GET(
       },
     });
 
-    // Obtener la fecha actual del servidor PostgreSQL
-    const serverDate = await getDateFromServer();
-    console.log("Fecha del servidor PostgreSQL (logs):", serverDate);
-    
-    // Actualizar registros de estado de lectura para cada log
-    for (const log of unreadLogs) {
-      await prisma.userLogReadStatusProject.upsert({
-        where: {
-          userId_logId: {
-            userId,
-            logId: log.id,
-          },
-        },
-        update: {
-          isRead: true,
-          readAt: serverDate,
-          updatedAt: serverDate, // Forzamos la fecha del servidor
-        },
-        create: {
-          userId,
-          logId: log.id,
-          isRead: true,
-          readAt: serverDate,
-          createdAt: serverDate, // Forzamos la fecha del servidor
-          updatedAt: serverDate, // Forzamos la fecha del servidor
-        },
-      });
-    }
+    // Usamos una transacción para asegurar que todas las operaciones se ejecuten con la misma zona horaria
+    await prisma.$transaction(async (tx) => {
+      // Establecemos explícitamente la zona horaria para esta transacción
+      // Esto asegura que NOW() devuelva la fecha y hora en la zona horaria de México
+      await tx.$executeRawUnsafe(`SET TIME ZONE 'America/Mexico_City';`);
+      
+      // Verificamos la fecha actual para depuración
+      const checkDate = await tx.$queryRaw<{now: Date, now_tz: string}[]>`
+        SELECT 
+          NOW() as now,
+          NOW()::text as now_tz
+      `;
+      console.log("Fecha actual en PostgreSQL (America/Mexico_City - GET logs):", checkDate[0].now);
+      console.log("Fecha como texto con zona horaria (GET logs):", checkDate[0].now_tz);
+      
+      // Procesamos cada log usando SQL directo para tener control total sobre todos los campos
+      for (const log of unreadLogs) {
+        // Usamos SQL directo con la zona horaria ya establecida
+        await tx.$executeRaw`
+          INSERT INTO "d_user_log_read_status_project" ("userId", "logId", "isRead", "readAt", "createdAt", "updatedAt")
+          VALUES (${userId}, ${log.id}, true, NOW(), NOW(), NOW())
+          ON CONFLICT ("userId", "logId") 
+          DO UPDATE SET 
+            "isRead" = true, 
+            "readAt" = NOW(),
+            "updatedAt" = NOW()
+        `;
+      }
+    });
 
     // Formatear la respuesta
     const formattedLogs = logs.map((log) => {

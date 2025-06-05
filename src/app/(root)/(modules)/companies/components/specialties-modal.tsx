@@ -50,6 +50,7 @@ interface SpecialtiesModalProps {
   onClose: () => void;
   companyId: number;
   companyName: string;
+  comercialName?: string;
   onSuccess?: () => void;
 }
 
@@ -58,6 +59,7 @@ export function SpecialtiesModal({
   onClose,
   companyId,
   companyName,
+  comercialName,
   onSuccess,
 }: SpecialtiesModalProps) {
   const [companySpecialties, setCompanySpecialties] = useState<
@@ -453,7 +455,7 @@ export function SpecialtiesModal({
             <DialogTitle>
               <span className="text-muted-foreground">Especialidades de </span>
               <span className="text-blue-500 dark:text-blue-400 font-bold">
-                {companyName}
+                {comercialName || companyName}
               </span>
             </DialogTitle>
           </DialogHeader>

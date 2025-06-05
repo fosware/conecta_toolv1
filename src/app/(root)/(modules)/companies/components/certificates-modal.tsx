@@ -45,6 +45,7 @@ interface CertificatesModalProps {
   onClose: () => void;
   companyId: number;
   companyName: string;
+  comercialName?: string;
   onSuccess?: () => void;
 }
 
@@ -70,6 +71,7 @@ export function CertificatesModal({
   onClose,
   companyId,
   companyName,
+  comercialName,
   onSuccess,
 }: CertificatesModalProps) {
   const [certificates, setCertificates] = useState<CompanyCertificate[]>([]);
@@ -415,7 +417,7 @@ export function CertificatesModal({
             <DialogTitle>
               <span className="text-muted-foreground">Certificados de </span>
               <span className="text-blue-500 dark:text-blue-400 font-bold">
-                {companyName}
+                {comercialName || companyName}
               </span>
             </DialogTitle>
           </DialogHeader>

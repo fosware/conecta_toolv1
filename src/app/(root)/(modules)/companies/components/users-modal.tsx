@@ -55,6 +55,7 @@ interface UsersModalProps {
   onClose: () => void;
   companyId: number;
   companyName: string;
+  comercialName?: string;
 }
 
 export function UsersModal({
@@ -62,6 +63,7 @@ export function UsersModal({
   onClose,
   companyId,
   companyName,
+  comercialName,
 }: UsersModalProps) {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
@@ -358,7 +360,7 @@ export function UsersModal({
         <DialogHeader>
           <DialogTitle>
             {editingUser ? "Editar" : "Agregar"} Usuario de{" "}
-            <span className="text-primary font-bold">{companyName}</span>
+            <span className="text-blue-500 dark:text-blue-400 font-bold">{comercialName || companyName}</span>
           </DialogTitle>
         </DialogHeader>
 

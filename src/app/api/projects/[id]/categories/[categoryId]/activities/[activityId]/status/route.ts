@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserFromToken } from "@/lib/get-user-from-token";
+import { getCurrentDateInMexicoCity } from "@/lib/date-utils";
 
 // PATCH - Actualizar solo el estado de una actividad
 export async function PATCH(
@@ -65,7 +66,19 @@ export async function PATCH(
     });
     
     // Si cambió el estado de la actividad, actualizar el estado del proyecto
+    // No creamos logs aquí para evitar duplicados con los logs creados desde el frontend
     if (data.statusId !== existingActivity.projectCategoryActivityStatusId) {
+      // Obtener el nombre del estado anterior y el nuevo para depuración
+      const oldStatus = await prisma.projectCategoryActivityStatus.findUnique({
+        where: { id: existingActivity.projectCategoryActivityStatusId }
+      });
+      
+      const newStatus = await prisma.projectCategoryActivityStatus.findUnique({
+        where: { id: data.statusId }
+      });
+      
+      console.log(`Actividad ${existingActivity.id} (${existingActivity.name}) cambiada de estado ${oldStatus?.name || 'Desconocido'} a ${newStatus?.name || 'Desconocido'}`);
+      // No creamos logs aquí porque ya se crean desde el frontend
       
       // Verificar si hay actividades en progreso
       const activitiesInProgress = await prisma.projectCategoryActivity.count({

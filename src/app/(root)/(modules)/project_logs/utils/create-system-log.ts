@@ -1,4 +1,5 @@
 import { getToken } from "@/lib/auth";
+import { getCurrentDateInMexicoCity, createDateForDatabaseInMexicoTime } from "@/lib/date-utils";
 
 /**
  * Crea un log automático del sistema para un proyecto
@@ -22,10 +23,12 @@ export async function createSystemLog(
     // Formatear el mensaje con el prefijo de sistema
     const systemMessage = `[SISTEMA] ${message}`;
 
-    // Preparar el cuerpo de la solicitud
+    // No enviamos fecha desde el frontend
+    // El backend obtendrá la fecha actual directamente de PostgreSQL en la zona horaria correcta
     const body: Record<string, any> = {
       projectId,
       message: systemMessage,
+      // No incluimos dateTimeMessage para que el backend use la fecha actual de PostgreSQL
     };
 
     // Agregar categoryId si está presente

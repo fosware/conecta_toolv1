@@ -207,22 +207,28 @@ export function ActivityKanbanBoard({ projectId, categoryId, onActivityStatusCha
       toast.success("Estado de la actividad actualizado", { id: toastId });
       
       // Crear log automático del sistema para el cambio de estado
-      const statusName = columns.find(col => col.id === newStatusId)?.name || "Desconocido";
-      
-      // Buscar el nombre de la actividad en todas las columnas
-      let activityName = "Actividad";
-      for (const col of columns) {
-        const foundActivity = col.activities.find(activity => activity.id === activityId);
-        if (foundActivity) {
-          activityName = foundActivity.name;
-          break;
-        }
+    const oldStatusName = columns.find(col => col.id === currentDraggingActivity?.projectCategoryActivityStatusId)?.name || "Desconocido";
+    const newStatusName = columns.find(col => col.id === newStatusId)?.name || "Desconocido";
+    
+    // Buscar el nombre de la actividad en todas las columnas
+    let activityName = "Actividad";
+    for (const col of columns) {
+      const foundActivity = col.activities.find(activity => activity.id === activityId);
+      if (foundActivity) {
+        activityName = foundActivity.name;
+        break;
       }
-      
-      createSystemLog(
-        projectId,
-        `La actividad "${activityName}" ha sido movida al estado "${statusName}"`
-      );
+    }
+    
+    // Crear un mensaje detallado que incluya el estado anterior y el nuevo
+    const logMessage = `Actividad "${activityName}": Estado cambiado de "${oldStatusName}" a "${newStatusName}".`;
+    
+    // Usar la función centralizada para crear el log
+    // Esta función ya maneja la zona horaria correcta
+    createSystemLog(
+      projectId,
+      logMessage
+    );
     } catch (error) {
       console.error('Error al actualizar estado:', error);
       toast.error("Error al actualizar el estado de la actividad", { id: toastId });

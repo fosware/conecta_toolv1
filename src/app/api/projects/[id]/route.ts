@@ -202,12 +202,29 @@ export async function PUT(
 
     // Crear un log de la actualización
     if (updatedProject) {
-      await prisma.projectLog.create({
-        data: {
-          projectId: parsedId,
-          userId: userId,
-          message: `Proyecto actualizado. Estado: ${projectStatusId ? 'Cambiado' : 'Sin cambios'}. Observaciones: ${observations ? 'Actualizadas' : 'Sin cambios'}.`,
-        },
+      // Crear un log con la fecha correcta usando una transacción con zona horaria explícita
+      await prisma.$transaction(async (tx) => {
+        // Establecemos explícitamente la zona horaria para esta transacción
+        await tx.$executeRawUnsafe(`SET TIME ZONE 'America/Mexico_City';`);
+        
+        // Verificamos la fecha actual para depuración
+        const checkDate = await tx.$queryRaw<{now: Date, now_tz: string}[]>`
+          SELECT 
+            NOW() as now,
+            NOW()::text as now_tz
+        `;
+        console.log("Fecha actual en PostgreSQL (America/Mexico_City - update project):", checkDate[0].now);
+        console.log("Fecha como texto con zona horaria (update project):", checkDate[0].now_tz);
+        
+        // Crear el log usando NOW() para asegurar que se use la zona horaria correcta
+        await tx.projectLog.create({
+          data: {
+            projectId: parsedId,
+            userId: userId,
+            message: `Proyecto actualizado. Estado: ${projectStatusId ? 'Cambiado' : 'Sin cambios'}. Observaciones: ${observations ? 'Actualizadas' : 'Sin cambios'}.`,
+            dateTimeMessage: checkDate[0].now, // Usamos la fecha del servidor con zona horaria correcta
+          },
+        });
       });
     }
 
@@ -291,12 +308,29 @@ export async function DELETE(
 
     // Crear un log de la eliminación
     if (deletedProject) {
-      await prisma.projectLog.create({
-        data: {
-          projectId: parsedId,
-          userId: userId,
-          message: "Proyecto eliminado.",
-        },
+      // Crear un log con la fecha correcta usando una transacción con zona horaria explícita
+      await prisma.$transaction(async (tx) => {
+        // Establecemos explícitamente la zona horaria para esta transacción
+        await tx.$executeRawUnsafe(`SET TIME ZONE 'America/Mexico_City';`);
+        
+        // Verificamos la fecha actual para depuración
+        const checkDate = await tx.$queryRaw<{now: Date, now_tz: string}[]>`
+          SELECT 
+            NOW() as now,
+            NOW()::text as now_tz
+        `;
+        console.log("Fecha actual en PostgreSQL (America/Mexico_City - delete project):", checkDate[0].now);
+        console.log("Fecha como texto con zona horaria (delete project):", checkDate[0].now_tz);
+        
+        // Crear el log usando NOW() para asegurar que se use la zona horaria correcta
+        await tx.projectLog.create({
+          data: {
+            projectId: parsedId,
+            userId: userId,
+            message: "Proyecto eliminado.",
+            dateTimeMessage: checkDate[0].now, // Usamos la fecha del servidor con zona horaria correcta
+          },
+        });
       });
     }
 
