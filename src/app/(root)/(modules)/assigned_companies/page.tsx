@@ -21,6 +21,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import ProjectRequestLogsModal from "../project_request_logs/components/project-request-logs-modal";
 import { toast } from "sonner";
+import { Pagination } from "@/components/ui/pagination";
 
 export default function AssignedCompaniesPage() {
   const [data, setData] = useState<AssignedCompany[]>([]);
@@ -40,6 +41,12 @@ export default function AssignedCompaniesPage() {
   );
   const [searchTerm, setSearchTerm] = useState("");
   const [showOnlyActive, setShowOnlyActive] = useState(true);
+  
+  // Estados para paginación
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Estado para el modal de bitácora
   const [logsModalOpen, setLogsModalOpen] = useState(false);
@@ -58,7 +65,15 @@ export default function AssignedCompaniesPage() {
     }
 
     try {
-      const response = await fetch("/api/assigned_companies?onlyActive=true&basic=true");
+      const params = new URLSearchParams({
+        onlyActive: "true",
+        basic: "true",
+        page: currentPage.toString(),
+        limit: itemsPerPage.toString(),
+        search: searchTerm
+      });
+
+      const response = await fetch(`/api/assigned_companies?${params}`);
       if (!response.ok) {
         throw new Error("Error al cargar los datos");
       }
@@ -74,6 +89,8 @@ export default function AssignedCompaniesPage() {
 
       setData(filteredItems);
       setFilteredData(filteredItems);
+      setTotalPages(result.totalPages || 1);
+      setTotalItems(result.total || 0);
     } catch (error) {
       toast.error("Error al cargar los datos");
     } finally {
@@ -143,34 +160,7 @@ export default function AssignedCompaniesPage() {
 
   useEffect(() => {
     loadData();
-  }, []);
-
-  useEffect(() => {
-    if (!searchTerm.trim()) {
-      setFilteredData(data);
-    } else {
-      const lowercasedFilter = searchTerm.toLowerCase();
-      const filtered = data.filter((item) => {
-        const companyName =
-          item.Company?.companyName?.toLowerCase() ||
-          item.Company?.comercialName?.toLowerCase() ||
-          "";
-        const projectTitle = item.ProjectRequest?.title?.toLowerCase() || "";
-        const clientName =
-          item.ProjectRequest?.clientArea?.client?.name?.toLowerCase() || "";
-        const areaName =
-          item.ProjectRequest?.clientArea?.areaName?.toLowerCase() || "";
-
-        return (
-          companyName.includes(lowercasedFilter) ||
-          projectTitle.includes(lowercasedFilter) ||
-          clientName.includes(lowercasedFilter) ||
-          areaName.includes(lowercasedFilter)
-        );
-      });
-      setFilteredData(filtered);
-    }
-  }, [searchTerm, data]);
+  }, [currentPage, itemsPerPage, searchTerm]);
 
   const handleRowClick = (item: AssignedCompany) => {
     if (expandedId === item.id) {
@@ -261,6 +251,12 @@ export default function AssignedCompaniesPage() {
     }
   };
 
+  // Manejador para cambiar la cantidad de elementos por página
+  const handleItemsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setItemsPerPage(parseInt(e.target.value));
+    setCurrentPage(1); // Resetear a la primera página cuando cambia el tamaño
+  };
+
   return (
     <>
       <div className="flex justify-between items-center mb-6">
@@ -277,16 +273,34 @@ export default function AssignedCompaniesPage() {
           <CardTitle>Solicitudes Asignadas</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex justify-between items-center mb-4">
-            <div className="relative w-full">
+          <div className="flex flex-wrap items-center gap-4 mb-4">
+            <div className="relative flex-grow flex-1 min-w-[200px]">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
               <Input
                 type="text"
                 placeholder="Buscar solicitudes..."
                 className="pl-8"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1); // Resetear a la primera página al buscar
+                }}
               />
+            </div>
+            <div className="flex items-center space-x-2">
+              <label htmlFor="itemsPerPage" className="mr-2">
+                Mostrar:
+              </label>
+              <select
+                id="itemsPerPage"
+                value={itemsPerPage}
+                onChange={handleItemsPerPageChange}
+                className="border rounded-md p-1"
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={15}>15</option>
+              </select>
             </div>
           </div>
 
@@ -300,6 +314,15 @@ export default function AssignedCompaniesPage() {
             expandedId={expandedId}
             onOpenLogs={handleOpenLogsModal}
           />
+
+          {/* Componente de paginación */}
+          <div className="mt-4">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
+          </div>
         </CardContent>
       </Card>
 

@@ -93,8 +93,6 @@ export function ProjectRequestsTable({
   selectedRequestDetails = null,
   onRefreshData, // Nueva prop para refrescar datos
 }: ProjectRequestsTableProps) {
-  const [searchTerm, setSearchTerm] = useState("");
-
   // Tabla de ejemplo con datos ficticios si no se proporcionan datos
   const mockData: ProjectRequest[] = [
     {
@@ -164,42 +162,8 @@ export function ProjectRequestsTable({
   ];
 
   // Usar los datos proporcionados o los datos de ejemplo
-  const baseData = data || mockData;
+  const tableData = data || mockData;
   const showActiveColumn = !isStaff;
-
-  // Filtrar los datos según el término de búsqueda
-  const tableData = baseData.filter((item) => {
-    if (!searchTerm.trim()) return true;
-
-    const searchTermLower = searchTerm.toLowerCase().trim();
-
-    // Buscar en título
-    if (item.title && item.title.toLowerCase().includes(searchTermLower))
-      return true;
-
-    // Buscar en nombre del cliente
-    if (
-      item.clientArea?.client?.name &&
-      item.clientArea.client.name.toLowerCase().includes(searchTermLower)
-    )
-      return true;
-
-    // Buscar en área del cliente
-    if (
-      item.clientArea?.name &&
-      item.clientArea.name.toLowerCase().includes(searchTermLower)
-    )
-      return true;
-
-    // Buscar en observaciones
-    if (
-      item.observation &&
-      item.observation.toLowerCase().includes(searchTermLower)
-    )
-      return true;
-
-    return false;
-  });
 
   // Función para manejar la visualización de detalles (si no se proporciona)
   const handleViewDetails = (item: ProjectRequest) => {
@@ -218,20 +182,7 @@ export function ProjectRequestsTable({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center w-full">
-        <div className="relative w-full">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Buscar solicitudes..."
-            className="pl-8 w-full"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            aria-label="Buscar por título, cliente, área o observaciones"
-            title="Buscar por título, cliente, área o observaciones"
-          />
-        </div>
-      </div>
+      {/* El campo de búsqueda se ha movido al componente padre */}
 
       <div className="rounded-md border">
         <Table>

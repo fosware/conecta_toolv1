@@ -98,7 +98,7 @@ export async function GET(
 
     return NextResponse.json({ ndaResults: result });
   } catch (error) {
-    console.error("Error al verificar NDAs:", error);
+    // Se eliminó el console.error
     return NextResponse.json(
       { error: "Error al procesar la solicitud" },
       { status: 500 }

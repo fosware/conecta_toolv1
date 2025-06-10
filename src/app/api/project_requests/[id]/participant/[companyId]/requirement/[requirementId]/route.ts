@@ -22,7 +22,7 @@ export async function GET(
     const parsedCompanyId = parseInt(companyId);
     const parsedRequirementId = parseInt(requirementId);
 
-    console.log(`Buscando relación para: Proyecto=${projectRequestId}, Compañía=${parsedCompanyId}, Requerimiento=${parsedRequirementId}`);
+    // Se eliminó el log de búsqueda de relación
 
     // Validar los IDs
     if (isNaN(projectRequestId) || isNaN(parsedCompanyId) || isNaN(parsedRequirementId)) {
@@ -63,7 +63,7 @@ export async function GET(
       );
     }
 
-    console.log(`Relación encontrada con ID: ${projectRequestCompany.id}`);
+    // Se eliminó el log de relación encontrada
 
     return NextResponse.json({
       id: projectRequestCompany.id,

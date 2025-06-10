@@ -63,8 +63,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Mostrar información detallada para ayudar en la depuración
-    console.log(`Usando relación: ID=${projectRequestCompany.id}, Compañía=${projectRequestCompany.Company?.comercialName}, Requerimiento=${projectRequestCompany.ProjectRequirements?.requirementName}`);
-    console.log(`Para filtrar correctamente, use: projectRequestId=${projectRequestCompany.ProjectRequirements?.projectRequestId}, companyId=${projectRequestCompany.Company?.id}, requirementId=${projectRequestCompany.ProjectRequirements?.id}`);
+    // Se eliminaron los logs de depuración de relación usada
 
     // Crear el log
     const newLog = await prisma.projectRequestCompanyStatusLog.create({

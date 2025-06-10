@@ -72,12 +72,12 @@ export async function POST(request: NextRequest) {
         SELECT ${ providedDateTimeMessage }::timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City' as date
       `;
       mexicoCityDate = (dateResult as any)[0].date;
-      console.log("Fecha proporcionada convertida a zona horaria México:", mexicoCityDate);
+      // Se eliminó el console.log de fecha
     } else {
       // Si no se proporciona fecha, obtener la fecha actual en zona horaria de México
       const currentDateResult = await prisma.$queryRaw`SELECT NOW() AT TIME ZONE 'America/Mexico_City' as now`;
       mexicoCityDate = (currentDateResult as any)[0].now;
-      console.log("Fecha actual desde PostgreSQL (America/Mexico_City):", mexicoCityDate);
+      // Se eliminó el console.log de fecha actual
     }
     
     // Obtener información del usuario
@@ -114,9 +114,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Error al crear log" }, { status: 500 });
     }
     
-    console.log("Log creado con fecha:", finalLog.dateTimeMessage);
-    console.log("Log createdAt:", finalLog.createdAt);
-    console.log("Log updatedAt:", finalLog.updatedAt);
+    // Se eliminaron los console.logs de información del log creado
 
     // Asegurarnos de que finalLog no sea undefined (ya verificado anteriormente)
     if (!finalLog) {

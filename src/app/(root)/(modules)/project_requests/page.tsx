@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Plus } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { getToken } from "@/lib/auth";
 import { toast } from "sonner";
 import { ProjectRequestWithRelations } from "@/lib/schemas/project_request";
@@ -23,6 +23,8 @@ import { RequirementCertificationsModal } from "./components/requirement-certifi
 import { RequirementParticipantsModal } from "./components/requirement-participants-modal";
 import ProjectRequestOverview from "./components/project-request-overview";
 import { useUserRole } from "@/hooks/use-user-role";
+import { Input } from "@/components/ui/input";
+import { Pagination } from "@/components/ui/pagination";
 
 export default function ProjectRequestsPage() {
   const {
@@ -47,6 +49,13 @@ export default function ProjectRequestsPage() {
   const [selectedItem, setSelectedItem] =
     useState<ProjectRequestWithRelations | null>(null);
 
+  // Estados para paginación
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [searchTerm, setSearchTerm] = useState("");
+
   // Estados para modales de requerimientos
   const [requirementsModalOpen, setRequirementsModalOpen] = useState(false);
   const [selectedItemForRequirements, setSelectedItemForRequirements] =
@@ -65,8 +74,15 @@ export default function ProjectRequestsPage() {
         setLoading(true);
       }
 
+      const params = new URLSearchParams({
+        onlyActive: showActive.toString(),
+        page: currentPage.toString(),
+        limit: itemsPerPage.toString(),
+        search: searchTerm
+      });
+
       const response = await fetch(
-        `/api/project_requests?onlyActive=${showActive}`,
+        `/api/project_requests?${params}`,
         {
           headers: {
             Authorization: `Bearer ${getToken()}`,
@@ -80,17 +96,19 @@ export default function ProjectRequestsPage() {
 
       const data = await response.json();
       setProjectRequests(data.items || []);
+      setTotalPages(data.totalPages || 1);
+      setTotalItems(data.total || 0);
     } catch (error) {
       console.error("Error loading project requests:", error);
       toast.error("Error al cargar las solicitudes de proyectos");
     } finally {
       setLoading(false);
     }
-  }, [showActive]);
+  }, [showActive, currentPage, itemsPerPage, searchTerm]);
 
   useEffect(() => {
     loadProjectRequests();
-  }, [loadProjectRequests, showActive]);
+  }, [loadProjectRequests, showActive, currentPage, itemsPerPage, searchTerm]);
 
   const handleToggleStatus = async (id: number, currentStatus: boolean) => {
     try {
@@ -108,7 +126,7 @@ export default function ProjectRequestsPage() {
       }
 
       toast.success("Estado de la solicitud actualizado correctamente");
-      await loadProjectRequests();
+      await loadProjectRequests(false);
     } catch (error) {
       console.error("Error toggling project request status:", error);
       toast.error("Error al cambiar el estado de la solicitud");
@@ -239,7 +257,7 @@ export default function ProjectRequestsPage() {
     if (expandedRequestId) {
       reloadSelectedRequestDetails(false);
     }
-  }, [expandedRequestId, loadProjectRequests, reloadSelectedRequestDetails]);
+  }, [expandedRequestId, loadProjectRequests]);
 
   const handleModalSuccess = () => {
     // Recargar la lista de solicitudes sin mostrar indicador de carga
@@ -247,6 +265,12 @@ export default function ProjectRequestsPage() {
 
     // Recargar los detalles de la solicitud seleccionada sin mostrar toast
     reloadSelectedRequestDetails(false);
+  };
+
+  // Manejador para cambiar la cantidad de elementos por página
+  const handleItemsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setItemsPerPage(parseInt(e.target.value));
+    setCurrentPage(1); // Resetear a la primera página cuando cambia el tamaño
   };
 
   return (
@@ -259,23 +283,56 @@ export default function ProjectRequestsPage() {
       </div>
 
       <Card className="mb-6">
-        <CardHeader>
-          <div className="flex items-center justify-between">
+        <CardHeader className="pb-3">
+          <div className="flex flex-wrap items-center justify-between">
             <div>
               <CardTitle>Solicitud de Proyectos</CardTitle>
               <CardDescription></CardDescription>
             </div>
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="show-active"
-                checked={showActive}
-                onCheckedChange={setShowActive}
-              />
-              <Label htmlFor="show-active">Mostrar activos</Label>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="show-active"
+                  checked={showActive}
+                  onCheckedChange={setShowActive}
+                />
+                <Label htmlFor="show-active">Mostrar activos</Label>
+              </div>
             </div>
           </div>
         </CardHeader>
         <CardContent>
+          <div className="flex flex-wrap items-center gap-4 mb-4">
+            <div className="relative flex-grow flex-1 min-w-[200px]">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+              <Input
+                type="text"
+                placeholder="Buscar solicitudes..."
+                className="pl-8"
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1); // Resetear a la primera página al buscar
+                }}
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <label htmlFor="itemsPerPage" className="mr-2">
+                Mostrar:
+              </label>
+              <select
+                id="itemsPerPage"
+                value={itemsPerPage}
+                onChange={handleItemsPerPageChange}
+                className="border rounded-md p-1"
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={15}>15</option>
+              </select>
+            </div>
+          </div>
+
           <ProjectRequestsTable
             data={projectRequests}
             loading={loading}
@@ -291,6 +348,15 @@ export default function ProjectRequestsPage() {
             selectedRequestDetails={selectedRequestDetails}
             onRefreshData={refreshAfterDocumentChange}
           />
+
+          {/* Componente de paginación */}
+          <div className="mt-4">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
+          </div>
         </CardContent>
       </Card>
 

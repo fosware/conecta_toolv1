@@ -111,7 +111,7 @@ export async function DELETE(
     });
 
     // Verificar si quedan documentos activos para esta asociación
-    //console.log("[TECHNICAL_DOCUMENT_DELETE] Verificando si quedan documentos activos");
+    // Se eliminaron los logs de depuración
     const remainingDocuments =
       await prisma.projectRequestDocuments.count({
         where: {
@@ -120,11 +120,11 @@ export async function DELETE(
         },
       });
 
-    //console.log("[TECHNICAL_DOCUMENT_DELETE] Documentos restantes:", remainingDocuments);
+    // Se eliminaron los logs de depuración
 
     // Si no quedan documentos, cambiar el estado a "En espera de Documentos Técnicos" (ID 5)
     if (remainingDocuments === 0) {
-      //console.log("[TECHNICAL_DOCUMENT_DELETE] No quedan documentos, cambiando estado a 'En espera de Documentos Técnicos' (ID 5)");
+      // Se eliminaron los logs de depuración
       await prisma.projectRequestCompany.update({
         where: {
           id: association.id,

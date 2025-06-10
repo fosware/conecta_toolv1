@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     const { message, projectRequestId, companyId, requirementId, userId: specificUserId } = validationResult.data;
     const userIdToUse = specificUserId || userId;
 
-    console.log(`Creando log del sistema con requerimiento específico: Proyecto=${projectRequestId}, Compañía=${companyId}, Requerimiento=${requirementId}`);
+    // Se eliminó el log de depuración de creación de log del sistema
 
     // Buscar ESPECÍFICAMENTE la relación entre proyecto, compañía y requerimiento
     const projectRequestCompany = await prisma.projectRequestCompany.findFirst({
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`Relación encontrada con ID: ${projectRequestCompany.id}, Requerimiento: ${projectRequestCompany.ProjectRequirements.requirementName}`);
+    // Se eliminó el log de depuración de relación encontrada
 
     // Formatear el mensaje del sistema
     const formattedMessage = message.startsWith("[SISTEMA]") ? message : `[SISTEMA] ${message}`;
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log(`Log del sistema creado con ID: ${newLog.id}`);
+    // Se eliminó el log de depuración de log del sistema creado
 
     return NextResponse.json(
       {

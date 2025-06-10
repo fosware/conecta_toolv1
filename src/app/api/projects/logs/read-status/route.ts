@@ -82,11 +82,6 @@ export async function PUT(request: NextRequest) {
           NOW() as now,
           NOW()::text as now_tz
       `;
-      console.log(
-        "Fecha actual en PostgreSQL (America/Mexico_City):",
-        checkDate[0].now
-      );
-      console.log("Fecha como texto con zona horaria:", checkDate[0].now_tz);
 
       // Procesamos cada log usando SQL directo para tener control total sobre todos los campos
       for (const log of unreadLogs) {

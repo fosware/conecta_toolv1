@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/table";
 import { TableSkeleton } from "@/components/table-skeleton";
 import { Search, ChevronDown, ChevronRight, FileText, LayoutList, MessageSquare } from "lucide-react";
+import { Pagination } from "@/components/ui/pagination";
 import { useUserRole } from "@/hooks/use-user-role";
 import { getToken } from "@/lib/auth";
 import { toast } from "sonner";
@@ -131,6 +132,12 @@ export default function ProjectsPage() {
   const [loading, setLoading] = useState(true);
   const [showActive, setShowActive] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  
+  // Estados para paginación
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [selectedProject, setSelectedProject] = useState<ProjectWithRelations | null>(null);
   const [categoriesModalOpen, setCategoriesModalOpen] = useState(false);
   const [expandedProjectId, setExpandedProjectId] = useState<number | null>(null);
@@ -195,49 +202,51 @@ export default function ProjectsPage() {
   };
 
   // Función para cargar los proyectos
-  const fetchProjects = useCallback(async (showLoadingState = true) => {
-    if (showLoadingState) {
-      setLoading(true);
-    }
+  const loadProjects = useCallback(async (showLoadingIndicator = true) => {
     try {
-      const token = getToken();
-      const response = await fetch(`/api/projects?active=${showActive}`, {
+      if (showLoadingIndicator) {
+        setLoading(true);
+      }
+      
+      // Construir parámetros de consulta para paginación y búsqueda
+      const params = new URLSearchParams({
+        active: showActive.toString(),
+        page: currentPage.toString(),
+        limit: itemsPerPage.toString(),
+        search: searchTerm
+      });
+      
+      const response = await fetch(`/api/projects?${params}`, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${getToken()}`,
         },
       });
 
       if (!response.ok) {
-        console.error("Error HTTP:", response.status, response.statusText);
-        throw new Error(
-          `Error al cargar los proyectos: ${response.status} ${response.statusText}`
-        );
+        throw new Error("Error al cargar los proyectos");
       }
 
       const data = await response.json();
-
-      // Determinar la estructura correcta de los datos
-      const projectsData = Array.isArray(data) ? data : data.projects || [];
-
-      setProjects(projectsData);
+      setProjects(data.items || []);
+      setTotalPages(data.totalPages || 1);
+      setTotalItems(data.total || 0);
     } catch (error) {
-      console.error("Error fetching projects:", error);
+      console.error("Error loading projects:", error);
       toast.error("Error al cargar los proyectos");
     } finally {
-      if (showLoadingState) {
-        setLoading(false);
-      }
+      setLoading(false);
     }
-  }, [showActive]);
+  }, [showActive, currentPage, itemsPerPage, searchTerm]);
 
   useEffect(() => {
-    fetchProjects();
-  }, [fetchProjects, showActive]);
+    loadProjects();
+  }, [loadProjects]);
 
-  // Ya no necesitamos esta función porque el cambio de estado
-  // se maneja directamente en el switch y el useEffect
-
-  // No renderizamos un esqueleto separado, lo mostraremos dentro de la misma Card
+  // Manejador para cambiar la cantidad de elementos por página
+  const handleItemsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setItemsPerPage(parseInt(e.target.value));
+    setCurrentPage(1); // Resetear a la primera página cuando cambia el tamaño
+  };
 
   return (
     <>
@@ -280,20 +289,34 @@ export default function ProjectsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="flex items-center w-full">
-                <div className="relative w-full">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <div className="flex flex-wrap items-center gap-4 mb-4">
+                <div className="relative flex-grow flex-1 min-w-[200px]">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
                   <Input
-                    type="search"
+                    type="text"
                     placeholder="Buscar proyectos..."
-                    className="pl-8 w-full"
+                    className="pl-8"
                     value={searchTerm}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setSearchTerm(e.target.value)
-                    }
-                    aria-label="Buscar por título, asociado o estado"
-                    title="Buscar por título, asociado o estado"
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      setCurrentPage(1); // Resetear a la primera página al buscar
+                    }}
                   />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <label htmlFor="itemsPerPage" className="mr-2">
+                    Mostrar:
+                  </label>
+                  <select
+                    id="itemsPerPage"
+                    value={itemsPerPage}
+                    onChange={handleItemsPerPageChange}
+                    className="border rounded-md p-1"
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={15}>15</option>
+                  </select>
                 </div>
               </div>
               <div className="mt-4">
@@ -453,6 +476,15 @@ export default function ProjectsPage() {
                     </Table>
                   </div>
                 )}
+                
+                {/* Componente de paginación */}
+                <div className="mt-4">
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
+                  />
+                </div>
               </div>
             </div>
           </CardContent>

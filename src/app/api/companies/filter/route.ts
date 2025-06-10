@@ -17,7 +17,8 @@ export async function GET(request: Request) {
     const certificationIds = searchParams.getAll("certificationIds[]");
 
     /*
-    console.log("Filtros recibidos:", {
+    // Se eliminaron los logs de filtros recibidos
+    /*
       specialtyId,
       scopeId,
       subscopeId,

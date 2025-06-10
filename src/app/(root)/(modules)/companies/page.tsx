@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { type Company } from "@prisma/client";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -28,6 +28,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { CompanyOverview } from "./components/company-overview";
+import { Pagination } from "@/components/ui/pagination";
 
 export default function CompanyPage() {
   const {
@@ -42,6 +43,12 @@ export default function CompanyPage() {
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showActive, setShowActive] = useState(true);
+  
+  // Estados para paginación
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [editModal, setEditModal] = useState<{
     isOpen: boolean;
     item: Company | null;
@@ -105,6 +112,8 @@ export default function CompanyPage() {
       const params = new URLSearchParams();
       if (debouncedSearch) params.append("search", debouncedSearch);
       params.append("showActive", showActive.toString());
+      params.append("page", currentPage.toString());
+      params.append("limit", itemsPerPage.toString());
 
       const response = await fetch(`/api/companies?${params.toString()}`, {
         headers: {
@@ -118,13 +127,15 @@ export default function CompanyPage() {
 
       const data = await response.json();
       setCompanies(data.data || []);
+      setTotalPages(data.totalPages || 1);
+      setTotalItems(data.total || 0);
     } catch (error) {
       console.error("Error loading companies:", error);
       toast.error("Error al cargar las empresas");
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearch, showActive]);
+  }, [debouncedSearch, showActive, currentPage, itemsPerPage]);
 
   const loadCompanyProfile = useCallback(async (companyId: number) => {
     try {
@@ -263,39 +274,58 @@ export default function CompanyPage() {
           )}
         </div>
         {!isStaff && !isAsociado && !roleLoading && (
-          <div className="flex flex-col lg:flex-row gap-4">
-            <div className="flex flex-row gap-2 md:gap-4 flex-1">
-              <div className="flex-1">
-                <label
-                  htmlFor="search-company"
-                  className="text-sm font-medium mb-2 block"
-                >
-                  Buscar asociado
-                </label>
-                <div className="relative">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="search-company"
-                    placeholder="Buscar asociado..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-8 min-w-[300px]"
-                  />
-                </div>
+          <>
+            <div className="flex flex-wrap items-center justify-between mb-4">
+              <div>
+                <CardTitle>Asociados</CardTitle>
+                <CardDescription></CardDescription>
               </div>
-            </div>
-            <div className="flex flex-col justify-end">
-              <div className="h-[40px] flex items-center">
+              <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2">
                   <Switch
+                    id="show-active"
                     checked={showActive}
                     onCheckedChange={setShowActive}
                   />
-                  <span className="text-sm">Mostrar solo activos</span>
+                  <Label htmlFor="show-active">Mostrar activos</Label>
                 </div>
               </div>
             </div>
-          </div>
+            
+            <div className="flex flex-wrap items-center gap-4 mb-4">
+              <div className="relative flex-grow flex-1 min-w-[200px]">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                <Input
+                  type="text"
+                  placeholder="Buscar asociados..."
+                  className="pl-8"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setCurrentPage(1); // Resetear a la primera página al buscar
+                  }}
+                />
+              </div>
+              <div className="flex items-center space-x-2">
+                <label htmlFor="itemsPerPage" className="mr-2">
+                  Mostrar:
+                </label>
+                <select
+                  id="itemsPerPage"
+                  value={itemsPerPage}
+                  onChange={(e) => {
+                    setItemsPerPage(parseInt(e.target.value));
+                    setCurrentPage(1); // Resetear a la primera página cuando cambia el tamaño
+                  }}
+                  className="border rounded-md p-1"
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={15}>15</option>
+                </select>
+              </div>
+            </div>
+          </>
         )}
 
         <CompanyTable
@@ -313,6 +343,17 @@ export default function CompanyPage() {
           expandedId={expandedCompanyId}
           selectedCompanyProfile={selectedCompanyProfile}
         />
+        
+        {/* Componente de paginación */}
+        {!loading && companies.length > 0 && (
+          <div className="mt-4">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
+          </div>
+        )}
 
         <CompanyModal
           open={editModal.isOpen}

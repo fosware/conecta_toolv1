@@ -38,7 +38,8 @@ const ClientsPage = () => {
   const debouncedSearch = useDebounce(search);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [totalItems, setTotalItems] = useState(0);
 
   const [clientModal, setClientModal] = useState<{
     isOpen: boolean;
@@ -79,9 +80,11 @@ const ClientsPage = () => {
   const [clientAreas, setClientAreas] = useState<ClientArea[]>([]);
   const [loadingAreas, setLoadingAreas] = useState(false);
 
-  const loadClients = useCallback(async () => {
+  const loadClients = useCallback(async (showLoadingIndicator = true) => {
     try {
-      setIsLoading(true);
+      if (showLoadingIndicator) {
+        setIsLoading(true);
+      }
       const params = new URLSearchParams({
         search: debouncedSearch,
         onlyActive: showActive.toString(),
@@ -103,6 +106,7 @@ const ClientsPage = () => {
       setClients(data.clients);
       setTotalPages(data.totalPages);
       setCurrentPage(data.currentPage);
+      setTotalItems(data.total);
     } catch (error) {
       toast.error("Error al cargar los clientes");
       console.error(error);
@@ -142,17 +146,18 @@ const ClientsPage = () => {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Error al crear el cliente");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Error al crear el cliente");
       }
 
-      toast.success("Cliente creado correctamente");
-      loadClients();
+      toast.success("Cliente creado exitosamente");
       setClientModal({ isOpen: false, client: undefined });
+      loadClients(false); // No mostrar indicador de carga
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Error al crear el cliente"
       );
+      console.error(error);
     } finally {
       setIsSubmitting(false);
     }
@@ -178,8 +183,8 @@ const ClientsPage = () => {
       }
 
       toast.success("Cliente actualizado correctamente");
-      loadClients();
       setClientModal({ isOpen: false, client: undefined });
+      loadClients(false); // No mostrar indicador de carga
     } catch (error) {
       toast.error(
         error instanceof Error
@@ -213,7 +218,7 @@ const ClientsPage = () => {
 
       const data = await response.json();
       toast.success(data.message);
-      loadClients(); // Recargar para asegurar sincronización
+      loadClients(false); // Recargar sin mostrar indicador de carga
     } catch (error) {
       // Revertir cambio en caso de error
       setClients((prev) =>
@@ -246,8 +251,8 @@ const ClientsPage = () => {
       }
 
       toast.success("Cliente eliminado correctamente");
-      loadClients();
       setDeleteDialog({ isOpen: false, client: null });
+      loadClients(false); // Recargar sin mostrar indicador de carga
     } catch (error) {
       toast.error("Error al eliminar el cliente");
       console.error(error);
@@ -356,35 +361,54 @@ const ClientsPage = () => {
           </Button>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-4">
-          <div className="flex flex-row gap-2 md:gap-4 flex-1">
-            <div className="flex-1">
-              <label
-                htmlFor="search-client"
-                className="text-sm font-medium mb-2 block"
-              >
-                Buscar cliente
-              </label>
-              <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="search-client"
-                  placeholder="Buscar cliente..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-8 min-w-[300px]"
-                />
-              </div>
-            </div>
+        <div className="flex flex-wrap items-center justify-between mb-4">
+          <div>
+            <h2 className="text-xl font-semibold">Clientes</h2>
+            <p className="text-sm text-gray-500">{totalItems} clientes encontrados</p>
           </div>
-          <div className="flex items-end pb-2">
+          <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2">
               <Switch
+                id="show-active"
                 checked={showActive}
                 onCheckedChange={handleShowActiveChange}
               />
-              <Label>Mostrar solo activos</Label>
+              <Label htmlFor="show-active">Mostrar activos</Label>
             </div>
+          </div>
+        </div>
+        
+        <div className="flex flex-wrap items-center gap-4 mb-4">
+          <div className="relative flex-grow flex-1 min-w-[200px]">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+            <Input
+              type="text"
+              placeholder="Buscar clientes..."
+              className="pl-8"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setCurrentPage(1); // Resetear a la primera página al buscar
+              }}
+            />
+          </div>
+          <div className="flex items-center space-x-2">
+            <label htmlFor="itemsPerPage" className="mr-2">
+              Mostrar:
+            </label>
+            <select
+              id="itemsPerPage"
+              value={itemsPerPage}
+              onChange={(e) => {
+                setItemsPerPage(parseInt(e.target.value));
+                setCurrentPage(1); // Resetear a la primera página cuando cambia el tamaño
+              }}
+              className="border rounded-md p-1"
+            >
+              <option value={5}>5</option>
+              <option value={10}>10</option>
+              <option value={15}>15</option>
+            </select>
           </div>
         </div>
 
@@ -413,15 +437,13 @@ const ClientsPage = () => {
           />
         </div>
 
-        {totalPages > 1 && (
-          <div className="mt-4 flex justify-center">
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={setCurrentPage}
-            />
-          </div>
-        )}
+        <div className="mt-4">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
+        </div>
 
         <ClientModal
           isOpen={clientModal.isOpen}

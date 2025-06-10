@@ -34,6 +34,27 @@ export async function GET(request: NextRequest) {
     }
 
     const userRole = user.role.name.toLowerCase();
+    const isAsociado = userRole === "asociado";
+    const isStaff = userRole === "staff";
+
+    // Obtener la compañía del usuario si es Asociado o Staff
+    let userCompanyId = null;
+    if (isAsociado || isStaff) {
+      const companyUser = await prisma.companyUser.findFirst({
+        where: {
+          userId: userId,
+          isActive: true,
+          isDeleted: false,
+        },
+        include: {
+          company: true
+        }
+      });
+      
+      if (companyUser && companyUser.company) {
+        userCompanyId = companyUser.company.id;
+      }
+    }
 
     // Construir la consulta base
     const baseQuery = {
@@ -44,8 +65,21 @@ export async function GET(request: NextRequest) {
           },
           onlyActive ? { isActive: true } : {},
           { isDeleted: false },
-          // Si el usuario es asociado, solo mostrar sus solicitudes
-          ...(userRole === "asociado" ? [{ userId }] : []),
+          // Si el usuario es asociado o staff, solo mostrar las solicitudes donde su empresa participa
+          ...(isAsociado || isStaff ? 
+            userCompanyId ? [{
+              ProjectRequirements: {
+                some: {
+                  ProjectRequestCompany: {
+                    some: {
+                      companyId: userCompanyId,
+                      isDeleted: false
+                    }
+                  }
+                }
+              }
+            }] : [{ id: -1 }] // Si no tiene empresa asignada, no mostrar nada
+            : []),
         ] as any,
       },
       include: {
@@ -199,118 +233,54 @@ export async function POST(request: NextRequest) {
       // Verificar que el área del cliente existe
       const clientArea = await prisma.clientAreas.findUnique({
         where: { id: validatedData.clientAreaId },
-        include: {
-          client: true,
-        },
       });
 
       if (!clientArea) {
         return NextResponse.json(
-          {
-            error: "El área del cliente no existe",
-            type: "VALIDATION_ERROR",
-            fields: [
-              {
-                field: "clientAreaId",
-                message: "El área del cliente seleccionada no existe",
-              },
-            ],
-          },
-          { status: 400 }
+          { error: "El área del cliente no existe" },
+          { status: 404 }
         );
       }
 
       // Crear la solicitud de proyecto
-      const projectRequest = await prisma.projectRequest.create({
+      const newProjectRequest = await prisma.projectRequest.create({
         data: {
-          ...validatedData,
+          title: validatedData.title,
+          observation: validatedData.observation,
+          clientAreaId: validatedData.clientAreaId,
           userId,
-          statusId: 17, // Estado "Recibida"
-          isActive: true,
-          isDeleted: false,
-        },
-        select: {
-          id: true,
-          title: true,
-          isActive: true,
-          isDeleted: true,
-          createdAt: true,
-          requestDate: true,
-          updatedAt: true,
-          dateDeleted: true,
-          userId: true,
-          clientAreaId: true,
-          clientArea: {
-            select: {
-              id: true,
-              areaName: true,
-              contactName: true,
-              contactEmail: true,
-              contactPhone: true,
-              clientId: true,
-              client: {
-                select: {
-                  id: true,
-                  name: true,
-                },
-              },
-            },
-          },
-          user: {
-            select: {
-              id: true,
-              email: true,
-              username: true,
-            },
-          },
-          status: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          ProjectRequirements: {
-            where: {
-              isDeleted: false,
-            },
-            select: {
-              id: true,
-              requirementName: true,
-              isActive: true,
-            },
-          },
         },
       });
 
-      return NextResponse.json({
-        success: true,
-        data: projectRequest,
-        message: "Solicitud de proyecto creada exitosamente",
-      });
-    } catch (error: unknown) {
+      return NextResponse.json(
+        {
+          success: true,
+          data: newProjectRequest,
+        },
+        { status: 201 }
+      );
+    } catch (error) {
       if (error instanceof z.ZodError) {
         return NextResponse.json(
           {
-            error: "Error de validación",
-            type: "VALIDATION_ERROR",
-            fields: error.issues.map((issue: z.ZodIssue) => ({
-              field: issue.path[0],
-              message: issue.message,
-            })),
+            success: false,
+            error: "Datos inválidos",
+            details: error.errors,
           },
           { status: 400 }
         );
       }
-
       throw error;
     }
   } catch (error) {
-    console.error("Error in POST /api/project_requests:", error);
+    console.error("[PROJECT_REQUESTS_POST]", error);
     return NextResponse.json(
       {
+        success: false,
         error:
-          "Hubo un problema al procesar tu solicitud. Por favor, intenta nuevamente.",
-        details: error instanceof Error ? error.message : undefined,
+          error instanceof Error
+            ? error.message
+            : "Error al crear la solicitud de proyecto",
       },
       { status: 500 }
     );

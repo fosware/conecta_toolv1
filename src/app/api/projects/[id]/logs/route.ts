@@ -57,31 +57,6 @@ export async function GET(
         Project: true,
       },
     });
-    
-    console.log(`Recuperados ${logs.length} logs para el proyecto ${projectId}`);
-    // Mostrar los primeros 3 logs para depuración
-    if (logs.length > 0) {
-      logs.slice(0, 3).forEach((log, index) => {
-        // Convertir las fechas a la zona horaria de México para depuración
-        const dateTimeInMexico = new Date(log.dateTimeMessage).toLocaleString("es-MX", {
-          timeZone: "America/Mexico_City",
-          day: "2-digit",
-          month: "2-digit",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false
-        });
-        
-        console.log(`Log ${index + 1}:`, {
-          id: log.id,
-          message: log.message.substring(0, 30) + (log.message.length > 30 ? '...' : ''),
-          dateTimeMessage: log.dateTimeMessage,
-          createdAt: log.createdAt,
-          dateTimeInMexico: dateTimeInMexico
-        });
-      });
-    }
 
     // Marcar los logs como leídos para este usuario
     // Primero, obtener los IDs de los logs no leídos
@@ -112,8 +87,7 @@ export async function GET(
           NOW() as now,
           NOW()::text as now_tz
       `;
-      console.log("Fecha actual en PostgreSQL (America/Mexico_City - GET logs):", checkDate[0].now);
-      console.log("Fecha como texto con zona horaria (GET logs):", checkDate[0].now_tz);
+      // Se eliminaron los console.logs de fechas
       
       // Procesamos cada log usando SQL directo para tener control total sobre todos los campos
       for (const log of unreadLogs) {
@@ -173,7 +147,7 @@ export async function GET(
       total: formattedLogs.length,
     });
   } catch (error) {
-    console.error("Error al obtener logs:", error);
+    // Se eliminó el console.error
     return NextResponse.json(
       { error: "Error al obtener logs" },
       { status: 500 }

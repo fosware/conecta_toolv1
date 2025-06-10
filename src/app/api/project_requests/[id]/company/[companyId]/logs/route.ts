@@ -13,8 +13,7 @@ export async function GET(
     const parsedProjectId = parseInt(id);
     const parsedCompanyId = parseInt(companyId);
 
-    console.log(`ADVERTENCIA: Usando endpoint general sin requerimiento específico. Proyecto=${parsedProjectId}, Compañía=${parsedCompanyId}`);
-    console.log(`Se recomienda usar el endpoint con requerimiento específico: /api/project_requests/${parsedProjectId}/company/${parsedCompanyId}/requirement/[requirementId]/logs`);
+    // Se eliminaron los logs de advertencia sobre el uso del endpoint general
 
     // Verificar autenticación
     const userId = await getUserFromToken();
@@ -40,7 +39,7 @@ export async function GET(
 
     // Extraemos los IDs de los requerimientos
     const requirementIds = projectRequirements.map(req => req.id);
-    console.log(`Requerimientos encontrados para el proyecto: ${requirementIds.join(', ')}`);
+    // Se eliminó el log de requerimientos encontrados
 
     // Ahora buscamos el ProjectRequestCompany que coincida con alguno de estos requerimientos
     const projectRequestCompanies = await prisma.projectRequestCompany.findMany({
@@ -69,14 +68,11 @@ export async function GET(
       );
     }
 
-    console.log(`Se encontraron ${projectRequestCompanies.length} relaciones para esta compañía en diferentes requerimientos:`);
-    projectRequestCompanies.forEach(prc => {
-      console.log(`- ID: ${prc.id}, Requerimiento: ${prc.ProjectRequirements.requirementName}`);
-    });
+    // Se eliminaron los logs de relaciones encontradas
 
     // ADVERTENCIA: Estamos tomando solo la primera relación, lo que puede no ser lo que el usuario espera
     const projectRequestCompany = projectRequestCompanies[0];
-    console.log(`ADVERTENCIA: Se usará solo la primera relación encontrada (ID: ${projectRequestCompany.id}, Requerimiento: ${projectRequestCompany.ProjectRequirements.requirementName})`);
+    // Se eliminó el log de advertencia sobre la relación usada
 
     // Obtener los logs específicos de esta relación proyecto-compañía
     const logs = await prisma.projectRequestCompanyStatusLog.findMany({
@@ -117,7 +113,7 @@ export async function GET(
       },
     });
 
-    console.log(`Encontrados ${logs.length} logs para la relación seleccionada`);
+    // Se eliminó el log de cantidad de logs encontrados
 
     // Formatear la respuesta para incluir nombres de usuario y roles
     const formattedLogs = logs.map((log) => ({

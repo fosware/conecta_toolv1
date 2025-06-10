@@ -11,7 +11,7 @@ export async function GET(
     // Verificar token (opcional)
     const token = request.headers.get("authorization")?.split(" ")[1];
     if (!token) {
-      //console.log('No se proporcionó token, pero continuamos para simplificar');
+      // Se eliminó el log de depuración de token
     }
 
     // Obtener el ID de la solicitud de la URL de forma correcta

@@ -8,7 +8,7 @@ export async function GET(
   { params }: { params: { companyId: string; requirementId: string } }
 ) {
   try {
-    //console.log("[TECHNICAL_DOCUMENTS_LIST] Iniciando carga de documentos");
+    // Se eliminaron los logs de depuración
     // Validar token
     let userId: number;
     try {
@@ -25,16 +25,16 @@ export async function GET(
     }
 
     if (!userId) {
-      //console.log("[TECHNICAL_DOCUMENTS_LIST] No se encontró un token válido");
+      // Se eliminaron los logs de depuración
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
     // Extraer los IDs correctamente
     const { companyId, requirementId } = await params;
-    //console.log("[TECHNICAL_DOCUMENTS_LIST] IDs recibidos:", { companyId, requirementId });
+    // Se eliminaron los logs de depuración
     const parsedCompanyId = parseInt(companyId);
     const parsedRequirementId = parseInt(requirementId);
-    //console.log("[TECHNICAL_DOCUMENTS_LIST] IDs parseados:", { parsedCompanyId, parsedRequirementId });
+    // Se eliminaron los logs de depuración
 
     if (isNaN(parsedCompanyId) || isNaN(parsedRequirementId)) {
       return NextResponse.json(
@@ -44,16 +44,16 @@ export async function GET(
     }
 
     // Verificar que la compañía y el requerimiento existen
-    //console.log("[TECHNICAL_DOCUMENTS_LIST] Buscando compañía con ID:", parsedCompanyId);
+    // Se eliminaron los logs de depuración
     const companyExists = await prisma.company.findUnique({
       where: {
         id: parsedCompanyId,
       },
     });
-    //console.log("[TECHNICAL_DOCUMENTS_LIST] Resultado de búsqueda de compañía:", companyExists);
+    // Se eliminaron los logs de depuración
 
     if (!companyExists) {
-      //console.log("[TECHNICAL_DOCUMENTS_LIST] Compañía no encontrada");
+      // Se eliminaron los logs de depuración
       return NextResponse.json(
         { error: "Compañía no encontrada" },
         { status: 404 }
@@ -62,7 +62,7 @@ export async function GET(
 
     // Verificar si la compañía está activa y no eliminada
     if (!companyExists.isActive || companyExists.isDeleted) {
-      //console.log("[TECHNICAL_DOCUMENTS_LIST] Compañía inactiva o eliminada");
+      // Se eliminaron los logs de depuración
       return NextResponse.json(
         { error: "Compañía inactiva o eliminada" },
         { status: 404 }
@@ -88,7 +88,7 @@ export async function GET(
         isDeleted: false,
       },
     });
-    //console.log("[TECHNICAL_DOCUMENTS_LIST] Asociación encontrada:", association);
+    // Se eliminaron los logs de depuración
 
     if (!association) {
       return NextResponse.json(
@@ -113,7 +113,7 @@ export async function GET(
         createdAt: "desc",
       },
     });
-    //console.log("[TECHNICAL_DOCUMENTS_LIST] Documentos encontrados:", documents.length);
+    // Se eliminaron los logs de depuración
 
     return NextResponse.json({
       success: true,

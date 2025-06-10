@@ -17,6 +17,12 @@ export async function GET(request: NextRequest) {
     const onlyActive = searchParams.get("onlyActive") === "true";
     const basic = searchParams.get("basic") === "true";
     const itemId = parseInt(searchParams.get("id") || "0");
+    const search = searchParams.get("search") || "";
+    
+    // Parámetros de paginación
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "10");
+    const skip = (page - 1) * limit;
 
     // En un entorno real, filtraríamos por la compañía del usuario asociado
     // Por ahora, para desarrollo, mostraremos todas las asignaciones
@@ -40,6 +46,36 @@ export async function GET(request: NextRequest) {
     // Si se solicita un ID específico, filtrar por ese ID
     if (itemId > 0) {
       baseFilter.id = itemId;
+    }
+
+    // Añadir búsqueda por texto si se proporciona
+    if (search) {
+      baseFilter.OR = [
+        {
+          Company: {
+            comercialName: {
+              contains: search,
+              mode: "insensitive"
+            }
+          }
+        },
+        {
+          Company: {
+            companyName: {
+              contains: search,
+              mode: "insensitive"
+            }
+          }
+        },
+        {
+          ProjectRequirements: {
+            requirementName: {
+              contains: search,
+              mode: "insensitive"
+            }
+          }
+        }
+      ];
     }
 
     // Configurar las inclusiones según si es básico o detallado
@@ -132,13 +168,26 @@ export async function GET(request: NextRequest) {
       };
     }
 
-    // Obtener las solicitudes asignadas
+    // Obtener el total de registros para la paginación
+    const total = await prisma.projectRequestCompany.count({
+      where: baseFilter,
+    });
+
+    // Calcular el total de páginas
+    const totalPages = Math.ceil(total / limit);
+    
+    // Asegurar que la página actual es válida
+    const currentPage = Math.max(1, Math.min(page, totalPages || 1));
+
+    // Obtener las solicitudes asignadas con paginación
     const items = await prisma.projectRequestCompany.findMany({
       where: baseFilter,
       include: includeConfig,
       orderBy: {
         createdAt: "desc",
       },
+      skip,
+      take: limit,
     });
 
     // Si solo se solicita la vista básica, procesar los resultados de forma simple
@@ -202,6 +251,9 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json({
         items: processedItems,
+        totalPages,
+        currentPage,
+        total,
       });
     }
 
@@ -349,6 +401,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       items,
+      totalPages,
+      currentPage,
+      total,
     });
   } catch (error) {
     console.error("Error al obtener las empresas asignadas:", error);

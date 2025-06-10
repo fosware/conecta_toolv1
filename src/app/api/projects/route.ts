@@ -14,6 +14,12 @@ export async function GET(request: NextRequest) {
     // Obtener parámetros de consulta
     const { searchParams } = new URL(request.url);
     const active = searchParams.get("active") !== "false"; // Por defecto muestra activos
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "10");
+    const search = searchParams.get("search") || "";
+    
+    // Calcular el offset para la paginación
+    const skip = (page - 1) * limit;
     
     // Obtener el rol del usuario
     const user = await prisma.user.findUnique({
@@ -25,14 +31,39 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
     }
 
-    const isStaff = user.role.name === "staff";
-    const isAsociado = user.role.name === "asociado";
+    // Normalizar nombres de roles para comparación (insensible a mayúsculas/minúsculas)
+    const roleName = user.role.name.toLowerCase();
+    const isStaff = roleName === "staff";
+    const isAsociado = roleName === "asociado";
+    
+    // Obtener la compañía del usuario si es Asociado o Staff
+    let userCompanyId = null;
+    if (isAsociado || isStaff) {
+      const companyUser = await prisma.companyUser.findFirst({
+        where: {
+          userId: userId,
+          isActive: true,
+          isDeleted: false,
+        },
+        include: {
+          company: true
+        }
+      });
+      
+      if (companyUser && companyUser.company) {
+        userCompanyId = companyUser.company.id;
+      }
+    }
 
     // Construir la consulta base
     let query: any = {
       where: {
         isDeleted: !active,
       },
+      
+      // Añadir paginación
+      skip,
+      take: limit,
       include: {
         user: true,
         ProjectStatus: true,
@@ -69,30 +100,60 @@ export async function GET(request: NextRequest) {
       },
     };
 
-    // Si es asociado, solo mostrar sus proyectos
-    if (isAsociado) {
-      // Obtener la compañía del asociado
-      const associatedCompany = await prisma.company.findFirst({
-        where: {
-          userId: userId,
-          isActive: true,
-          isDeleted: false,
-        },
-      });
-
-      if (!associatedCompany) {
-        return NextResponse.json({ error: "Compañía no encontrada" }, { status: 404 });
-      }
-
-      // Filtrar por proyectos donde la compañía del asociado está involucrada
+    // Si es asociado o staff, solo mostrar los proyectos de su empresa
+    if ((isAsociado || isStaff) && userCompanyId) {
+      // Filtrar por proyectos donde la compañía del usuario está involucrada
       query.where.ProjectRequestCompany = {
-        Company: {
-          id: associatedCompany.id,
-        },
+        companyId: userCompanyId,
       };
+    } else if ((isAsociado || isStaff) && !userCompanyId) {
+      // Si es asociado o staff pero no tiene empresa asignada, no mostrar proyectos
+      return NextResponse.json({
+        items: [],
+        total: 0,
+        totalPages: 0,
+        currentPage: page
+      }); // Devolver array vacío con metadatos de paginación
+    }
+    
+    // Añadir filtro de búsqueda si se proporciona
+    if (search) {
+      // Buscar en ProjectRequestCompany -> Company -> nombre
+      // y en ProjectRequestCompany -> ProjectRequirements -> ProjectRequest -> title
+      query.where.OR = [
+        {
+          ProjectRequestCompany: {
+            Company: {
+              OR: [
+                { companyName: { contains: search, mode: 'insensitive' } },
+                { comercialName: { contains: search, mode: 'insensitive' } }
+              ]
+            }
+          }
+        },
+        {
+          ProjectRequestCompany: {
+            ProjectRequirements: {
+              some: {
+                ProjectRequest: {
+                  title: { contains: search, mode: 'insensitive' }
+                }
+              }
+            }
+          }
+        }
+      ];
     }
 
-    // Ejecutar la consulta
+    // Contar el total de registros para la paginación
+    const totalCount = await prisma.project.count({
+      where: query.where
+    });
+    
+    // Calcular el total de páginas
+    const totalPages = Math.ceil(totalCount / limit);
+    
+    // Ejecutar la consulta principal con paginación
     const projects = await prisma.project.findMany(query);
     
     // Enriquecer los datos con información adicional
@@ -124,8 +185,13 @@ export async function GET(request: NextRequest) {
       })
     );
     
-    // Devolver los proyectos enriquecidos
-    return NextResponse.json(enrichedProjects);
+    // Devolver los proyectos enriquecidos con metadatos de paginación
+    return NextResponse.json({
+      items: enrichedProjects,
+      total: totalCount,
+      totalPages,
+      currentPage: page
+    });
   } catch (error) {
     console.error("Error al obtener proyectos:", error);
     return NextResponse.json(

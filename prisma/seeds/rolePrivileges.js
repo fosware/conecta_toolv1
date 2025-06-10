@@ -41,10 +41,14 @@ export async function seedRolePrivileges() {
   ];
 
   // Mapear privilegios específicos para Staff
-  const staffPrivileges = ["Asociados"];
+  const staffPrivileges = ["Asociados", "Proyectos", "Solicitud de Proyectos"];
 
   // Mapear privilegios específicos para Asociado
-  const asociadoPrivileges = ["Asociados"];
+  const asociadoPrivileges = [
+    "Asociados",
+    "Proyectos",
+    "Solicitud de Proyectos",
+  ];
 
   // Función para asociar privilegios a un rol
   const assignPrivileges = async (roleId, privilegeNames) => {

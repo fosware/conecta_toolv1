@@ -36,8 +36,29 @@ export async function GET(
       return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
     }
 
-    const isStaff = user.role.name === "staff";
-    const isAsociado = user.role.name === "asociado";
+    // Normalizar nombres de roles para comparación (insensible a mayúsculas/minúsculas)
+    const roleName = user.role.name.toLowerCase();
+    const isStaff = roleName === "staff";
+    const isAsociado = roleName === "asociado";
+    
+    // Obtener la compañía del usuario si es Asociado o Staff
+    let userCompanyId = null;
+    if (isAsociado || isStaff) {
+      const companyUser = await prisma.companyUser.findFirst({
+        where: {
+          userId: userId,
+          isActive: true,
+          isDeleted: false,
+        },
+        include: {
+          company: true
+        }
+      });
+      
+      if (companyUser && companyUser.company) {
+        userCompanyId = companyUser.company.id;
+      }
+    }
 
     // Construir la consulta base
     let query: any = {
@@ -68,29 +89,14 @@ export async function GET(
       },
     };
 
-    // Si es asociado, verificar que tenga acceso a este proyecto
-    if (isAsociado) {
-      // Obtener la compañía del asociado
-      const associatedCompany = await prisma.company.findFirst({
-        where: {
-          userId: userId,
-          isActive: true,
-          isDeleted: false,
-        },
-      });
-
-      if (!associatedCompany) {
-        return NextResponse.json({ error: "Compañía no encontrada" }, { status: 404 });
-      }
-
-      // Verificar si el proyecto pertenece a la compañía del asociado
+    // Si es asociado o staff, verificar que tenga acceso a este proyecto
+    if ((isAsociado || isStaff) && userCompanyId) {
+      // Verificar si el proyecto pertenece a la compañía del usuario
       const projectAccess = await prisma.project.findFirst({
         where: {
           id: parsedId,
           ProjectRequestCompany: {
-            Company: {
-              id: associatedCompany.id,
-            },
+            companyId: userCompanyId,
           },
         },
       });
@@ -98,6 +104,9 @@ export async function GET(
       if (!projectAccess) {
         return NextResponse.json({ error: "Acceso denegado a este proyecto" }, { status: 403 });
       }
+    } else if ((isAsociado || isStaff) && !userCompanyId) {
+      // Si es asociado o staff pero no tiene empresa asignada, denegar acceso
+      return NextResponse.json({ error: "No tiene una empresa asignada" }, { status: 403 });
     }
 
     // Ejecutar la consulta
@@ -213,8 +222,7 @@ export async function PUT(
             NOW() as now,
             NOW()::text as now_tz
         `;
-        console.log("Fecha actual en PostgreSQL (America/Mexico_City - update project):", checkDate[0].now);
-        console.log("Fecha como texto con zona horaria (update project):", checkDate[0].now_tz);
+        // Se eliminaron los console.logs de fechas
         
         // Crear el log usando NOW() para asegurar que se use la zona horaria correcta
         await tx.projectLog.create({
@@ -319,8 +327,7 @@ export async function DELETE(
             NOW() as now,
             NOW()::text as now_tz
         `;
-        console.log("Fecha actual en PostgreSQL (America/Mexico_City - delete project):", checkDate[0].now);
-        console.log("Fecha como texto con zona horaria (delete project):", checkDate[0].now_tz);
+        // Se eliminaron los console.logs de fechas
         
         // Crear el log usando NOW() para asegurar que se use la zona horaria correcta
         await tx.projectLog.create({

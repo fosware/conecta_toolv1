@@ -42,73 +42,75 @@ export async function GET(
     }
 
     const userRole = user.role.name.toLowerCase();
+    const isAsociado = userRole === "asociado";
+    const isStaff = userRole === "staff";
 
-    // Construir la consulta base
+    // Obtener la compañía del usuario si es Asociado o Staff
+    let userCompanyId = null;
+    if (isAsociado || isStaff) {
+      const companyUser = await prisma.companyUser.findFirst({
+        where: {
+          userId: userId,
+          isActive: true,
+          isDeleted: false,
+        },
+        include: {
+          company: true
+        }
+      });
+      
+      if (companyUser && companyUser.company) {
+        userCompanyId = companyUser.company.id;
+      }
+    }
+
+    // Si es asociado o staff, verificar que tenga acceso a esta solicitud
+    if ((isAsociado || isStaff) && userCompanyId) {
+      // Verificar si la empresa del usuario participa en esta solicitud
+      const hasAccess = await prisma.projectRequest.findFirst({
+        where: {
+          id: parsedId,
+          ProjectRequirements: {
+            some: {
+              ProjectRequestCompany: {
+                some: {
+                  companyId: userCompanyId,
+                  isDeleted: false
+                }
+              }
+            }
+          }
+        }
+      });
+
+      if (!hasAccess) {
+        return NextResponse.json({ error: "Acceso denegado a esta solicitud de proyecto" }, { status: 403 });
+      }
+    } else if ((isAsociado || isStaff) && !userCompanyId) {
+      // Si es asociado o staff pero no tiene empresa asignada, denegar acceso
+      return NextResponse.json({ error: "No tiene una empresa asignada" }, { status: 403 });
+    }
+
+    // Construir la consulta base simplificada y compatible con los tipos de Prisma
     const baseQuery = {
       where: {
         id: parsedId,
         isDeleted: false,
-        // Si el usuario es asociado, solo puede ver sus propias solicitudes
-        ...(userRole === "asociado" ? { userId } : {}),
       },
-      select: {
-        id: true,
-        title: true,
-        requestDate: true,
-        observation: true,
-        statusId: true,
-        status: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        isActive: true,
-        isDeleted: true,
-        dateDeleted: true,
-        createdAt: true,
-        updatedAt: true,
-        userId: true,
-        clientAreaId: true,
+      include: {
+        status: true,
         clientArea: {
-          select: {
-            id: true,
-            areaName: true,
-            contactName: true,
-            contactEmail: true,
-            contactPhone: true,
-            clientId: true,
-            client: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
+          include: {
+            client: true,
           },
         },
-        user: {
-          select: {
-            id: true,
-            username: true,
-            email: true,
-          },
-        },
-        // Incluir los requerimientos con su nombre, especialidades, certificaciones y participantes
+        user: true,
         ProjectRequirements: {
           where: {
             isDeleted: false,
           },
-          select: {
-            id: true,
-            requirementName: true,
-            piecesNumber: true,
-            observation: true,
-            statusId: true,
+          include: {
             status: true,
-            isActive: true,
-            createdAt: true,
-            updatedAt: true,
-            // Incluir especialidades asociadas al requerimiento
             RequirementSpecialty: {
               where: {
                 isDeleted: false,
@@ -119,7 +121,6 @@ export async function GET(
                 subscope: true,
               },
             },
-            // Incluir certificaciones asociadas al requerimiento
             RequirementCertification: {
               where: {
                 isDeleted: false,
@@ -128,32 +129,24 @@ export async function GET(
                 certification: true,
               },
             },
-            // Incluir participantes (empresas) asociados al requerimiento
             ProjectRequestCompany: {
               where: {
                 isDeleted: false,
+                // Aplicamos el filtro de companyId solo si tenemos un valor definido
+                ...(isAsociado || isStaff ? userCompanyId ? { companyId: userCompanyId } : {} : {}),
               },
               include: {
-                Company: {
-                  select: {
-                    id: true,
-                    comercialName: true,
-                    contactName: true,
-                    email: true,
-                    phone: true,
-                  },
-                },
+                Company: true,
                 status: true,
               },
-              // Ordenar por fecha de creación ascendente para mantener el orden original
               orderBy: {
-                createdAt: "asc",
-              } as any,
+                createdAt: "asc" as const,
+              },
             },
           },
           orderBy: {
-            priority: 'asc',
-          } as any,
+            priority: 'asc' as const,
+          },
         },
       },
     };
@@ -197,29 +190,12 @@ export async function PUT(
     }
 
     // Acceder directamente a la propiedad id
-    //const id = parseInt(routeParams.id);
     const { id } = await params;
-
     const parsedId = parseInt(id);
     if (isNaN(parsedId)) {
       return NextResponse.json(
         { error: "ID de solicitud inválido" },
         { status: 400 }
-      );
-    }
-
-    // Verificar que la solicitud existe
-    const existingRequest = await prisma.projectRequest.findFirst({
-      where: {
-        id: parsedId,
-        isDeleted: false,
-      },
-    });
-
-    if (!existingRequest) {
-      return NextResponse.json(
-        { error: "Solicitud de proyecto no encontrada" },
-        { status: 404 }
       );
     }
 
@@ -239,12 +215,26 @@ export async function PUT(
     }
 
     const userRole = user.role.name.toLowerCase();
+    const isAsociado = userRole === "asociado";
+    const isStaff = userRole === "staff";
 
-    // Si el usuario es asociado, solo puede editar sus propias solicitudes
-    if (userRole === "asociado" && existingRequest.userId !== userId) {
+    // Si es asociado o staff, no permitir actualizar solicitudes
+    if (isAsociado || isStaff) {
       return NextResponse.json(
-        { error: "No tienes permiso para editar esta solicitud" },
+        { error: "No tiene permisos para actualizar solicitudes de proyecto" },
         { status: 403 }
+      );
+    }
+
+    // Verificar que la solicitud existe
+    const existingRequest = await prisma.projectRequest.findUnique({
+      where: { id: parsedId },
+    });
+
+    if (!existingRequest) {
+      return NextResponse.json(
+        { error: "Solicitud de proyecto no encontrada" },
+        { status: 404 }
       );
     }
 
@@ -253,7 +243,7 @@ export async function PUT(
     try {
       const validatedData = projectRequestUpdateSchema.parse(body);
 
-      // Si se proporciona un clientAreaId, verificar que existe
+      // Verificar que el área del cliente existe si se proporciona
       if (validatedData.clientAreaId) {
         const clientArea = await prisma.clientAreas.findUnique({
           where: { id: validatedData.clientAreaId },
@@ -261,17 +251,8 @@ export async function PUT(
 
         if (!clientArea) {
           return NextResponse.json(
-            {
-              error: "El área del cliente no existe",
-              type: "VALIDATION_ERROR",
-              fields: [
-                {
-                  field: "clientAreaId",
-                  message: "El área del cliente seleccionada no existe",
-                },
-              ],
-            },
-            { status: 400 }
+            { error: "El área del cliente no existe" },
+            { status: 404 }
           );
         }
       }
@@ -280,47 +261,39 @@ export async function PUT(
       const updatedProjectRequest = await prisma.projectRequest.update({
         where: { id: parsedId },
         data: {
-          ...validatedData,
-          updatedAt: new Date(),
-        },
-        include: {
-          clientArea: {
-            include: {
-              client: true,
-            },
-          },
-          user: true,
+          title: validatedData.title,
+          observation: validatedData.observation,
+          clientAreaId: validatedData.clientAreaId,
+          // No actualizamos statusId ya que no está en el esquema de validación
         },
       });
 
       return NextResponse.json({
-        ...updatedProjectRequest,
-        message: "Solicitud de proyecto actualizada exitosamente",
+        success: true,
+        data: updatedProjectRequest,
       });
-    } catch (error: unknown) {
+    } catch (error) {
       if (error instanceof z.ZodError) {
         return NextResponse.json(
           {
-            error: "Error de validación",
-            type: "VALIDATION_ERROR",
-            fields: error.issues.map((issue: z.ZodIssue) => ({
-              field: issue.path[0],
-              message: issue.message,
-            })),
+            success: false,
+            error: "Datos inválidos",
+            details: error.errors,
           },
           { status: 400 }
         );
       }
-
       throw error;
     }
   } catch (error) {
-    console.error("Error in PUT /api/project_requests/[id]:", error);
+    console.error("[PROJECT_REQUEST_PUT]", error);
     return NextResponse.json(
       {
+        success: false,
         error:
-          "Hubo un problema al procesar tu solicitud. Por favor, intenta nuevamente.",
-        details: error instanceof Error ? error.message : undefined,
+          error instanceof Error
+            ? error.message
+            : "Error al actualizar la solicitud de proyecto",
       },
       { status: 500 }
     );
@@ -339,27 +312,11 @@ export async function PATCH(
 
     // Extraer el ID correctamente
     const { id } = await params;
-
     const parsedId = parseInt(id);
     if (isNaN(parsedId)) {
       return NextResponse.json(
         { error: "ID de solicitud inválido" },
         { status: 400 }
-      );
-    }
-
-    // Verificar que la solicitud existe
-    const existingRequest = await prisma.projectRequest.findFirst({
-      where: {
-        id: parsedId,
-        isDeleted: false,
-      },
-    });
-
-    if (!existingRequest) {
-      return NextResponse.json(
-        { error: "Solicitud de proyecto no encontrada" },
-        { status: 404 }
       );
     }
 
@@ -379,46 +336,58 @@ export async function PATCH(
     }
 
     const userRole = user.role.name.toLowerCase();
+    const isAsociado = userRole === "asociado";
+    const isStaff = userRole === "staff";
 
-    // Si el usuario es asociado, solo puede editar sus propias solicitudes
-    if (userRole === "asociado" && existingRequest.userId !== userId) {
+    // Si es asociado o staff, no permitir actualizar solicitudes
+    if (isAsociado || isStaff) {
       return NextResponse.json(
-        { error: "No tienes permiso para editar esta solicitud" },
+        { error: "No tiene permisos para actualizar solicitudes de proyecto" },
         { status: 403 }
       );
     }
 
-    const body = await request.json();
-    const { isActive } = body;
+    // Verificar que la solicitud existe
+    const existingRequest = await prisma.projectRequest.findUnique({
+      where: { id: parsedId },
+    });
 
-    if (typeof isActive !== "boolean") {
+    if (!existingRequest) {
       return NextResponse.json(
-        { error: "El campo isActive debe ser un booleano" },
-        { status: 400 }
+        { error: "Solicitud de proyecto no encontrada" },
+        { status: 404 }
       );
     }
 
-    // Actualizar solo el estado de activación
+    const body = await request.json();
+
+    // Actualizar solo los campos proporcionados
     const updatedProjectRequest = await prisma.projectRequest.update({
       where: { id: parsedId },
       data: {
-        isActive,
-        updatedAt: new Date(),
+        ...(body.title !== undefined && { title: body.title }),
+        ...(body.observation !== undefined && { observation: body.observation }),
+        ...(body.clientAreaId !== undefined && {
+          clientAreaId: body.clientAreaId,
+        }),
+        ...(body.statusId !== undefined && { statusId: body.statusId }),
+        ...(body.isActive !== undefined && { isActive: body.isActive }),
       },
     });
 
     return NextResponse.json({
       success: true,
       data: updatedProjectRequest,
-      message: `Solicitud de proyecto ${isActive ? "activada" : "desactivada"} exitosamente`,
     });
   } catch (error) {
-    console.error("Error in PATCH /api/project_requests/[id]:", error);
+    console.error("[PROJECT_REQUEST_PATCH]", error);
     return NextResponse.json(
       {
+        success: false,
         error:
-          "Hubo un problema al procesar tu solicitud. Por favor, intenta nuevamente.",
-        details: error instanceof Error ? error.message : undefined,
+          error instanceof Error
+            ? error.message
+            : "Error al actualizar la solicitud de proyecto",
       },
       { status: 500 }
     );
@@ -435,28 +404,13 @@ export async function DELETE(
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
-    // Acceder directamente a la propiedad id
+    // Extraer el ID correctamente
     const { id } = await params;
     const parsedId = parseInt(id);
     if (isNaN(parsedId)) {
       return NextResponse.json(
         { error: "ID de solicitud inválido" },
         { status: 400 }
-      );
-    }
-
-    // Verificar que la solicitud existe
-    const existingRequest = await prisma.projectRequest.findFirst({
-      where: {
-        id: parsedId,
-        isDeleted: false,
-      },
-    });
-
-    if (!existingRequest) {
-      return NextResponse.json(
-        { error: "Solicitud de proyecto no encontrada" },
-        { status: 404 }
       );
     }
 
@@ -476,35 +430,52 @@ export async function DELETE(
     }
 
     const userRole = user.role.name.toLowerCase();
+    const isAsociado = userRole === "asociado";
+    const isStaff = userRole === "staff";
 
-    // Si el usuario es asociado, solo puede eliminar sus propias solicitudes
-    if (userRole === "asociado" && existingRequest.userId !== userId) {
+    // Si es asociado o staff, no permitir eliminar solicitudes
+    if (isAsociado || isStaff) {
       return NextResponse.json(
-        { error: "No tienes permiso para eliminar esta solicitud" },
+        { error: "No tiene permisos para eliminar solicitudes de proyecto" },
         { status: 403 }
       );
     }
 
-    // Soft delete de la solicitud
-    const deletedProjectRequest = await prisma.projectRequest.update({
+    // Verificar que la solicitud existe
+    const existingRequest = await prisma.projectRequest.findUnique({
+      where: { id: parsedId },
+    });
+
+    if (!existingRequest) {
+      return NextResponse.json(
+        { error: "Solicitud de proyecto no encontrada" },
+        { status: 404 }
+      );
+    }
+
+    // Realizar borrado lógico
+    await prisma.projectRequest.update({
       where: { id: parsedId },
       data: {
         isDeleted: true,
+        isActive: false,
         dateDeleted: new Date(),
       },
     });
 
     return NextResponse.json({
       success: true,
-      message: "Solicitud de proyecto eliminada exitosamente",
+      message: "Solicitud de proyecto eliminada correctamente",
     });
   } catch (error) {
-    console.error("Error in DELETE /api/project_requests/[id]:", error);
+    console.error("[PROJECT_REQUEST_DELETE]", error);
     return NextResponse.json(
       {
+        success: false,
         error:
-          "Hubo un problema al procesar tu solicitud. Por favor, intenta nuevamente.",
-        details: error instanceof Error ? error.message : undefined,
+          error instanceof Error
+            ? error.message
+            : "Error al eliminar la solicitud de proyecto",
       },
       { status: 500 }
     );

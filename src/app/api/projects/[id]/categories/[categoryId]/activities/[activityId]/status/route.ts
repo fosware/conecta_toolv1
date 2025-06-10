@@ -77,7 +77,7 @@ export async function PATCH(
         where: { id: data.statusId }
       });
       
-      console.log(`Actividad ${existingActivity.id} (${existingActivity.name}) cambiada de estado ${oldStatus?.name || 'Desconocido'} a ${newStatus?.name || 'Desconocido'}`);
+      // Se eliminó el console.log de cambio de estado de actividad
       // No creamos logs aquí porque ya se crean desde el frontend
       
       // Verificar si hay actividades en progreso

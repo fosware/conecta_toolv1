@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     
     const { message, projectRequestId, companyId, requirementId } = validationResult.data;
 
-    console.log(`[DEPURACIÓN AVANZADA] Creando log con requerimiento específico: Proyecto=${projectRequestId}, Compañía=${companyId}, Requerimiento=${requirementId}`);
+    // Se eliminó el log de depuración avanzada
 
     // PASO 1: Verificar que el requerimiento pertenece al proyecto
     const requirement = await prisma.projectRequirements.findFirst({
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`[DEPURACIÓN] Requerimiento verificado: ID=${requirement.id}, Nombre=${requirement.requirementName}`);
+    // Se eliminó el log de depuración de requerimiento
 
     // PASO 2: Buscar ESPECÍFICAMENTE la relación entre compañía y requerimiento
     const projectRequestCompany = await prisma.projectRequestCompany.findFirst({
@@ -101,10 +101,7 @@ export async function POST(request: NextRequest) {
         },
       });
       
-      console.log(`[DEPURACIÓN] Se encontraron ${allRelations.length} relaciones para la compañía ${companyId}:`);
-      allRelations.forEach(rel => {
-        console.log(`- ID: ${rel.id}, Requerimiento: ${rel.ProjectRequirements.requirementName} (ID: ${rel.ProjectRequirements.id}), Proyecto: ${rel.ProjectRequirements.projectRequestId}`);
-      });
+      // Se eliminaron los logs de depuración de relaciones encontradas
       
       return NextResponse.json(
         { error: "Relación entre compañía y requerimiento no encontrada" },
@@ -112,7 +109,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`[DEPURACIÓN] Relación encontrada con ID: ${projectRequestCompany.id}, Compañía=${projectRequestCompany.Company.comercialName}, Requerimiento=${projectRequestCompany.ProjectRequirements.requirementName}`);
+    // Se eliminó el log de depuración de relación encontrada
 
     // PASO 3: Crear el log con la relación específica
     const newLog = await prisma.projectRequestCompanyStatusLog.create({
@@ -124,7 +121,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log(`[DEPURACIÓN] Log creado con ID: ${newLog.id} para la relación específica ID=${projectRequestCompany.id}`);
+    // Se eliminó el log de depuración de log creado
 
     // PASO 4: Verificar que el log se creó correctamente
     const createdLog = await prisma.projectRequestCompanyStatusLog.findUnique({
@@ -157,10 +154,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`[DEPURACIÓN] Verificación exitosa del log ID: ${createdLog.id}`);
-    console.log(`[DEPURACIÓN] - Relación: ${createdLog.projectRequestCompanyId}`);
-    console.log(`[DEPURACIÓN] - Compañía: ${createdLog.ProjectRequestCompany.Company.comercialName}`);
-    console.log(`[DEPURACIÓN] - Requerimiento: ${createdLog.ProjectRequestCompany.ProjectRequirements.requirementName}`);
+    // Se eliminaron los logs de depuración de verificación de log
 
     return NextResponse.json(
       {
