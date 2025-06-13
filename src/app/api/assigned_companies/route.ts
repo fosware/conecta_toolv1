@@ -74,6 +74,42 @@ export async function GET(request: NextRequest) {
               mode: "insensitive"
             }
           }
+        },
+        {
+          ProjectRequirements: {
+            ProjectRequest: {
+              clientArea: {
+                client: {
+                  name: {
+                    contains: search,
+                    mode: "insensitive"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          ProjectRequirements: {
+            ProjectRequest: {
+              clientArea: {
+                areaName: {
+                  contains: search,
+                  mode: "insensitive"
+                }
+              }
+            }
+          }
+        },
+        {
+          ProjectRequirements: {
+            ProjectRequest: {
+              title: {
+                contains: search,
+                mode: "insensitive"
+              }
+            }
+          }
         }
       ];
     }

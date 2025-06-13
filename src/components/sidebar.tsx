@@ -63,7 +63,7 @@ export default function Sidebar({
     <>
       {/* Sidebar fijo para pantallas grandes */}
       <aside className="hidden lg:block w-64 bg-background dark:bg-background-dark text-foreground dark:text-foreground-dark border-r border-[#EEF1F6] dark:border-[#1D2532] h-full overflow-y-auto">
-        <nav className="p-4">
+        <nav className="p-4 pt-10">
           <ul className="space-y-4">
             {menuItems.map((item) => (
               <li key={item.path}>

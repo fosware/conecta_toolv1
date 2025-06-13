@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, Search, FileText } from "lucide-react";
 import { AssignedCompaniesTable } from "./components/assigned-companies-table";
@@ -40,6 +40,7 @@ export default function AssignedCompaniesPage() {
     null
   );
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [showOnlyActive, setShowOnlyActive] = useState(true);
   
   // Estados para paginación
@@ -70,7 +71,7 @@ export default function AssignedCompaniesPage() {
         basic: "true",
         page: currentPage.toString(),
         limit: itemsPerPage.toString(),
-        search: searchTerm
+        search: debouncedSearchTerm
       });
 
       const response = await fetch(`/api/assigned_companies?${params}`);
@@ -158,9 +159,24 @@ export default function AssignedCompaniesPage() {
     }
   };
 
+  // Efecto para manejar el debounce del término de búsqueda
+  useEffect(() => {
+    // Configurar un temporizador para actualizar el término de búsqueda con debounce
+    const timerId = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500); // 500ms de retraso
+
+    // Limpiar el temporizador si el searchTerm cambia antes de que se complete el tiempo
+    return () => {
+      clearTimeout(timerId);
+    };
+  }, [searchTerm]);
+
+  // Cargar datos cuando cambie el término de búsqueda con debounce
   useEffect(() => {
     loadData();
-  }, [currentPage, itemsPerPage, searchTerm]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, itemsPerPage, debouncedSearchTerm]);
 
   const handleRowClick = (item: AssignedCompany) => {
     if (expandedId === item.id) {
@@ -286,6 +302,9 @@ export default function AssignedCompaniesPage() {
                   setCurrentPage(1); // Resetear a la primera página al buscar
                 }}
               />
+              {searchTerm !== debouncedSearchTerm && (
+                <div className="text-xs text-muted-foreground mt-1">Buscando...</div>
+              )}
             </div>
             <div className="flex items-center space-x-2">
               <label htmlFor="itemsPerPage" className="mr-2">

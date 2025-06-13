@@ -28,6 +28,9 @@ export const menuItems: MenuItem[] = [
   },
   { name: "Asociados", path: "/companies", icon: "/icons/global-partner.svg" },
   { name: "Clientes", path: "/clients", icon: "/icons/users.svg" },
+
+  { name: "Reportes", path: "/reports", icon: "/icons/chart-line.svg" },
+
   {
     name: "Cat Especialidades",
     path: "/cat_especialidades",

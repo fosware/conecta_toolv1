@@ -490,11 +490,11 @@ export function AssignedCompaniesTable({
             <TableHead>Cliente</TableHead>
             <TableHead>Área/Dirección</TableHead>
             <TableHead>Solicitud</TableHead>
-            <TableHead>Fecha</TableHead>
-            <TableHead>Asociado</TableHead>
+            <TableHead className="w-[90px]">Fecha</TableHead>
+            <TableHead className="w-[180px]">Asociado</TableHead>
             <TableHead>Requerimientos</TableHead>
-            <TableHead>Estado</TableHead>
-            <TableHead className="text-center">Acciones</TableHead>
+            <TableHead className="w-[150px]">Estado</TableHead>
+            <TableHead className="text-center w-[80px]">Acciones</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
