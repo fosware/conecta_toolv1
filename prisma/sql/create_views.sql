@@ -218,16 +218,16 @@ CREATE OR REPLACE VIEW v_project_details AS
 SELECT 
     COALESCE(c."comercialName", c."companyName") AS "Asociado",
     pr."title" AS "Proyecto",
-    MIN(prq."createdAt"::date) AS "Fecha Cotización",
+    TO_CHAR(MIN(prq."createdAt"::date), 'DD/MM/YYYY') AS "Fecha Cotización",
     SUM(prq."price") AS "Monto Cotizado",
     -- Si cualquiera de los requerimientos tiene un proyecto asignado, consideramos que el proyecto está asignado
     CASE WHEN SUM(CASE WHEN p.id IS NOT NULL THEN 1 ELSE 0 END) > 0 THEN 'Sí' ELSE 'No' END AS "Proyecto Asignado (Sí/No)",
-    MIN(qs."estimatedDeliveryDate"::date) AS "Fecha Entrega Comprometida",
+    TO_CHAR(MIN(qs."estimatedDeliveryDate"::date), 'DD/MM/YYYY') AS "Fecha Entrega Comprometida",
     -- Para la fecha de entrega real, usamos la fecha de actualización del proyecto cuando su estado es "Completado"
-    MIN(CASE 
+    TO_CHAR(MIN(CASE 
         WHEN p."projectStatusId" = 3 THEN p."updatedAt"::date
         ELSE NULL
-    END) AS "Fecha Entrega Real"
+    END), 'DD/MM/YYYY') AS "Fecha Entrega Real"
 FROM 
     d_companies c
 JOIN 

@@ -215,13 +215,13 @@ export function ReportViewer({ report }: ReportViewerProps) {
           const line1X = margin + i * colWidth + (colWidth - line1Width) / 2;
           
           // Dibujar la primera línea
-          doc.text(line1, line1X, y + 5);
+          doc.text(line1, line1X, y + 4);
           
           // Si hay segunda línea, dibujarla
           if (line2) {
             const line2Width = doc.getStringUnitWidth(line2) * doc.getFontSize() / doc.internal.scaleFactor;
             const line2X = margin + i * colWidth + (colWidth - line2Width) / 2;
-            doc.text(line2, line2X, y + 12);
+            doc.text(line2, line2X, y + 9); // Reducido de 12 a 9 para disminuir el interlineado
           }
         });
         
@@ -231,7 +231,7 @@ export function ReportViewer({ report }: ReportViewerProps) {
       // Calcular cuántas páginas necesitaremos
       const rowHeight = 10; // Aumentado para evitar que el texto se encime con los bordes
       const headerHeight = 30; // Espacio para logo y título (reducido para subir la tabla)
-      const tableHeaderHeight = 15; // Reducido para que no haya tanto espacio entre líneas
+      const tableHeaderHeight = 12; // Reducido aún más para disminuir el interlineado
       const footerHeight = 15;
       const contentHeight = pageHeight - headerHeight - tableHeaderHeight - footerHeight;
       const rowsPerPage = Math.floor(contentHeight / rowHeight);
