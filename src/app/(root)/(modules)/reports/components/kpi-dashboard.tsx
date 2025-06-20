@@ -45,6 +45,7 @@ export function KpiDashboard({ viewName }: KpiDashboardProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dashboardData, setDashboardData] = useState<any>(null);
+  const [showNoDataMessage, setShowNoDataMessage] = useState(false);
   const [startDate, setStartDate] = useState<string | null>(null);
   const [endDate, setEndDate] = useState<string | null>(null);
 
@@ -93,6 +94,24 @@ export function KpiDashboard({ viewName }: KpiDashboardProps) {
   useEffect(() => {
     fetchDashboardData();
   }, [viewName]);
+
+  // Efecto para verificar si hay datos de entregas disponibles
+  useEffect(() => {
+    if (dashboardData && dashboardData.aggregatedKpis) {
+      const entregasData = dashboardData.aggregatedKpis.porcentaje_entregas_tiempo;
+      console.log('Valor de porcentaje_entregas_tiempo:', entregasData);
+      
+      // Verificar si no hay datos de entregas
+      const noData = entregasData === null || 
+                    entregasData === undefined || 
+                    Number(entregasData) === 0 || 
+                    isNaN(Number(entregasData));
+      
+      setShowNoDataMessage(noData);
+    } else {
+      setShowNoDataMessage(true);
+    }
+  }, [dashboardData]);
 
   const handleDateChange = (
     newStartDate: string | null,
@@ -444,7 +463,7 @@ export function KpiDashboard({ viewName }: KpiDashboardProps) {
             </CardDescription>
           </CardHeader>
           <CardContent className="h-80">
-            {(!aggregatedKpis || aggregatedKpis.porcentaje_entregas_tiempo === null || aggregatedKpis.porcentaje_entregas_tiempo === undefined || aggregatedKpis.porcentaje_entregas_tiempo === 0) ? (
+            {showNoDataMessage ? (
               <div className="h-full flex items-center justify-center flex-col text-muted-foreground">
                 <p>No hay datos de entregas disponibles</p>
                 <p className="text-sm">Se requieren proyectos completados para generar esta métrica</p>
