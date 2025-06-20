@@ -444,20 +444,26 @@ export function KpiDashboard({ viewName }: KpiDashboardProps) {
             </CardDescription>
           </CardHeader>
           <CardContent className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={[
-                    {
-                      name: "A Tiempo",
-                      value: aggregatedKpis?.porcentaje_entregas_tiempo || 0,
-                    },
-                    {
-                      name: "Tardías",
-                      value:
-                        100 - (aggregatedKpis?.porcentaje_entregas_tiempo || 0),
-                    },
-                  ]}
+            {(!aggregatedKpis || aggregatedKpis.porcentaje_entregas_tiempo === null) ? (
+              <div className="h-full flex items-center justify-center flex-col text-muted-foreground">
+                <p>No hay datos de entregas disponibles</p>
+                <p className="text-sm">Se requieren proyectos completados para generar esta métrica</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={[
+                      {
+                        name: "A Tiempo",
+                        value: aggregatedKpis?.porcentaje_entregas_tiempo || 0,
+                      },
+                      {
+                        name: "Tardías",
+                        value:
+                          100 - (aggregatedKpis?.porcentaje_entregas_tiempo || 0),
+                      },
+                    ]}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
@@ -478,12 +484,12 @@ export function KpiDashboard({ viewName }: KpiDashboardProps) {
                 <Tooltip
                   formatter={(value: number | string) => [
                     `${formatNumber(value)}%`,
-                    "",
+                    ""
                   ]}
                   wrapperStyle={{ zIndex: 1000 }}
                   contentStyle={{
                     backgroundColor: "#f8f9fa",
-                    borderColor: "#0088FE",
+                    borderColor: "#00C49F",
                     borderWidth: "2px",
                     boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
                     borderRadius: "6px",
@@ -495,7 +501,7 @@ export function KpiDashboard({ viewName }: KpiDashboardProps) {
                     marginBottom: "5px",
                   }}
                   itemStyle={{
-                    color: "#0088FE",
+                    color: "#00C49F",
                     fontWeight: 500,
                   }}
                   cursor={{ fill: "transparent" }}
@@ -503,6 +509,7 @@ export function KpiDashboard({ viewName }: KpiDashboardProps) {
                 <Legend />
               </PieChart>
             </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
 
