@@ -42,6 +42,14 @@ export default function ReportsPage() {
   const reports: Report[] = [
     {
       id: 1,
+      name: "Dashboard KPI",
+      title: "Dashboard KPI Ejecutivo",
+      description: "Panel de control con indicadores clave de rendimiento, métricas de éxito y análisis de tendencias.",
+      viewName: "v_kpi_dashboard",
+      icon: <PieChart className="h-5 w-5" />,
+    },
+    {
+      id: 2,
       name: "Resumen de Cotizaciones",
       title: "Resumen de Cotizaciones",
       description: "Muestra información sobre cotizaciones por asociado, incluyendo invitaciones, respuestas y tasas de respuesta.",
@@ -49,7 +57,7 @@ export default function ReportsPage() {
       icon: <BarChart className="h-5 w-5" />,
     },
     {
-      id: 2,
+      id: 3,
       name: "Cotizaciones vs Proyectos",
       title: "Cotizaciones vs Proyectos",
       description: "Compara cotizaciones válidas con proyectos asignados, mostrando tasas de éxito y entregas a tiempo.",
@@ -57,7 +65,7 @@ export default function ReportsPage() {
       icon: <PieChart className="h-5 w-5" />,
     },
     {
-      id: 3,
+      id: 4,
       name: "Costos y Ganancias",
       title: "Resumen de Costos y Ganancias",
       description: "Detalla los costos, precios y márgenes de ganancia de los proyectos por asociado.",
@@ -65,7 +73,7 @@ export default function ReportsPage() {
       icon: <BarChart className="h-5 w-5" />,
     },
     {
-      id: 4,
+      id: 5,
       name: "Detalles de Proyectos",
       title: "Detalles de Proyectos",
       description: "Muestra información detallada de proyectos, incluyendo fechas de cotización, montos y entregas.",

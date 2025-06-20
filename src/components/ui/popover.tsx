@@ -112,7 +112,7 @@ interface PopoverContentProps extends React.HTMLAttributes<HTMLDivElement> {
 
 const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
   ({ className, align = "center", sideOffset = 4, children, ...props }, forwardedRef) => {
-    const { open, contentRef } = React.useContext(PopoverContext)
+    const { open, contentRef, triggerRef } = React.useContext(PopoverContext)
     const ref = React.useMemo(() => {
       if (forwardedRef && typeof forwardedRef === "object") {
         return forwardedRef
@@ -123,41 +123,64 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
     const [position, setPosition] = React.useState({ top: 0, left: 0 })
     
     React.useEffect(() => {
-      if (open && ref.current && contentRef.current) {
-        const triggerRect = ref.current.getBoundingClientRect()
-        const contentRect = contentRef.current.getBoundingClientRect()
-        
-        let top = triggerRect.bottom + sideOffset
-        let left = 0
-        
-        // Alineación horizontal
-        switch (align) {
-          case "start":
-            left = triggerRect.left
-            break
-          case "center":
-            left = triggerRect.left + triggerRect.width / 2 - contentRect.width / 2
-            break
-          case "end":
-            left = triggerRect.right - contentRect.width
-            break
+      if (open && triggerRef.current && contentRef.current) {
+        const updatePosition = () => {
+          // Verificar que los refs siguen siendo válidos antes de acceder a ellos
+          if (!triggerRef.current || !contentRef.current) return;
+          
+          const triggerRect = triggerRef.current.getBoundingClientRect()
+          const contentRect = contentRef.current.getBoundingClientRect()
+          
+          // Calcular la posición inicial (siempre debajo del trigger)
+          let top = triggerRect.bottom + sideOffset + window.scrollY
+          let left = 0
+          
+          // Alineación horizontal - siempre alineado con el trigger
+          switch (align) {
+            case "start":
+              left = triggerRect.left + window.scrollX
+              break
+            case "center":
+              left = triggerRect.left + window.scrollX + triggerRect.width / 2 - contentRect.width / 2
+              break
+            case "end":
+              left = triggerRect.right + window.scrollX - contentRect.width
+              break
+            default:
+              // Por defecto, alinear al inicio del trigger
+              left = triggerRect.left + window.scrollX
+          }
+          
+          // Asegurarse de que el popover no se salga de la ventana
+          const viewportWidth = window.innerWidth
+          const viewportHeight = window.innerHeight
+          
+          // Ajustar posición horizontal si es necesario, pero mantener alineación con el trigger cuando sea posible
+          if (left < 10) left = 10
+          if (left + contentRect.width > viewportWidth - 10) {
+            // Si se sale por la derecha, intentar mantener alineado con el borde derecho del trigger
+            left = Math.max(10, viewportWidth - contentRect.width - 10)
+          }
+          
+          // Si no hay espacio abajo, mostrar arriba
+          if (top + contentRect.height > window.scrollY + viewportHeight - 10) {
+            top = triggerRect.top + window.scrollY - contentRect.height - sideOffset
+          }
+          
+          setPosition({ top, left })
         }
         
-        // Asegurarse de que el popover no se salga de la ventana
-        const viewportWidth = window.innerWidth
-        const viewportHeight = window.innerHeight
+        // Actualizar posición inicialmente
+        updatePosition()
         
-        if (left < 0) left = 0
-        if (left + contentRect.width > viewportWidth) {
-          left = viewportWidth - contentRect.width
+        // Actualizar posición al hacer scroll o redimensionar la ventana
+        window.addEventListener('scroll', updatePosition)
+        window.addEventListener('resize', updatePosition)
+        
+        return () => {
+          window.removeEventListener('scroll', updatePosition)
+          window.removeEventListener('resize', updatePosition)
         }
-        
-        // Si no hay espacio abajo, mostrar arriba
-        if (top + contentRect.height > viewportHeight) {
-          top = triggerRect.top - contentRect.height - sideOffset
-        }
-        
-        setPosition({ top, left })
       }
     }, [open, align, sideOffset, ref])
     

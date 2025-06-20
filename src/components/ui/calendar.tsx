@@ -175,8 +175,8 @@ function Calendar({
             className={cn(
               "h-9 w-9 p-0 font-normal text-sm",
               !day.isCurrentMonth && "text-muted-foreground opacity-50",
-              day.isToday && "bg-accent text-accent-foreground",
-              day.isSelected && "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
+              day.isToday && "bg-accent text-accent-foreground dark:bg-accent dark:text-white",
+              day.isSelected && "bg-primary text-white hover:bg-primary hover:text-white dark:bg-primary dark:text-white dark:hover:bg-primary dark:hover:text-white",
               day.isDisabled && "opacity-50 cursor-not-allowed"
             )}
             disabled={day.isDisabled}
