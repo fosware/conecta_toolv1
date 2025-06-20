@@ -444,7 +444,7 @@ export function KpiDashboard({ viewName }: KpiDashboardProps) {
             </CardDescription>
           </CardHeader>
           <CardContent className="h-80">
-            {(!aggregatedKpis || aggregatedKpis.porcentaje_entregas_tiempo === null) ? (
+            {(!aggregatedKpis || aggregatedKpis.porcentaje_entregas_tiempo === null || aggregatedKpis.porcentaje_entregas_tiempo === undefined || aggregatedKpis.porcentaje_entregas_tiempo === 0) ? (
               <div className="h-full flex items-center justify-center flex-col text-muted-foreground">
                 <p>No hay datos de entregas disponibles</p>
                 <p className="text-sm">Se requieren proyectos completados para generar esta métrica</p>
