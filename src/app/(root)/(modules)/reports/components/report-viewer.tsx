@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Card,
   CardContent,
@@ -17,16 +17,19 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { TableSkeleton } from "@/components/table-skeleton";
 import { Input } from "@/components/ui/input";
-import { Search, FileSpreadsheet, FileText } from "lucide-react";
+import { Search } from "lucide-react";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
-
+import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
+import { DateRangeSelector } from "./date-range-selector";
+import { Pagination } from "@/components/ui/pagination";
 import { toast } from "sonner";
-
-// Importar el componente KpiDashboard
 import { KpiDashboard } from "./kpi-dashboard";
+import { TableSkeleton } from "@/components/table-skeleton";
+import { FileSpreadsheet, FileText } from "lucide-react";
+import { applySearchFilter, handleDateFilter } from "./search-filter";
 
 interface Report {
   id: number;
@@ -48,11 +51,104 @@ export function ReportViewer({ report }: ReportViewerProps) {
   const [filteredData, setFilteredData] = useState<any[]>([]);
   const [columns, setColumns] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [startDate, setStartDate] = useState<string | null>(null);
+  const [endDate, setEndDate] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // Si el reporte es el dashboard KPI, renderizar el componente KpiDashboard
   if (report.viewName === "v_kpi_dashboard") {
     return <KpiDashboard viewName={report.viewName} />;
   }
+
+  // Función para manejar cambios en el rango de fechas
+  const handleDateChange = (start: string | null, end: string | null) => {
+    setStartDate(start);
+    setEndDate(end);
+    setCurrentPage(1); // Resetear a la primera página cuando cambia el filtro
+
+    // Aplicar filtros combinados
+    let filtered = data;
+    
+    // Si hay término de búsqueda, aplicarlo primero
+    if (searchTerm) {
+      filtered = applySearchFilter(filtered, searchTerm);
+    }
+    
+    // Luego aplicar filtro de fechas si está activo
+    if (start || end) {
+      filtered = handleDateFilter(filtered, start, end);
+    }
+
+    setFilteredData(filtered);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+  
+  // Calcular los datos paginados
+  const getPaginatedData = () => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredData.slice(startIndex, endIndex);
+  };
+  
+  // Calcular el número total de páginas
+  const totalPages = Math.max(1, Math.ceil(filteredData.length / itemsPerPage));
+
+  // Función para obtener datos del reporte con filtros de fecha
+  const fetchReportData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Construir URL con parámetros de fecha si están presentes
+      let url = `/api/reports/${report.viewName}`;
+      const params = new URLSearchParams();
+      if (startDate) params.append("startDate", startDate);
+      if (endDate) params.append("endDate", endDate);
+      if (params.toString()) url += `?${params.toString()}`;
+
+      const response = await fetch(url, {
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error al cargar los datos: ${response.status}`);
+      }
+
+      const result = await response.json();
+      setData(result);
+      setFilteredData(result);
+
+      // Extraer columnas de los datos
+      if (result.length > 0) {
+        setColumns(Object.keys(result[0]));
+      }
+
+      setLoading(false);
+    } catch (err: any) {
+      setError(err.message || "Error desconocido al cargar los datos");
+      setLoading(false);
+      toast.error("Error al cargar los datos del reporte");
+    }
+  };
+
+  // Usar una referencia para evitar peticiones duplicadas en modo de desarrollo
+  const lastViewNameRef = useRef<string | null>(null);
+  
+  useEffect(() => {
+    // Solo hacer la petición si el viewName ha cambiado realmente
+    if (lastViewNameRef.current !== report.viewName) {
+      lastViewNameRef.current = report.viewName;
+      fetchReportData();
+    }
+  }, [report.viewName]);
+
   // Función para exportar a Excel
   const exportToExcel = () => {
     try {
@@ -179,19 +275,14 @@ export function ReportViewer({ report }: ReportViewerProps) {
 
         // Primero dibujamos el fondo completo de la fila de encabezados
         doc.setFillColor(41, 128, 185);
-        doc.rect(margin, y, tableWidth, tableHeaderHeight, "F");
+        doc.rect(margin, y, tableWidth, 12, "F");
 
         // Luego dibujamos cada encabezado de columna
         columns.forEach((col, i) => {
           // Dibujar las líneas divisorias entre columnas (excepto la primera)
           if (i > 0) {
             doc.setDrawColor(255, 255, 255); // Líneas blancas para separar columnas
-            doc.line(
-              margin + i * colWidth,
-              y,
-              margin + i * colWidth,
-              y + tableHeaderHeight
-            );
+            doc.line(margin + i * colWidth, y, margin + i * colWidth, y + 12);
           }
 
           // Preparar el texto para centrar
@@ -257,7 +348,7 @@ export function ReportViewer({ report }: ReportViewerProps) {
           }
         });
 
-        return y + tableHeaderHeight;
+        return y + 12;
       };
 
       // Calcular cuántas páginas necesitaremos
@@ -366,146 +457,152 @@ export function ReportViewer({ report }: ReportViewerProps) {
     }
   };
 
+  // Este efecto ya existe arriba, lo eliminamos para evitar peticiones duplicadas
+
+  // Actualizar datos filtrados cuando cambian los datos
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const response = await fetch(`/api/reports/${report.viewName}`, {
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error(`Error al cargar los datos: ${response.status}`);
-        }
-
-        const result = await response.json();
-        // La API devuelve directamente el array de datos, no un objeto con propiedad data
-        const reportData = Array.isArray(result) ? result : [];
-        setData(reportData);
-        setFilteredData(reportData);
-
-        // Extraer columnas del primer elemento si existe
-        if (reportData && reportData.length > 0) {
-          // Guardar los nombres de las columnas
-          const columnNames = Object.keys(reportData[0]);
-          console.log("Columnas detectadas:", columnNames);
-          setColumns(columnNames);
-        } else {
-          console.warn("No hay datos para extraer columnas");
-          setColumns([]);
-        }
-
-        setLoading(false);
-      } catch (err: any) {
-        setError(err.message || "Error desconocido al cargar los datos");
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [report.viewName]);
-
-  // Actualizar datos filtrados cuando cambian los datos o el término de búsqueda
-  useEffect(() => {
-    const filtered = data.filter((item) => {
-      if (!searchTerm) return true;
-
-      return columns.some((column) => {
-        const value = item[column];
-        if (value === null || value === undefined) return false;
-        return String(value).toLowerCase().includes(searchTerm.toLowerCase());
-      });
-    });
-
-    setFilteredData(filtered);
-  }, [data, searchTerm, columns]);
+    // Solo actualizar los datos filtrados cuando cambian los datos originales
+    // y no hay filtros activos (para no interferir con los filtros manuales)
+    if (data.length > 0 && !searchTerm && !startDate && !endDate) {
+      setFilteredData(data);
+    }
+  }, [data]);
 
   return (
-    <Card className="w-full">
-      <CardHeader className="relative">
-        {/* Botones de exportación en la esquina superior derecha */}
-        <div className="absolute top-4 right-4 flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex items-center gap-1"
-            onClick={exportToExcel}
-            disabled={loading || data.length === 0}
-            title="Exportar a Excel"
-          >
-            <FileSpreadsheet className="h-4 w-4" />
-            <span>Excel</span>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex items-center gap-1"
-            onClick={exportToPDF}
-            disabled={loading || data.length === 0}
-            title="Exportar a PDF"
-          >
-            <FileText className="h-4 w-4" />
-            <span>PDF</span>
-          </Button>
-        </div>
-
-        <CardTitle>{report.name}</CardTitle>
-        <CardDescription>{report.description}</CardDescription>
-        <div className="relative mt-2">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar..."
-            className="pl-8"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-      </CardHeader>
-      <CardContent>
-        {loading ? (
-          <TableSkeleton columns={5} rows={5} />
-        ) : data.length === 0 ? (
-          <div className="text-center py-10">
-            <p className="text-muted-foreground">
-              No hay datos disponibles para este reporte.
-            </p>
+    <Card>
+      <CardContent className="pt-6">
+        <div className="space-y-6">
+          <div className="flex flex-col space-y-2">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold">{report.title}</h2>
+              <div className="flex gap-2 items-center">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-1"
+                  onClick={exportToExcel}
+                  disabled={loading || data.length === 0}
+                  title="Exportar a Excel"
+                >
+                  <FileSpreadsheet className="h-4 w-4" />
+                  <span>Excel</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-1"
+                  onClick={exportToPDF}
+                  disabled={loading || data.length === 0}
+                  title="Exportar a PDF"
+                >
+                  <FileText className="h-4 w-4" />
+                  <span>PDF</span>
+                </Button>
+              </div>
+            </div>
+            {report.description && (
+              <p className="text-sm text-muted-foreground">{report.description}</p>
+            )}
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  {columns.map((column) => (
-                    <TableHead key={column} className="whitespace-nowrap">
-                      {column}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredData.map((row, rowIndex) => (
-                  <TableRow key={rowIndex}>
+          <div className="flex items-center gap-4 mt-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Buscar..."
+                className="w-full pl-8"
+                value={searchTerm}
+                onChange={(e) => {
+                  const newSearchTerm = e.target.value;
+                  setSearchTerm(newSearchTerm);
+                  
+                  // Aplicar filtro de búsqueda
+                  let filtered = data;
+                  
+                  // Primero aplicar filtro de búsqueda si hay término
+                  if (newSearchTerm) {
+                    filtered = applySearchFilter(data, newSearchTerm);
+                  }
+                  
+                  // Luego aplicar filtro de fechas si está activo
+                  if (startDate || endDate) {
+                    filtered = handleDateFilter(filtered, startDate, endDate);
+                  }
+                  
+                  setFilteredData(filtered);
+                  setCurrentPage(1); // Resetear a la primera página cuando cambia la búsqueda
+                }}
+              />
+            </div>
+            {(report.viewName === "v_quotation_summary" || 
+              report.viewName === "v_quotations_vs_projects" || 
+              report.viewName === "v_projects_costs_summary" ||
+              report.viewName === "v_project_details") && (
+              <div className="flex-shrink-0">
+                <DateRangeSelector onDateChange={handleDateChange} />
+              </div>
+            )}
+          </div>
+          {loading ? (
+            <TableSkeleton columns={5} rows={10} />
+          ) : data.length === 0 ? (
+            <div className="text-center py-10">
+              <p className="text-muted-foreground">
+                No hay datos disponibles para este reporte.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto w-full">
+              <div className="min-w-[800px]">
+                <Table className="w-full border-collapse">
+                <TableHeader>
+                  <TableRow>
                     {columns.map((column) => (
-                      <TableCell
-                        key={`${rowIndex}-${column}`}
-                        className="whitespace-nowrap"
+                      <TableHead 
+                        key={column} 
+                        className="whitespace-normal break-words"
                       >
-                        {row[column] !== null && row[column] !== undefined
-                          ? String(row[column])
-                          : ""}
-                      </TableCell>
+                        {column}
+                      </TableHead>
                     ))}
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
+                </TableHeader>
+                <TableBody>
+                  {getPaginatedData().map((row, rowIndex) => (
+                    <TableRow key={rowIndex}>
+                      {columns.map((column) => (
+                        <TableCell
+                          key={`${rowIndex}-${column}`}
+                          className={column === "Proyecto" ? "whitespace-normal break-words" : "whitespace-normal break-words"}
+                        >
+                          {row[column] !== null && row[column] !== undefined
+                            ? String(row[column])
+                            : ""}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              </div>
+              
+              {/* Mostrar paginación para los reportes seleccionados */}
+              {(report.viewName === "v_quotation_summary" || 
+                report.viewName === "v_quotations_vs_projects" || 
+                report.viewName === "v_projects_costs_summary" || 
+                report.viewName === "v_project_details") && 
+                filteredData.length > itemsPerPage && (
+                <div className="flex justify-center mt-4">
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={handlePageChange}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
