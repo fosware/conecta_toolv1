@@ -86,17 +86,18 @@ export default function ReportsPage() {
     <div className="container mx-auto py-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold">Reportes</h1>
+        {selectedReport && (
+          <Button 
+            variant="outline" 
+            onClick={() => setSelectedReport(null)}
+          >
+            Volver a la lista de reportes
+          </Button>
+        )}
       </div>
 
       {selectedReport ? (
         <div className="mb-6">
-          <Button 
-            variant="outline" 
-            onClick={() => setSelectedReport(null)}
-            className="mb-4"
-          >
-            Volver a la lista de reportes
-          </Button>
           <ReportViewer report={selectedReport} />
         </div>
       ) : (

@@ -44,10 +44,39 @@ export async function GET(
     const endDate = url.searchParams.get('endDate');
 
     // Construir la consulta SQL base
-    let sqlQuery = `SELECT * FROM ${viewName}`;
+    let sqlQuery = '';
     
     // Agregar condiciones de filtrado por fecha si es necesario
-    if ((startDate || endDate) && viewName === 'v_kpi_dashboard') {
+    if ((startDate || endDate) && viewName === 'v_quotation_summary') {
+      // Para v_quotation_summary, usamos un enfoque más simple filtrando directamente la vista
+      const whereConditions = [];
+      
+      // Convertir fechas de YYYY-MM-DD a DD-MM-YYYY para que coincidan con el formato en la vista
+      const formatDate = (dateStr: string | null): string | null => {
+        if (!dateStr) return null;
+        const [year, month, day] = dateStr.split('-');
+        return `${day}-${month}-${year}`;
+      };
+      
+      const formattedStartDate = formatDate(startDate);
+      const formattedEndDate = formatDate(endDate);
+      
+      if (formattedStartDate) {
+        whereConditions.push(`\"Fecha de Cotización\" >= '${formattedStartDate}'`);
+      }
+      
+      if (formattedEndDate) {
+        whereConditions.push(`\"Fecha de Cotización\" <= '${formattedEndDate}'`);
+      }
+      
+      // Construir la consulta con WHERE aplicado directamente a la vista
+      sqlQuery = `SELECT * FROM ${viewName}`;
+      
+      if (whereConditions.length > 0) {
+        sqlQuery += ` WHERE ${whereConditions.join(' AND ')}`;
+      }
+    } else if ((startDate || endDate) && viewName === 'v_kpi_dashboard') {
+      // Para otros reportes, mantenemos la lógica original
       const whereConditions = [];
       
       if (startDate) {
@@ -58,9 +87,13 @@ export async function GET(
         whereConditions.push(`fecha <= '${endDate}'`);
       }
       
+      sqlQuery = `SELECT * FROM ${viewName}`;
       if (whereConditions.length > 0) {
         sqlQuery += ` WHERE ${whereConditions.join(' AND ')}`;
       }
+    } else {
+      // Para reportes sin filtro de fecha
+      sqlQuery = `SELECT * FROM ${viewName}`;
     }
 
     // Consultar la vista

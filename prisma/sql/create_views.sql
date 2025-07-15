@@ -71,6 +71,7 @@ WITH company_quotation_stats AS (
         c.id AS company_id,
         c."companyName" AS company_name,
         c."comercialName" AS commercial_name,
+        TO_CHAR(prq."createdAt", 'DD/MM/YYYY') AS quotation_date,
         COUNT(DISTINCT prc.id) AS invitaciones_para_cotizar,
         COUNT(DISTINCT CASE WHEN prq.id IS NOT NULL THEN prc.id END) AS cotizaciones_recibidas,
         ROUND(COUNT(DISTINCT CASE WHEN prq.id IS NOT NULL THEN prc.id END)::numeric / 
@@ -87,10 +88,11 @@ WITH company_quotation_stats AS (
     WHERE 
         c."isDeleted" = false
     GROUP BY 
-        c.id, c."companyName", c."comercialName"
+        c.id, c."companyName", c."comercialName", quotation_date
 )
 SELECT 
     COALESCE(commercial_name, company_name) AS "Asociado",
+    quotation_date AS "Fecha de Cotización",
     invitaciones_para_cotizar AS "Invitaciones para Cotizar",
     cotizaciones_recibidas AS "Cotizaciones recibidas",
     tasa_de_respuesta AS "Tasa de respuesta",
@@ -99,7 +101,7 @@ SELECT
 FROM 
     company_quotation_stats
 ORDER BY 
-    "Asociado";
+    "Asociado", "Fecha de Cotización";
 
 select * from public.v_quotation_summary;
 ------------------------------------------------
@@ -112,6 +114,7 @@ WITH company_project_stats AS (
         c.id AS company_id,
         c."companyName" AS company_name,
         c."comercialName" AS commercial_name,
+        TO_CHAR(prq."createdAt", 'DD/MM/YYYY') AS quotation_date,
         COUNT(DISTINCT CASE WHEN prq.id IS NOT NULL AND prq."isActive" = true THEN prc.id END) AS cotizaciones_validas,
         COUNT(DISTINCT CASE WHEN p.id IS NOT NULL THEN p.id END) AS proyectos_asignados,
         ROUND(COUNT(DISTINCT CASE WHEN p.id IS NOT NULL THEN p.id END)::numeric / 
@@ -144,10 +147,11 @@ WITH company_project_stats AS (
     WHERE 
         c."isDeleted" = false
     GROUP BY 
-        c.id, c."companyName", c."comercialName"
+        c.id, c."companyName", c."comercialName", quotation_date
 )
 SELECT 
     COALESCE(commercial_name, company_name) AS "Asociado",
+    quotation_date AS "Fecha de Cotización",
     cotizaciones_validas AS "Cotizaciones Válidas",
     proyectos_asignados AS "Proy. Asignados",
     tasa_exito AS "Tasa Éxito (%)",
@@ -156,7 +160,7 @@ SELECT
 FROM 
     company_project_stats
 ORDER BY 
-    "Tasa Éxito (%)" DESC, "Cotizaciones Válidas" DESC;
+    "Asociado", "Fecha de Cotización";
 
 select * from public.v_quotations_vs_projects;
 
@@ -171,6 +175,7 @@ WITH project_costs AS (
         c.id AS company_id,
         c."companyName" AS company_name,
         c."comercialName" AS commercial_name,
+        TO_CHAR(prq."createdAt", 'DD/MM/YYYY') AS quotation_date,
         COUNT(DISTINCT CASE WHEN prq.id IS NOT NULL THEN prc.id END) AS cotizados,
         COUNT(DISTINCT CASE WHEN p.id IS NOT NULL THEN p.id END) AS aceptados,
         SUM(COALESCE(prq."indirectCost", 0)) AS costos_indirectos,
@@ -196,10 +201,12 @@ WITH project_costs AS (
     WHERE 
         c."isDeleted" = false
     GROUP BY 
-        c.id, c."companyName", c."comercialName"
+        c.id, c."companyName", c."comercialName", quotation_date
 )
 SELECT 
-    COALESCE(commercial_name, company_name) AS "Cotizados",
+    COALESCE(commercial_name, company_name) AS "Asociado",
+    quotation_date AS "Fecha de Cotización",
+    cotizados AS "Cotizados",
     aceptados AS "Aceptados",
     costos_indirectos AS "Costos Indirectos",
     costos_directos AS "Costos Directos",
@@ -209,7 +216,7 @@ SELECT
 FROM 
     project_costs
 ORDER BY 
-    ganancia_porcentaje DESC;
+    "Asociado", "Fecha de Cotización";
 select * from v_projects_costs_summary;
 
 --- Rep 4
@@ -217,17 +224,17 @@ select * from v_projects_costs_summary;
 CREATE OR REPLACE VIEW v_project_details AS
 SELECT 
     COALESCE(c."comercialName", c."companyName") AS "Asociado",
-    pr."title" AS "Proyecto",
     TO_CHAR(MIN(prq."createdAt"::date), 'DD/MM/YYYY') AS "Fecha Cotización",
+    pr."title" AS "Proyecto",
     SUM(prq."price") AS "Monto Cotizado",
     -- Si cualquiera de los requerimientos tiene un proyecto asignado, consideramos que el proyecto está asignado
-    CASE WHEN SUM(CASE WHEN p.id IS NOT NULL THEN 1 ELSE 0 END) > 0 THEN 'Sí' ELSE 'No' END AS "Proyecto Asignado (Sí/No)",
-    TO_CHAR(MIN(qs."estimatedDeliveryDate"::date), 'DD/MM/YYYY') AS "Fecha Entrega Comprometida",
+    CASE WHEN SUM(CASE WHEN p.id IS NOT NULL THEN 1 ELSE 0 END) > 0 THEN 'Sí' ELSE 'No' END AS "Asignado",
+    TO_CHAR(MIN(qs."estimatedDeliveryDate"::date), 'DD/MM/YYYY') AS "Entrega Compromiso",
     -- Para la fecha de entrega real, usamos la fecha de actualización del proyecto cuando su estado es "Completado"
     TO_CHAR(MIN(CASE 
         WHEN p."projectStatusId" = 3 THEN p."updatedAt"::date
         ELSE NULL
-    END), 'DD/MM/YYYY') AS "Fecha Entrega Real"
+    END), 'DD/MM/YYYY') AS "Entrega Real"
 FROM 
     d_companies c
 JOIN 
@@ -247,6 +254,6 @@ WHERE
 GROUP BY
     c."comercialName", c."companyName", pr."title"
 ORDER BY 
-    "Asociado", "Proyecto";
+    "Asociado", "Fecha Cotización", "Proyecto";
 
 select * from v_project_details;
