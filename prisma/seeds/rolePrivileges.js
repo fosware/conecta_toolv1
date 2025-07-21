@@ -39,6 +39,7 @@ export async function seedRolePrivileges() {
     "Solicitudes Asignadas",
     "Administración de NDA's",
     "Reportes",
+    "Gestión de Proyectos",
   ];
 
   // Mapear privilegios específicos para Staff

@@ -13,9 +13,11 @@ const projectCategorySchema = z.object({
 // GET para obtener todas las categorías de un proyecto
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
+    
     // Verificar autenticación
     const userId = await getUserFromToken();
     if (!userId) {
@@ -23,7 +25,6 @@ export async function GET(
     }
 
     // Asegurarse de que params sea esperado antes de acceder a sus propiedades
-    const { id } = await params;
     const projectId = parseInt(id);
     if (isNaN(projectId)) {
       return NextResponse.json(
@@ -72,9 +73,11 @@ export async function GET(
 // POST para crear una nueva categoría de proyecto
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
+    
     // Verificar autenticación
     const userId = await getUserFromToken();
     if (!userId) {
@@ -82,7 +85,6 @@ export async function POST(
     }
 
     // Asegurarse de que params sea esperado antes de acceder a sus propiedades
-    const { id } = await params;
     const projectId = parseInt(id);
     if (isNaN(projectId)) {
       return NextResponse.json(

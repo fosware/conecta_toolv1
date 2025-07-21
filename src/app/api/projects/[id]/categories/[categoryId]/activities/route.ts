@@ -5,9 +5,11 @@ import { getUserFromToken } from "@/lib/get-user-from-token";
 // GET - Obtener todas las actividades de una categoría
 export async function GET(
   request: NextRequest,
-  context: { params: { id: string; categoryId: string } }
+  context: { params: Promise<{ id: string; categoryId: string }> }
 ) {
   try {
+    const { id, categoryId } = await context.params;
+    
     // Verificar autenticación
     const userId = await getUserFromToken();
     if (!userId) {
@@ -18,8 +20,6 @@ export async function GET(
     }
 
     // Obtener y esperar los parámetros de ruta
-    const params = await context.params;
-    const { id, categoryId } = params;
     const projectId = parseInt(id);
     const projectCategoryId = parseInt(categoryId);
 
@@ -63,9 +63,11 @@ export async function GET(
 // POST - Crear una nueva actividad
 export async function POST(
   request: NextRequest,
-  context: { params: { id: string; categoryId: string } }
+  context: { params: Promise<{ id: string; categoryId: string }> }
 ) {
   try {
+    const { id, categoryId } = await context.params;
+    
     // Verificar autenticación
     const userId = await getUserFromToken();
     if (!userId) {
@@ -76,8 +78,6 @@ export async function POST(
     }
 
     // Obtener y esperar los parámetros de ruta
-    const params = await context.params;
-    const { id, categoryId } = params;
     const projectId = parseInt(id);
     const projectCategoryId = parseInt(categoryId);
 

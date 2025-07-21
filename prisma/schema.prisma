@@ -49,6 +49,7 @@ model User {
   ProjectCategoryActivity            ProjectCategoryActivity[]
   ProjectLog                         ProjectLog[]
   UserLogReadStatusProject           UserLogReadStatusProject[]
+  ProjectStage                       ProjectStage[]
 
   @@unique([email, isDeleted])
   @@unique([username, isDeleted])
@@ -722,6 +723,7 @@ model Project {
   ProjectStatus   ProjectStatus     @relation(fields: [projectStatusId], references: [id])
   ProjectLog      ProjectLog[]
   ProjectCategory ProjectCategory[]
+  ProjectStage    ProjectStage[]
 
   ProjectRequestCompany ProjectRequestCompany @relation(fields: [projectRequestCompanyId], references: [id])
 
@@ -734,6 +736,7 @@ model ProjectCategory {
   name                    String                    @unique
   description             String?
   projectId               Int
+  stageId                 Int?                      // Etapa a la que pertenece (opcional)
   isActive                Boolean                   @default(true)
   isDeleted               Boolean                   @default(false)
   dateDeleted             DateTime?
@@ -742,8 +745,10 @@ model ProjectCategory {
   userId                  Int
   user                    User                      @relation(fields: [userId], references: [id])
   Project                 Project                   @relation(fields: [projectId], references: [id])
+  ProjectStage            ProjectStage?             @relation(fields: [stageId], references: [id])
   ProjectCategoryActivity ProjectCategoryActivity[]
 
+  @@index([stageId])
   @@map("c_project_categories")
 }
 
@@ -820,4 +825,34 @@ model UserLogReadStatusProject {
   @@unique([userId, logId])
   @@index([userId, isRead])
   @@map("d_user_log_read_status_project")
+}
+
+//------------------------PROJECT MANAGEMENT----------------------------------
+
+// Etapas de proyectos para el módulo de Project Management
+model ProjectStage {
+  id          Int       @id @default(autoincrement())
+  name        String    // Nombre de la etapa (max 50 chars)
+  description String?   // Descripción (max 100 chars)
+  projectId   Int       // Relación con Project existente
+  order       Int       // Orden secuencial para drag & drop
+  progress    Int       @default(0) // Progreso 0-100%
+  status      String    @default("pending") // pending, in-progress, completed
+  isActive    Boolean   @default(true)
+  isDeleted   Boolean   @default(false)
+  dateDeleted DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  userId      Int       // Usuario que creó/modificó
+  
+  // Relaciones
+  user            User              @relation(fields: [userId], references: [id])
+  project         Project           @relation(fields: [projectId], references: [id])
+  ProjectCategory ProjectCategory[] // Categorías asignadas a esta etapa
+  
+  // Índices para optimización
+  @@unique([projectId, order]) // Orden único por proyecto
+  @@index([projectId, isDeleted])
+  @@index([isDeleted, isActive])
+  @@map("d_project_stages")
 }

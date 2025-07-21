@@ -17,6 +17,11 @@ export const menuItems: MenuItem[] = [
     icon: "/icons/boxes.svg",
   },
   {
+    name: "Gestión de Proyectos",
+    path: "/project_management",
+    icon: "/icons/blocks.svg",
+  },
+  {
     name: "Solicitud de Proyectos",
     path: "/project_requests",
     icon: "/icons/file-symlink.svg",
