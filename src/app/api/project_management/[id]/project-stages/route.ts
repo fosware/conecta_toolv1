@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { PrismaClient } from '@prisma/client';
+
+// Instancia local de Prisma para este endpoint específico
+const prisma = new PrismaClient();
 
 export async function GET(
   request: NextRequest,
@@ -39,9 +42,6 @@ export async function GET(
 
     // Obtener todas las etapas de todos los proyectos relacionados
     try {
-      // Reinicializar conexión para evitar "Response from the Engine was empty"
-      await prisma.$connect();
-      
       const stages = await prisma.projectStage.findMany({
         where: {
           projectId: {
@@ -96,14 +96,6 @@ export async function GET(
       return NextResponse.json(formattedStages);
     } catch (stageError: any) {
       console.error('Error específico obteniendo etapas:', stageError);
-      
-      // Si es el error "Response from the Engine was empty", intentar reconectar
-      if (stageError.message?.includes('Response from the Engine was empty')) {
-        console.log('Intentando reconectar Prisma...');
-        await prisma.$disconnect();
-        await prisma.$connect();
-      }
-      
       throw stageError; // Re-lanzar para que lo capture el catch general
     }
 
@@ -113,7 +105,5 @@ export async function GET(
       { error: 'Error interno del servidor' },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }

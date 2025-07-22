@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { PrismaClient } from "@prisma/client";
 import { getUserFromToken } from "@/lib/get-user-from-token";
+
+// Instancia local de Prisma para este endpoint específico
+const prisma = new PrismaClient();
 
 // GET para obtener todos los proyectos
 export async function GET(request: NextRequest) {
