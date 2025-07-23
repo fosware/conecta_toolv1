@@ -127,23 +127,7 @@ export async function POST(
 
     const data = validationResult.data;
 
-    // Verificar si ya existe una categoría con el mismo nombre para este proyecto
-    const existingCategory = await prisma.projectCategory.findFirst({
-      where: {
-        projectId,
-        name: data.name,
-        isDeleted: false,
-      },
-    });
-
-    if (existingCategory) {
-      return NextResponse.json(
-        { error: "Ya existe una categoría con este nombre para este proyecto" },
-        { status: 400 }
-      );
-    }
-
-    // Crear la categoría
+    // Crear la categoría (la BD maneja la restricción de unicidad automáticamente)
     const newCategory = await prisma.projectCategory.create({
       data: {
         name: data.name,
@@ -154,8 +138,17 @@ export async function POST(
     });
 
     return NextResponse.json(newCategory, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error creating project category:", error);
+    
+    // Manejar error de restricción de unicidad de Prisma
+    if (error.code === 'P2002') {
+      return NextResponse.json(
+        { error: "Ya existe una categoría activa con este nombre en este proyecto. Por favor, elige un nombre diferente." },
+        { status: 400 }
+      );
+    }
+    
     return NextResponse.json(
       { error: "Error al crear la categoría del proyecto" },
       { status: 500 }

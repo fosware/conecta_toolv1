@@ -733,10 +733,10 @@ model Project {
 // Categorias de proyecto
 model ProjectCategory {
   id                      Int                       @id @default(autoincrement())
-  name                    String                    @unique
+  name                    String
   description             String?
   projectId               Int
-  stageId                 Int?                      // Etapa a la que pertenece (opcional)
+  stageId                 Int? // Etapa a la que pertenece (opcional)
   isActive                Boolean                   @default(true)
   isDeleted               Boolean                   @default(false)
   dateDeleted             DateTime?
@@ -748,7 +748,10 @@ model ProjectCategory {
   ProjectStage            ProjectStage?             @relation(fields: [stageId], references: [id])
   ProjectCategoryActivity ProjectCategoryActivity[]
 
+  // Restricción: nombre único por proyecto, solo para categorías activas
+  // Se creará manualmente con SQL raw ya que Prisma no soporta índices parciales
   @@index([stageId])
+  @@index([projectId, isDeleted]) // Índice para consultas frecuentes
   @@map("c_project_categories")
 }
 
@@ -832,10 +835,10 @@ model UserLogReadStatusProject {
 // Etapas de proyectos para el módulo de Project Management
 model ProjectStage {
   id          Int       @id @default(autoincrement())
-  name        String    // Nombre de la etapa (max 50 chars)
-  description String?   // Descripción (max 100 chars)
-  projectId   Int       // Relación con Project existente
-  order       Int       // Orden secuencial para drag & drop
+  name        String // Nombre de la etapa (max 50 chars)
+  description String? // Descripción (max 100 chars)
+  projectId   Int // Relación con Project existente
+  order       Int // Orden secuencial para drag & drop
   progress    Int       @default(0) // Progreso 0-100%
   status      String    @default("pending") // pending, in-progress, completed
   isActive    Boolean   @default(true)
@@ -843,13 +846,13 @@ model ProjectStage {
   dateDeleted DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  userId      Int       // Usuario que creó/modificó
-  
+  userId      Int // Usuario que creó/modificó
+
   // Relaciones
   user            User              @relation(fields: [userId], references: [id])
   project         Project           @relation(fields: [projectId], references: [id])
   ProjectCategory ProjectCategory[] // Categorías asignadas a esta etapa
-  
+
   // Índices para optimización
   @@unique([projectId, order]) // Orden único por proyecto
   @@index([projectId, isDeleted])

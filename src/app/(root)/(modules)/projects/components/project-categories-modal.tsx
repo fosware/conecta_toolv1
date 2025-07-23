@@ -157,7 +157,9 @@ export function ProjectCategoriesModal({
       );
 
       if (!response.ok) {
-        throw new Error("Error al eliminar la categoría");
+        const errorData = await response.json();
+        toast.error(errorData.error || "Error al eliminar la categoría");
+        return;
       }
 
       toast.success("Categoría eliminada correctamente");
@@ -222,7 +224,9 @@ export function ProjectCategoriesModal({
           setValidationErrors(data.fields);
           return;
         }
-        throw new Error(data.error || "Error al guardar la categoría");
+        // Mostrar toast de error y salir de la función
+        toast.error(data.error || "Error al guardar la categoría");
+        return;
       }
 
       toast.success(

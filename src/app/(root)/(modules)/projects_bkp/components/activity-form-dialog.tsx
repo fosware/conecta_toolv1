@@ -144,7 +144,7 @@ export function ActivityFormDialog({
     try {
       setLoading(true);
 
-      const url = `/api/projects_admin/${projectId}/categories/${categoryId}/activities${
+      const url = `/api/projects/${projectId}/categories/${categoryId}/activities${
         isEditing && activityToEdit?.id ? `/${activityToEdit.id}` : ""
       }`;
 

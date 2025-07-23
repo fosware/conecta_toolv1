@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useImperativeHandle, forwardRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -59,12 +59,16 @@ interface ProjectOverviewProps {
   onProjectStatusChange?: (projectId: number, progress: number, status: string) => void; // Callback para notificar cambios en el estado del proyecto
 }
 
-export default function ProjectOverview({
+export interface ProjectOverviewRef {
+  refreshCategories: () => Promise<void>;
+}
+
+const ProjectOverview = forwardRef<ProjectOverviewRef, ProjectOverviewProps>(function ProjectOverview({
   projectId,
   projectTitle,
   refreshKey = 0,
   onProjectStatusChange,
-}: ProjectOverviewProps) {
+}, ref) {
   const [categories, setCategories] = useState<ProjectCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategoryId, setActiveCategoryId] = useState<number | null>(null);
@@ -76,6 +80,11 @@ export default function ProjectOverview({
     text: "Por iniciar", 
     class: "bg-slate-100 text-slate-700"
   });
+
+  // Exponer método de refresh a través del ref
+  useImperativeHandle(ref, () => ({
+    refreshCategories: fetchCategories
+  }));
 
   // Calcular el progreso general del proyecto basado en las categorías
   const calculateProgress = (categories: ProjectCategory[]): number => {
@@ -574,4 +583,6 @@ export default function ProjectOverview({
 
     </div>
   );
-}
+});
+
+export default ProjectOverview;

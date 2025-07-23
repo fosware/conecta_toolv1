@@ -91,7 +91,7 @@ export function ProjectCategoriesModal({
   const fetchCategories = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/projects_admin/${projectId}/categories`, {
+      const response = await fetch(`/api/projects/${projectId}/categories`, {
         headers: {
           Authorization: `Bearer ${getToken()}`,
         },
@@ -147,7 +147,7 @@ export function ProjectCategoriesModal({
     try {
       setDeleteLoading(true);
       const response = await fetch(
-        `/api/projects_admin/${projectId}/categories/${categoryToDelete.id}`,
+        `/api/projects/${projectId}/categories/${categoryToDelete.id}`,
         {
           method: "DELETE",
           headers: {
@@ -199,8 +199,8 @@ export function ProjectCategoriesModal({
       
       const method = editingCategory ? "PUT" : "POST";
       const url = editingCategory 
-        ? `/api/projects_admin/${projectId}/categories/${editingCategory.id}` 
-        : `/api/projects_admin/${projectId}/categories`;
+        ? `/api/projects/${projectId}/categories/${editingCategory.id}` 
+        : `/api/projects/${projectId}/categories`;
       
       const response = await fetch(url, {
         method,

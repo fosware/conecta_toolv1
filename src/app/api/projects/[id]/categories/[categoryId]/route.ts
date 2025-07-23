@@ -122,26 +122,7 @@ export async function PUT(
 
     const data = validationResult.data;
 
-    // Verificar si ya existe otra categoría con el mismo nombre para este proyecto
-    const duplicateCategory = await prisma.projectCategory.findFirst({
-      where: {
-        projectId,
-        name: data.name,
-        isDeleted: false,
-        id: {
-          not: categoryId, // Excluir la categoría actual
-        },
-      },
-    });
-
-    if (duplicateCategory) {
-      return NextResponse.json(
-        { error: "Ya existe otra categoría con este nombre para este proyecto" },
-        { status: 400 }
-      );
-    }
-
-    // Actualizar la categoría
+    // Actualizar la categoría (la BD maneja la restricción de unicidad automáticamente)
     const updatedCategory = await prisma.projectCategory.update({
       where: {
         id: categoryId,
@@ -154,8 +135,17 @@ export async function PUT(
     });
 
     return NextResponse.json(updatedCategory);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error updating project category:", error);
+    
+    // Manejar error de restricción de unicidad de Prisma
+    if (error.code === 'P2002') {
+      return NextResponse.json(
+        { error: "Ya existe una categoría activa con este nombre en este proyecto. Por favor, elige un nombre diferente." },
+        { status: 400 }
+      );
+    }
+    
     return NextResponse.json(
       { error: "Error al actualizar la categoría del proyecto" },
       { status: 500 }
@@ -203,13 +193,14 @@ export async function DELETE(
       );
     }
 
-    // Marcar la categoría como eliminada
+    // Marcar la categoría como eliminada e inactiva
     const deletedCategory = await prisma.projectCategory.update({
       where: {
         id: categoryId,
       },
       data: {
         isDeleted: true,
+        isActive: false, // Importante: marcar como inactiva para liberar la restricción de unicidad
         dateDeleted: new Date(),
       },
     });

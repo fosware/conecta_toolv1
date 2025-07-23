@@ -10,7 +10,7 @@ import { ChevronRight, CheckCircle2, Circle, Clock, ArrowRight, Loader2, Plus } 
 import { getToken } from "@/lib/auth";
 import { toast } from "sonner";
 import { getProjectStatusById, type ProjectStatusId, getProjectStatusByKey } from "@/config/project-status";
-import { ActivityKanbanBoard } from "./activity-kanban-board_admin";
+import { ActivityKanbanBoard } from "./activity-kanban-board";
 
 
 interface ProjectCategory {
@@ -196,7 +196,7 @@ export default function ProjectOverview({
       setLoadingActivities(true);
       
       // Obtener las actividades para esta categoría
-      const response = await fetch(`/api/projects_admin/${projectId}/categories/${categoryId}/activities`, {
+      const response = await fetch(`/api/projects/${projectId}/categories/${categoryId}/activities`, {
         headers: {
           Authorization: `Bearer ${getToken()}`,
         },
@@ -234,7 +234,7 @@ export default function ProjectOverview({
   const fetchCategories = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/projects_admin/${projectId}/categories`, {
+      const response = await fetch(`/api/projects/${projectId}/categories`, {
         headers: {
           Authorization: `Bearer ${getToken()}`,
         },
@@ -250,7 +250,7 @@ export default function ProjectOverview({
         const mappedCategories: ProjectCategory[] = await Promise.all(
           sortedData.map(async (category: any) => {
             // Obtener las actividades para esta categoría
-            const activityResponse = await fetch(`/api/projects_admin/${projectId}/categories/${category.id}/activities`, {
+            const activityResponse = await fetch(`/api/projects/${projectId}/categories/${category.id}/activities`, {
               headers: {
                 Authorization: `Bearer ${getToken()}`,
               },

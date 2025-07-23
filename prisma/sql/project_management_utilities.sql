@@ -425,3 +425,11 @@ COMMENT ON FUNCTION monitor_project_management_performance IS
 
 -- Reparar órdenes de etapas
 -- SELECT * FROM repair_stage_orders();
+
+-- INDICES PARA categorias
+DROP INDEX IF EXISTS unique_active_category_per_project;
+
+-- Crear índice único parcial que solo aplica a categorías activas
+CREATE UNIQUE INDEX unique_active_category_per_project 
+ON c_project_categories ("projectId", name) 
+WHERE "isActive" = true AND "isDeleted" = false;

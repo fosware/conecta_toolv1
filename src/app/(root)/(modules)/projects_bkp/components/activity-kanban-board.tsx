@@ -21,7 +21,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ActivityFormDialog } from "./activity-form-dialog_admin";
+import { ActivityFormDialog } from "./activity-form-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -91,7 +91,7 @@ export function ActivityKanbanBoard({ projectId, categoryId, onActivityStatusCha
       setLoading(true);
       
       // Llamada a la API real para obtener las actividades
-      const response = await fetch(`/api/projects_admin/${projectId}/categories/${categoryId}/activities`, {
+      const response = await fetch(`/api/projects/${projectId}/categories/${categoryId}/activities`, {
         headers: {
           Authorization: `Bearer ${getToken()}`,
         },
@@ -179,7 +179,7 @@ export function ActivityKanbanBoard({ projectId, categoryId, onActivityStatusCha
       
       // Luego hacer la llamada a la API
       const token = getToken();
-      const response = await fetch(`/api/projects_admin/${projectId}/categories/${categoryId}/activities/${activityId}/status`, {
+      const response = await fetch(`/api/projects/${projectId}/categories/${categoryId}/activities/${activityId}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -282,7 +282,7 @@ export function ActivityKanbanBoard({ projectId, categoryId, onActivityStatusCha
     
     try {
       // Realizar la llamada a la API real
-      const response = await fetch(`/api/projects_admin/${projectId}/categories/${categoryId}/activities/${activityId}`, {
+      const response = await fetch(`/api/projects/${projectId}/categories/${categoryId}/activities/${activityId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${getToken()}`,
