@@ -1,0 +1,240 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getUserFromToken } from "@/lib/get-user-from-token";
+
+// GET - Obtener todas las actividades de una categoría
+export async function GET(
+  request: NextRequest,
+  context: { params: { id: string; categoryId: string } }
+) {
+  try {
+    // Verificar autenticación
+    const userId = await getUserFromToken();
+    if (!userId) {
+      return NextResponse.json(
+        { error: "No autorizado" },
+        { status: 401 }
+      );
+    }
+
+    // Obtener el rol del usuario
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { role: true },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
+    }
+
+    // Normalizar nombres de roles para comparación (insensible a mayúsculas/minúsculas)
+    const roleName = user.role.name.toLowerCase();
+    const isStaff = roleName === "staff";
+    const isAsociado = roleName === "asociado";
+    
+    // Obtener la compañía del usuario si es Asociado o Staff
+    let userCompanyId = null;
+    if (isAsociado || isStaff) {
+      const companyUser = await prisma.companyUser.findFirst({
+        where: {
+          userId: userId,
+          isActive: true,
+          isDeleted: false,
+        },
+        include: {
+          company: true
+        }
+      });
+      
+      if (companyUser && companyUser.company) {
+        userCompanyId = companyUser.company.id;
+      }
+    }
+
+    // Obtener y esperar los parámetros de ruta
+    const params = await context.params;
+    const { id, categoryId } = params;
+    const projectId = parseInt(id);
+    const projectCategoryId = parseInt(categoryId);
+
+    // Si es asociado o staff, verificar que tenga acceso a este proyecto
+    if ((isAsociado || isStaff) && userCompanyId) {
+      // Verificar si el proyecto pertenece a la compañía del usuario
+      const projectAccess = await prisma.project.findFirst({
+        where: {
+          id: projectId,
+          ProjectRequestCompany: {
+            companyId: userCompanyId
+          }
+        }
+      });
+
+      if (!projectAccess) {
+        return NextResponse.json({ error: "Acceso denegado a este proyecto" }, { status: 403 });
+      }
+    } else if ((isAsociado || isStaff) && !userCompanyId) {
+      // Si es asociado o staff pero no tiene empresa asignada, denegar acceso
+      return NextResponse.json({ error: "No tiene una empresa asignada" }, { status: 403 });
+    }
+
+    // Verificar que la categoría pertenezca al proyecto
+    const category = await prisma.projectCategory.findFirst({
+      where: {
+        id: projectCategoryId,
+        projectId: projectId,
+        isDeleted: false,
+      },
+    });
+
+    if (!category) {
+      return NextResponse.json(
+        { error: "Categoría no encontrada o no pertenece al proyecto" },
+        { status: 404 }
+      );
+    }
+
+    // Obtener actividades
+    const activities = await prisma.projectCategoryActivity.findMany({
+      where: {
+        projectCategoryId: projectCategoryId,
+        isDeleted: false,
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
+    });
+
+    return NextResponse.json(activities);
+  } catch (error) {
+    console.error("Error al obtener actividades:", error);
+    return NextResponse.json(
+      { error: "Error al obtener actividades" },
+      { status: 500 }
+    );
+  }
+}
+
+// POST - Crear una nueva actividad
+export async function POST(
+  request: NextRequest,
+  context: { params: { id: string; categoryId: string } }
+) {
+  try {
+    // Verificar autenticación
+    const userId = await getUserFromToken();
+    if (!userId) {
+      return NextResponse.json(
+        { error: "No autorizado" },
+        { status: 401 }
+      );
+    }
+
+    // Obtener el rol del usuario
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { role: true },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
+    }
+
+    // Normalizar nombres de roles para comparación (insensible a mayúsculas/minúsculas)
+    const roleName = user.role.name.toLowerCase();
+    const isStaff = roleName === "staff";
+    const isAsociado = roleName === "asociado";
+    
+    // Obtener la compañía del usuario si es Asociado o Staff
+    let userCompanyId = null;
+    if (isAsociado || isStaff) {
+      const companyUser = await prisma.companyUser.findFirst({
+        where: {
+          userId: userId,
+          isActive: true,
+          isDeleted: false,
+        },
+        include: {
+          company: true
+        }
+      });
+      
+      if (companyUser && companyUser.company) {
+        userCompanyId = companyUser.company.id;
+      }
+    }
+
+    // Obtener y esperar los parámetros de ruta
+    const params = await context.params;
+    const { id, categoryId } = params;
+    const projectId = parseInt(id);
+    const projectCategoryId = parseInt(categoryId);
+
+    // Si es asociado o staff, verificar que tenga acceso a este proyecto
+    if ((isAsociado || isStaff) && userCompanyId) {
+      // Verificar si el proyecto pertenece a la compañía del usuario
+      const projectAccess = await prisma.project.findFirst({
+        where: {
+          id: projectId,
+          ProjectRequestCompany: {
+            companyId: userCompanyId
+          }
+        }
+      });
+
+      if (!projectAccess) {
+        return NextResponse.json({ error: "Acceso denegado a este proyecto" }, { status: 403 });
+      }
+    } else if ((isAsociado || isStaff) && !userCompanyId) {
+      // Si es asociado o staff pero no tiene empresa asignada, denegar acceso
+      return NextResponse.json({ error: "No tiene una empresa asignada" }, { status: 403 });
+    }
+
+    // Verificar que la categoría pertenezca al proyecto
+    const category = await prisma.projectCategory.findFirst({
+      where: {
+        id: projectCategoryId,
+        projectId: projectId,
+        isDeleted: false,
+      },
+    });
+
+    if (!category) {
+      return NextResponse.json(
+        { error: "Categoría no encontrada o no pertenece al proyecto" },
+        { status: 404 }
+      );
+    }
+
+    // Obtener datos del cuerpo de la solicitud
+    const data = await request.json();
+
+    // Validar datos mínimos requeridos
+    if (!data.name) {
+      return NextResponse.json(
+        { error: "El nombre de la actividad es obligatorio" },
+        { status: 400 }
+      );
+    }
+
+    // Crear la actividad
+    const newActivity = await prisma.projectCategoryActivity.create({
+      data: {
+        name: data.name,
+        description: data.description || "",
+        projectCategoryId: projectCategoryId,
+        projectCategoryActivityStatusId: data.statusId || 1, // Por defecto: Pendiente
+        dateTentativeEnd: data.dateTentativeEnd ? new Date(data.dateTentativeEnd) : null,
+        assignedTo: data.assignedTo || null,
+        userId, // Usuario que crea la actividad
+      },
+    });
+
+    return NextResponse.json(newActivity, { status: 201 });
+  } catch (error) {
+    console.error("Error al crear actividad:", error);
+    return NextResponse.json(
+      { error: "Error al crear la actividad" },
+      { status: 500 }
+    );
+  }
+}
