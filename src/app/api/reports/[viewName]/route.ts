@@ -51,7 +51,7 @@ export async function GET(
       // Para v_quotation_summary, usamos un enfoque más simple filtrando directamente la vista
       const whereConditions = [];
       
-      // Convertir fechas de YYYY-MM-DD a DD-MM-YYYY para que coincidan con el formato en la vista
+      // Convertir fechas de YYYY-MM-DD a DD-MM-YYYY para v_quotation_summary
       const formatDate = (dateStr: string | null): string | null => {
         if (!dateStr) return null;
         const [year, month, day] = dateStr.split('-');
@@ -67,6 +67,60 @@ export async function GET(
       
       if (formattedEndDate) {
         whereConditions.push(`\"Fecha de Cotización\" <= '${formattedEndDate}'`);
+      }
+      
+      // Construir la consulta con WHERE aplicado directamente a la vista
+      sqlQuery = `SELECT * FROM ${viewName}`;
+      
+      if (whereConditions.length > 0) {
+        sqlQuery += ` WHERE ${whereConditions.join(' AND ')}`;
+      }
+    } else if ((startDate || endDate) && viewName === 'v_quotations_vs_projects') {
+      // Para v_quotations_vs_projects, filtramos por las nuevas columnas FInicio y FFin
+      const whereConditions = [];
+      
+      // Usamos TO_DATE para comparación correcta de fechas
+      
+      // Filtrar por rango de fechas del proyecto (Fecha de Inicio a Fecha de Término)
+      // Un proyecto está en el rango si:
+      // - Su fecha de inicio es <= fecha_fin_filtro
+      // - Su fecha de término es >= fecha_inicio_filtro
+      if (startDate && endDate) {
+        // Rango completo: proyecto debe intersectar con el rango solicitado
+        whereConditions.push(`(TO_DATE(\"Fecha de Inicio\", 'DD/MM/YYYY') <= TO_DATE('${endDate}', 'YYYY-MM-DD') AND TO_DATE(\"Fecha de Término\", 'DD/MM/YYYY') >= TO_DATE('${startDate}', 'YYYY-MM-DD'))`);
+      } else if (startDate) {
+        // Solo fecha inicio: proyectos que terminan después de la fecha inicio
+        whereConditions.push(`TO_DATE(\"Fecha de Término\", 'DD/MM/YYYY') >= TO_DATE('${startDate}', 'YYYY-MM-DD')`);
+      } else if (endDate) {
+        // Solo fecha fin: proyectos que empiezan antes de la fecha fin
+        whereConditions.push(`TO_DATE(\"Fecha de Inicio\", 'DD/MM/YYYY') <= TO_DATE('${endDate}', 'YYYY-MM-DD')`);
+      }
+      
+      // Construir la consulta con WHERE aplicado directamente a la vista
+      sqlQuery = `SELECT * FROM ${viewName}`;
+      
+      if (whereConditions.length > 0) {
+        sqlQuery += ` WHERE ${whereConditions.join(' AND ')}`;
+      }
+    } else if ((startDate || endDate) && viewName === 'v_projects_costs_summary') {
+      // Para v_projects_costs_summary, filtramos por las nuevas columnas Fecha de Inicio y Fecha de Término
+      const whereConditions = [];
+      
+      // Usamos TO_DATE para comparación correcta de fechas
+      
+      // Filtrar por rango de fechas del proyecto (Fecha de Inicio a Fecha de Término)
+      // Un proyecto está en el rango si:
+      // - Su fecha de inicio es <= fecha_fin_filtro
+      // - Su fecha de término es >= fecha_inicio_filtro
+      if (startDate && endDate) {
+        // Rango completo: proyecto debe intersectar con el rango solicitado
+        whereConditions.push(`(TO_DATE(\"Fecha de Inicio\", 'DD/MM/YYYY') <= TO_DATE('${endDate}', 'YYYY-MM-DD') AND TO_DATE(\"Fecha de Término\", 'DD/MM/YYYY') >= TO_DATE('${startDate}', 'YYYY-MM-DD'))`);
+      } else if (startDate) {
+        // Solo fecha inicio: proyectos que terminan después de la fecha inicio
+        whereConditions.push(`TO_DATE(\"Fecha de Término\", 'DD/MM/YYYY') >= TO_DATE('${startDate}', 'YYYY-MM-DD')`);
+      } else if (endDate) {
+        // Solo fecha fin: proyectos que empiezan antes de la fecha fin
+        whereConditions.push(`TO_DATE(\"Fecha de Inicio\", 'DD/MM/YYYY') <= TO_DATE('${endDate}', 'YYYY-MM-DD')`);
       }
       
       // Construir la consulta con WHERE aplicado directamente a la vista
@@ -95,6 +149,7 @@ export async function GET(
       // Para reportes sin filtro de fecha
       sqlQuery = `SELECT * FROM ${viewName}`;
     }
+
 
     // Consultar la vista
     const data = await prisma.$queryRawUnsafe(sqlQuery);

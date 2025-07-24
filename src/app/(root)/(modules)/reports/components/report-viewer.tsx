@@ -66,21 +66,31 @@ export function ReportViewer({ report }: ReportViewerProps) {
     setStartDate(start);
     setEndDate(end);
     setCurrentPage(1); // Resetear a la primera página cuando cambia el filtro
-
-    // Aplicar filtros combinados
-    let filtered = data;
     
-    // Si hay término de búsqueda, aplicarlo primero
-    if (searchTerm) {
-      filtered = applySearchFilter(filtered, searchTerm);
-    }
-    
-    // Luego aplicar filtro de fechas si está activo
-    if (start || end) {
-      filtered = handleDateFilter(filtered, start, end);
-    }
+    // Para reportes que soportan filtrado por fechas en el backend, 
+    // hacer nueva petición al API
+    if (report.viewName === 'v_quotations_vs_projects' || 
+        report.viewName === 'v_projects_costs_summary' ||
+        report.viewName === 'v_quotation_summary' ||
+        report.viewName === 'v_kpi_dashboard') {
+      // Pasar las fechas directamente para evitar problemas de timing
+      fetchReportData(start, end);
+    } else {
+      // Para otros reportes, aplicar filtro solo en frontend
+      let filtered = data;
+      
+      // Si hay término de búsqueda, aplicarlo primero
+      if (searchTerm) {
+        filtered = applySearchFilter(filtered, searchTerm);
+      }
+      
+      // Luego aplicar filtro de fechas si está activo
+      if (start || end) {
+        filtered = handleDateFilter(filtered, start, end);
+      }
 
-    setFilteredData(filtered);
+      setFilteredData(filtered);
+    }
   };
 
   const handlePageChange = (page: number) => {
@@ -98,16 +108,20 @@ export function ReportViewer({ report }: ReportViewerProps) {
   const totalPages = Math.max(1, Math.ceil(filteredData.length / itemsPerPage));
 
   // Función para obtener datos del reporte con filtros de fecha
-  const fetchReportData = async () => {
+  const fetchReportData = async (customStartDate?: string | null, customEndDate?: string | null) => {
     try {
       setLoading(true);
       setError(null);
 
+      // Usar fechas personalizadas si se proporcionan, sino usar las del estado
+      const effectiveStartDate = customStartDate !== undefined ? customStartDate : startDate;
+      const effectiveEndDate = customEndDate !== undefined ? customEndDate : endDate;
+      
       // Construir URL con parámetros de fecha si están presentes
       let url = `/api/reports/${report.viewName}`;
       const params = new URLSearchParams();
-      if (startDate) params.append("startDate", startDate);
-      if (endDate) params.append("endDate", endDate);
+      if (effectiveStartDate) params.append("startDate", effectiveStartDate);
+      if (effectiveEndDate) params.append("endDate", effectiveEndDate);
       if (params.toString()) url += `?${params.toString()}`;
 
       const response = await fetch(url, {
@@ -171,8 +185,15 @@ export function ReportViewer({ report }: ReportViewerProps) {
   // Función para exportar a PDF
   const exportToPDF = () => {
     try {
-      // Crear un nuevo documento PDF
-      const doc = new jsPDF();
+      // Determinar orientación según el reporte
+      const needsLandscape = report.viewName === 'v_quotations_vs_projects' || report.viewName === 'v_projects_costs_summary';
+      
+      // Crear un nuevo documento PDF con orientación apropiada
+      const doc = new jsPDF({
+        orientation: needsLandscape ? 'landscape' : 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
 
       // Variables para control de páginas
       let totalPages = 1;
@@ -196,11 +217,73 @@ export function ReportViewer({ report }: ReportViewerProps) {
           return;
         }
       }
+      
+      // Mapear nombres de columnas para PDF
+      const getPdfColumnName = (columnName: string): string => {
+        if (report.viewName === 'v_quotations_vs_projects') {
+          const columnMapping: { [key: string]: string } = {
+            "Entrega a Tiempo (%)": "A tiempo %",
+            "Tiempo Resp. Cotización (días)": "Resp. (días)"
+          };
+          return columnMapping[columnName] || columnName;
+        } else if (report.viewName === 'v_projects_costs_summary') {
+          const columnMapping: { [key: string]: string } = {
+            "Fecha de Cotización": "Fecha Cotizacion",
+            "Fecha de Inicio": "Fecha Inicio", 
+            "Fecha de Término": "Fecha Fin",
+            "Cotizados": "Cotizados",
+            "Aceptados": "Aceptados",
+            "Costos Indirectos": "C Indirectos",
+            "Costos Directos": "C Directos",
+            "Costos Operativos": "C Operativos",
+            "Precio final": "P final",
+            "Ganancia": "Ganancia"
+          };
+          return columnMapping[columnName] || columnName;
+        }
+        return columnName;
+      };
+      
+      // Crear columnas para PDF con nombres mapeados
+      const pdfColumns = columns.map(col => getPdfColumnName(col));
 
       // Calcular ancho de columnas
       const tableWidth = pageWidth - 2 * margin;
-      const colWidth = tableWidth / columns.length;
+      
+      // Anchos variables para mejor distribución (reportes con muchas columnas)
+      let columnWidths: number[];
+      if (report.viewName === 'v_projects_costs_summary') {
+        // Distribución optimizada para que quepan todas las columnas
+        columnWidths = pdfColumns.map((col, index) => {
+          if (index === 0) return tableWidth * 0.16; // Asociado: 16%
+          if (col.startsWith('Fecha')) return tableWidth * 0.09; // Fechas: 9%
+          if (col.startsWith('C ')) return tableWidth * 0.08; // Costos: 8%
+          if (col === 'Cotizados' || col === 'Aceptados') return tableWidth * 0.07; // Cantidades: 7%
+          if (col === 'P final') return tableWidth * 0.08; // Precio: 8%
+          return tableWidth * 0.08; // Otros: 8%
+        });
+      } else if (report.viewName === 'v_quotations_vs_projects') {
+        // Distribución para cotizaciones vs proyectos
+        columnWidths = pdfColumns.map((col, index) => {
+          if (index === 0) return tableWidth * 0.20; // Asociado: 20%
+          if (col.startsWith('Fecha')) return tableWidth * 0.12; // Fechas: 12%
+          return tableWidth * 0.10; // Otros: 10%
+        });
+      } else {
+        // Distribución uniforme para otros reportes
+        const colWidth = tableWidth / pdfColumns.length;
+        columnWidths = new Array(pdfColumns.length).fill(colWidth);
+      }
 
+      // Función auxiliar para calcular posición X de columna
+      const getColumnX = (columnIndex: number): number => {
+        let x = margin;
+        for (let i = 0; i < columnIndex; i++) {
+          x += columnWidths[i];
+        }
+        return x;
+      };
+      
       // Reducir el tamaño de fuente para las celdas de datos para evitar textos encimados
       const headerFontSize = 9; // Tamaño de fuente para encabezados
       const dataFontSize = 8; // Tamaño de fuente para datos
@@ -278,18 +361,19 @@ export function ReportViewer({ report }: ReportViewerProps) {
         doc.rect(margin, y, tableWidth, 12, "F");
 
         // Luego dibujamos cada encabezado de columna
-        columns.forEach((col, i) => {
+        pdfColumns.forEach((col, i) => {
           // Dibujar las líneas divisorias entre columnas (excepto la primera)
           if (i > 0) {
             doc.setDrawColor(255, 255, 255); // Líneas blancas para separar columnas
-            doc.line(margin + i * colWidth, y, margin + i * colWidth, y + 12);
+            const lineX = getColumnX(i);
+            doc.line(lineX, y, lineX, y + 12);
           }
 
           // Preparar el texto para centrar
           const text = col.toString();
 
           // Dividir el texto en dos líneas si es necesario
-          const availableWidth = colWidth - 4;
+          const availableWidth = columnWidths[i] - 4;
           const textWidth =
             (doc.getStringUnitWidth(text) * doc.getFontSize()) /
             doc.internal.scaleFactor;
@@ -298,7 +382,34 @@ export function ReportViewer({ report }: ReportViewerProps) {
           let line1 = text;
           let line2 = "";
 
-          if (textWidth > availableWidth) {
+          // Forzar división en 2 líneas para columnas específicas del reporte de costos
+          if (report.viewName === 'v_projects_costs_summary') {
+            if (text === 'Fecha Cotizacion') {
+              line1 = 'Fecha';
+              line2 = 'Cotizacion';
+            } else if (text === 'Fecha Inicio') {
+              line1 = 'Fecha';
+              line2 = 'Inicio';
+            } else if (text === 'Fecha Fin') {
+              line1 = 'Fecha';
+              line2 = 'Fin';
+            } else if (text === 'C Indirectos') {
+              line1 = 'C';
+              line2 = 'Indirectos';
+            } else if (text === 'C Directos') {
+              line1 = 'C';
+              line2 = 'Directos';
+            } else if (text === 'C Operativos') {
+              line1 = 'C';
+              line2 = 'Operativos';
+            } else if (text === 'P final') {
+              line1 = 'P';
+              line2 = 'final';
+            }
+          }
+          
+          // Si no se forzó la división y el texto es demasiado largo, dividirlo automáticamente
+          if (line2 === "" && textWidth > availableWidth) {
             // Buscar un espacio para dividir el texto
             const words = text.split(" ");
             if (words.length > 1) {
@@ -333,7 +444,8 @@ export function ReportViewer({ report }: ReportViewerProps) {
           const line1Width =
             (doc.getStringUnitWidth(line1) * doc.getFontSize()) /
             doc.internal.scaleFactor;
-          const line1X = margin + i * colWidth + (colWidth - line1Width) / 2;
+          const columnX = getColumnX(i);
+          const line1X = columnX + (columnWidths[i] - line1Width) / 2;
 
           // Dibujar la primera línea
           doc.text(line1, line1X, y + 4);
@@ -343,7 +455,7 @@ export function ReportViewer({ report }: ReportViewerProps) {
             const line2Width =
               (doc.getStringUnitWidth(line2) * doc.getFontSize()) /
               doc.internal.scaleFactor;
-            const line2X = margin + i * colWidth + (colWidth - line2Width) / 2;
+            const line2X = columnX + (columnWidths[i] - line2Width) / 2;
             doc.text(line2, line2X, y + 9); // Reducido de 12 a 9 para disminuir el interlineado
           }
         });
@@ -420,10 +532,11 @@ export function ReportViewer({ report }: ReportViewerProps) {
         // Dibujar las líneas divisorias entre columnas
         for (let i = 1; i < columns.length; i++) {
           doc.setDrawColor(200, 200, 200); // Líneas grises para separar columnas
+          const lineX = getColumnX(i);
           doc.line(
-            margin + i * colWidth,
+            lineX,
             y,
-            margin + i * colWidth,
+            lineX,
             y + rowHeight
           );
         }
@@ -434,10 +547,11 @@ export function ReportViewer({ report }: ReportViewerProps) {
             row[col] !== null && row[col] !== undefined ? String(row[col]) : "";
 
           // Ajustar el texto para que quepa en la columna
-          const availableWidth = colWidth - 4;
+          const availableWidth = columnWidths[i] - 4;
+          const columnX = getColumnX(i);
 
           // Dibujar el texto con límite de ancho y centrado verticalmente
-          doc.text(value, margin + i * colWidth + 2, y + 6, {
+          doc.text(value, columnX + 2, y + 6, {
             maxWidth: availableWidth,
           });
         });
@@ -516,16 +630,28 @@ export function ReportViewer({ report }: ReportViewerProps) {
                   const newSearchTerm = e.target.value;
                   setSearchTerm(newSearchTerm);
                   
-                  // Aplicar filtro de búsqueda
-                  let filtered = data;
+                  // Para reportes con filtro de fechas en backend, el buscador trabaja sobre los datos ya filtrados
+                  // Para otros reportes, trabaja sobre todos los datos
+                  const baseData = (report.viewName === 'v_quotations_vs_projects' || 
+                                   report.viewName === 'v_projects_costs_summary' ||
+                                   report.viewName === 'v_quotation_summary' ||
+                                   report.viewName === 'v_kpi_dashboard') && (startDate || endDate) 
+                                   ? data // Ya filtrados por fechas del backend
+                                   : data; // Todos los datos
                   
-                  // Primero aplicar filtro de búsqueda si hay término
+                  let filtered = baseData;
+                  
+                  // Aplicar filtro de búsqueda si hay término
                   if (newSearchTerm) {
-                    filtered = applySearchFilter(data, newSearchTerm);
+                    filtered = applySearchFilter(baseData, newSearchTerm);
                   }
                   
-                  // Luego aplicar filtro de fechas si está activo
-                  if (startDate || endDate) {
+                  // Para reportes sin filtro de fechas en backend, aplicar filtro de fechas en frontend
+                  if ((startDate || endDate) && 
+                      !(report.viewName === 'v_quotations_vs_projects' || 
+                        report.viewName === 'v_projects_costs_summary' ||
+                        report.viewName === 'v_quotation_summary' ||
+                        report.viewName === 'v_kpi_dashboard')) {
                     filtered = handleDateFilter(filtered, startDate, endDate);
                   }
                   
@@ -591,7 +717,7 @@ export function ReportViewer({ report }: ReportViewerProps) {
                 report.viewName === "v_quotations_vs_projects" || 
                 report.viewName === "v_projects_costs_summary" || 
                 report.viewName === "v_project_details") && 
-                filteredData.length > itemsPerPage && (
+                filteredData.length > 0 && (
                 <div className="flex justify-center mt-4">
                   <Pagination
                     currentPage={currentPage}

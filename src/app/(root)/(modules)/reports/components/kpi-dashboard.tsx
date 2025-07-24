@@ -99,7 +99,6 @@ export function KpiDashboard({ viewName }: KpiDashboardProps) {
   useEffect(() => {
     if (dashboardData && dashboardData.aggregatedKpis) {
       const entregasData = dashboardData.aggregatedKpis.porcentaje_entregas_tiempo;
-      console.log('Valor de porcentaje_entregas_tiempo:', entregasData);
       
       // Verificar si no hay datos de entregas
       const noData = entregasData === null || 
