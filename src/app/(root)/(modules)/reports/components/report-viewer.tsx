@@ -222,8 +222,11 @@ export function ReportViewer({ report }: ReportViewerProps) {
       const getPdfColumnName = (columnName: string): string => {
         if (report.viewName === 'v_quotations_vs_projects') {
           const columnMapping: { [key: string]: string } = {
+            "Fecha de Inicio": "Fecha Inicio",
+            "Fecha de Término": "Fecha Termino",
+            "Tasa Éxito (%)": "Tasa Exito",
             "Entrega a Tiempo (%)": "A tiempo %",
-            "Tiempo Resp. Cotización (días)": "Resp. (días)"
+            "Tiempo Resp. Cotización (días)": "Respuesta dias"
           };
           return columnMapping[columnName] || columnName;
         } else if (report.viewName === 'v_projects_costs_summary') {
@@ -263,10 +266,13 @@ export function ReportViewer({ report }: ReportViewerProps) {
           return tableWidth * 0.08; // Otros: 8%
         });
       } else if (report.viewName === 'v_quotations_vs_projects') {
-        // Distribución para cotizaciones vs proyectos
+        // Distribución optimizada para cotizaciones vs proyectos
         columnWidths = pdfColumns.map((col, index) => {
-          if (index === 0) return tableWidth * 0.20; // Asociado: 20%
-          if (col.startsWith('Fecha')) return tableWidth * 0.12; // Fechas: 12%
+          if (index === 0) return tableWidth * 0.22; // Asociado: 22% (más espacio)
+          if (col.startsWith('Fecha')) return tableWidth * 0.10; // Fechas: 10%
+          if (col === 'Cotizaciones Válidas' || col === 'Proy. Asignados') return tableWidth * 0.08; // Cantidades: 8%
+          if (col === 'Tasa Exito' || col === 'A tiempo %') return tableWidth * 0.09; // Porcentajes: 9%
+          if (col === 'Respuesta dias') return tableWidth * 0.07; // Respuesta: 7% (reducido)
           return tableWidth * 0.10; // Otros: 10%
         });
       } else {
@@ -382,8 +388,22 @@ export function ReportViewer({ report }: ReportViewerProps) {
           let line1 = text;
           let line2 = "";
 
-          // Forzar división en 2 líneas para columnas específicas del reporte de costos
-          if (report.viewName === 'v_projects_costs_summary') {
+          // Forzar división en 2 líneas para columnas específicas
+          if (report.viewName === 'v_quotations_vs_projects') {
+            if (text === 'Fecha Inicio') {
+              line1 = 'Fecha';
+              line2 = 'Inicio';
+            } else if (text === 'Fecha Termino') {
+              line1 = 'Fecha';
+              line2 = 'Termino';
+            } else if (text === 'Tasa Exito') {
+              line1 = 'Tasa';
+              line2 = 'Exito';
+            } else if (text === 'Respuesta dias') {
+              line1 = 'Respuesta';
+              line2 = 'dias';
+            }
+          } else if (report.viewName === 'v_projects_costs_summary') {
             if (text === 'Fecha Cotizacion') {
               line1 = 'Fecha';
               line2 = 'Cotizacion';
