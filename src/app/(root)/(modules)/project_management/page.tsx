@@ -94,6 +94,9 @@ interface ProjectManagementWithRelations extends ProjectManagement {
   ProjectRequestCompany?: ProjectRequestCompany;
   ProjectRequirements?: ProjectRequirement[];
   projectRequestTitle?: string;
+  // Nuevas fechas basadas en actividades
+  projectStartDate?: Date | null;
+  projectEndDate?: Date | null;
 }
 
 
@@ -473,7 +476,7 @@ return (
               {/* Tabla de proyectos */}
               <div className="border rounded-lg">
                 {loading ? (
-                  <TableSkeleton columns={4} rows={itemsPerPage} />
+                  <TableSkeleton columns={5} rows={itemsPerPage} />
                 ) : (
                   <div className="overflow-x-auto">
                     <Table>
@@ -482,13 +485,14 @@ return (
                           <TableHead className="w-[50px]"></TableHead>
                           <TableHead>Proyecto</TableHead>
                           <TableHead>Avance General</TableHead>
-                          <TableHead>Fecha de Creación</TableHead>
+                          <TableHead>Inicio de Proyecto</TableHead>
+                          <TableHead>Término de Proyecto</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {filteredProjects.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={4} className="text-center py-8">
+                            <TableCell colSpan={5} className="text-center py-8">
                               No se encontraron proyectos
                             </TableCell>
                           </TableRow>
@@ -522,13 +526,16 @@ return (
                                   </Badge>
                                 </TableCell>
                                 <TableCell>
-                                  {formatDateForDisplay(project.createdAt)}
+                                  {project.projectStartDate ? formatDateForDisplay(project.projectStartDate) : '-'}
+                                </TableCell>
+                                <TableCell>
+                                  {project.projectEndDate ? formatDateForDisplay(project.projectEndDate) : '-'}
                                 </TableCell>
                               </TableRow>
                               {expandedProjectId === project.id && (
                                 <TableRow>
                                   <TableCell
-                                    colSpan={4}
+                                    colSpan={5}
                                     className="p-0 border-t-0"
                                   >
                                     <div className="px-4 pb-4">

@@ -5,6 +5,41 @@ import { PrismaClient } from "@prisma/client";
 // Instancia local de Prisma para este endpoint específico
 const prisma = new PrismaClient();
 
+// Tipos para actividades con fechas
+type ActivityWithDates = {
+  dateTentativeStart: Date | null;
+  dateTentativeEnd: Date | null;
+};
+
+// Tipos para la estructura anidada
+type CategoryWithActivities = {
+  ProjectCategoryActivity: ActivityWithDates[];
+};
+
+type ProjectWithCategories = {
+  ProjectCategory: CategoryWithActivities[];
+};
+
+type CompanyWithProjects = {
+  Project: ProjectWithCategories[];
+};
+
+type RequirementWithCompanies = {
+  ProjectRequestCompany: CompanyWithProjects[];
+};
+
+type ProjectRequestData = {
+  id: number;
+  title: string;
+  observation: string | null;
+  isDeleted: boolean;
+  dateDeleted: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  userId: number;
+  ProjectRequirements: RequirementWithCompanies[];
+};
+
 export async function GET(request: NextRequest) {
   try {
     // Verificar autenticación
@@ -62,6 +97,19 @@ export async function GET(request: NextRequest) {
                     ProjectStage: {
                       where: { isDeleted: false },
                       orderBy: { order: 'asc' }
+                    },
+                    // Incluir categorías y actividades para obtener fechas reales
+                    ProjectCategory: {
+                      where: { isDeleted: false },
+                      include: {
+                        ProjectCategoryActivity: {
+                          where: { isDeleted: false },
+                          select: {
+                            dateTentativeStart: true,
+                            dateTentativeEnd: true
+                          }
+                        }
+                      }
                     }
                   }
                 }
@@ -81,20 +129,44 @@ export async function GET(request: NextRequest) {
     const paginatedProjectRequests = projectRequests.slice(startIndex, startIndex + limit);
 
     // Transformar ProjectRequests a formato compatible con el frontend
-    const projectsWithTitle = paginatedProjectRequests.map((projectRequest) => {
+    const projectsWithTitle = paginatedProjectRequests.map((projectRequest: ProjectRequestData) => {
       // Calcular estado general del proyecto basado en sus requerimientos
       let overallStatus = 'Pendiente';
       let hasActiveProjects = false;
       
+      // Calcular fechas de inicio y término basadas en actividades
+      let projectStartDate: Date | null = null;
+      let projectEndDate: Date | null = null;
+      const allActivityDates: Date[] = [];
+      
       // Revisar todos los requerimientos y sus proyectos
-      projectRequest.ProjectRequirements?.forEach((requirement) => {
-        requirement.ProjectRequestCompany?.forEach((company) => {
+      projectRequest.ProjectRequirements?.forEach((requirement: RequirementWithCompanies) => {
+        requirement.ProjectRequestCompany?.forEach((company: CompanyWithProjects) => {
           if (company.Project?.length > 0) {
             hasActiveProjects = true;
-            // Aquí podrías agregar lógica más sofisticada para el estado
+            
+            // Recopilar fechas de todas las actividades de todos los proyectos
+            company.Project.forEach((project: ProjectWithCategories) => {
+              project.ProjectCategory?.forEach((category: CategoryWithActivities) => {
+                category.ProjectCategoryActivity?.forEach((activity: ActivityWithDates) => {
+                  if (activity.dateTentativeStart) {
+                    allActivityDates.push(new Date(activity.dateTentativeStart));
+                  }
+                  if (activity.dateTentativeEnd) {
+                    allActivityDates.push(new Date(activity.dateTentativeEnd));
+                  }
+                });
+              });
+            });
           }
         });
       });
+      
+      // Calcular fechas mínima y máxima
+      if (allActivityDates.length > 0) {
+        projectStartDate = new Date(Math.min(...allActivityDates.map(d => d.getTime())));
+        projectEndDate = new Date(Math.max(...allActivityDates.map(d => d.getTime())));
+      }
       
       return {
         id: projectRequest.id,
@@ -108,6 +180,9 @@ export async function GET(request: NextRequest) {
         updatedAt: projectRequest.updatedAt,
         userId: projectRequest.userId,
         projectRequestTitle: projectRequest.title,
+        // Nuevas fechas basadas en actividades
+        projectStartDate: projectStartDate,
+        projectEndDate: projectEndDate,
         // Datos adicionales para el frontend
         ProjectRequirements: projectRequest.ProjectRequirements,
         ProjectStatus: {
