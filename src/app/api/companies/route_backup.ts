@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { companyCreateSchema } from "@/lib/schemas/company";
 import { Prisma } from "@prisma/client";
+import { handleRouteParams } from "@/lib/route-params";
 
 export async function GET(request: NextRequest) {
   try {
@@ -145,6 +146,53 @@ export async function GET(request: NextRequest) {
   }
 }
 
+export async function GETActiveCompanies(request: NextRequest) {
+  try {
+    const userId = await getUserFromToken();
+    if (!userId) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+
+    const companies = await prisma.company.findMany({
+      where: {
+        isActive: true,
+        isDeleted: false,
+      },
+      select: {
+        id: true,
+        companyName: true,
+        comercialName: true,
+        contactName: true,
+        email: true,
+        phone: true,
+        isActive: true,
+        isDeleted: true,
+        stateId: true,
+        locationState: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: {
+        companyName: "asc",
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: companies,
+    });
+  } catch (error) {
+    console.error("[COMPANIES_GET_ACTIVE]", error);
+    return NextResponse.json(
+      { error: "Error al cargar empresas activas" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const userId = await getUserFromToken();
@@ -152,15 +200,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
+    console.log("[COMPANIES_POST] Iniciando creación de empresa para userId:", userId);
+
     // Obtener el formulario
     const formData = await request.formData();
+    
+    // Log de todos los campos recibidos
+    console.log("[COMPANIES_POST] Campos recibidos:");
+    for (const [key, value] of formData.entries()) {
+      if (value instanceof File) {
+        console.log(`  ${key}: File(${value.name}, ${value.size} bytes)`);
+      } else {
+        console.log(`  ${key}: ${value}`);
+      }
+    }
 
     // Procesar el archivo de logo si existe
-    let companyLogo = null;
+    let companyLogo = undefined;
     const logoFile = formData.get("companyLogo") as File;
     if (logoFile && logoFile.size > 0) {
       const logoBuffer = Buffer.from(await logoFile.arrayBuffer());
-      companyLogo = logoBuffer.toString("base64");
+      companyLogo = logoBuffer.toString("base64"); // companyLogo es String? en Prisma
     }
 
     // Procesar el archivo NDA si existe
@@ -168,7 +228,7 @@ export async function POST(request: NextRequest) {
     let ndaFileName = undefined;
     const ndaFile = formData.get("nda") as File;
     if (ndaFile && ndaFile.size > 0) {
-      ndaBuffer = Buffer.from(await ndaFile.arrayBuffer());
+      ndaBuffer = Buffer.from(await ndaFile.arrayBuffer()); // nda es Bytes? en Prisma, mantener como Buffer
       ndaFileName = formData.get("ndaFileName")
         ? (formData.get("ndaFileName") as string)
         : ndaFile.name;
@@ -192,12 +252,13 @@ export async function POST(request: NextRequest) {
       shifts: (formData.get("shifts") as string) || null,
       achievementDescription:
         (formData.get("achievementDescription") as string) || null,
-      profile: formData.get("profile") ? formData.get("profile")?.toString() : null,
-      shiftsProfileLink: formData.get("shiftsProfileLink") ? formData.get("shiftsProfileLink")?.toString() : null,
-      website: formData.get("website") ? formData.get("website")?.toString() : null,
+      profile: formData.get("profile")?.toString() || undefined,
+      shiftsProfileLink:
+        formData.get("shiftsProfileLink")?.toString() || undefined,
+      website: formData.get("website")?.toString() || undefined,
       companyLogo,
-      nda: ndaBuffer || null,
-      ndaFileName: ndaFileName || null,
+      nda: ndaBuffer || undefined,
+      ndaFileName: ndaFileName || undefined,
       userId,
       isActive: true,
       isDeleted: false,
@@ -242,7 +303,7 @@ export async function POST(request: NextRequest) {
             data: {
               userId: userId,
               companyId: company.id,
-              roleCompany: "Admin",
+              roleCompany: "Admin", // El creador de la empresa es admin por defecto
               isActive: true,
               isDeleted: false,
             },
@@ -273,14 +334,196 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // Error de validación de Zod
+      if (
+        error &&
+        typeof error === "object" &&
+        "name" in error &&
+        error.name === "ZodError"
+      ) {
+        const zodError = error as import("zod").ZodError;
+        return NextResponse.json(
+          {
+            error: "Error de validación",
+            type: "VALIDATION_ERROR",
+            fields: zodError.issues.map((issue) => ({
+              field: issue.path[0],
+              message: issue.message,
+            })),
+          },
+          { status: 400 }
+        );
+      }
+
       return NextResponse.json(
         { error: "Error interno del servidor" },
         { status: 500 }
       );
     }
   } catch (error: unknown) {
+    console.error("Error in POST /api/companies:", error);
     return NextResponse.json(
       { error: "Error interno del servidor" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const userId = await getUserFromToken();
+    if (!userId) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+
+    // Obtener el formulario
+    const formData = await request.formData();
+
+    // Procesar el logo de la empresa si existe
+    let companyLogo = undefined;
+    const logoFile = formData.get("companyLogo") as File;
+    if (logoFile && logoFile.size > 0) {
+      const logoBuffer = Buffer.from(await logoFile.arrayBuffer());
+      companyLogo = logoBuffer.toString("base64"); // companyLogo es String? en Prisma
+    }
+
+    // Procesar el archivo NDA si existe
+    let ndaBuffer = undefined;
+    let ndaFileName = undefined;
+    const ndaFile = formData.get("nda") as File;
+    if (ndaFile && ndaFile.size > 0) {
+      ndaBuffer = Buffer.from(await ndaFile.arrayBuffer()); // nda es Bytes? en Prisma, mantener como Buffer
+      ndaFileName = formData.get("ndaFileName")
+        ? (formData.get("ndaFileName") as string)
+        : ndaFile.name; // Usar el nombre del archivo si no se proporciona uno
+    }
+
+    const validationData = {
+      companyName: formData.get("companyName") as string,
+      comercialName: formData.get("comercialName") as string,
+      contactName: formData.get("contactName") as string,
+      street: formData.get("street") as string,
+      externalNumber: formData.get("externalNumber") as string,
+      internalNumber: (formData.get("internalNumber") as string) || null,
+      neighborhood: formData.get("neighborhood") as string,
+      postalCode: formData.get("postalCode") as string,
+      city: formData.get("city") as string,
+      stateId: parseInt(formData.get("stateId") as string),
+      phone: formData.get("phone") as string,
+      email: formData.get("email") as string,
+      machineCount: parseInt(formData.get("machineCount") as string) || 0,
+      employeeCount: parseInt(formData.get("employeeCount") as string) || 0,
+      shifts: (formData.get("shifts") as string) || null,
+      achievementDescription:
+        (formData.get("achievementDescription") as string) || null,
+      profile: formData.get("profile")?.toString() || undefined,
+      shiftsProfileLink:
+        formData.get("shiftsProfileLink")?.toString() || undefined,
+      website: formData.get("website")?.toString() || undefined,
+      companyLogo,
+      nda: ndaBuffer || undefined,
+      ndaFileName: ndaFileName || undefined,
+      userId,
+      isActive: true,
+      isDeleted: false,
+    };
+
+    try {
+      const validationResult = companyCreateSchema.parse(validationData);
+    } catch (validationError) {
+      return NextResponse.json(
+        {
+          error: "Error de validación",
+          type: "VALIDATION_ERROR",
+          fields: (validationError as z.ZodError).issues.map((issue) => ({
+            field: issue.path[0],
+            message: issue.message,
+          })),
+        },
+        { status: 400 }
+      );
+    }
+
+    try {
+      const result = await prisma.company.update({
+        where: { id: parseInt(params.id) },
+        data: validationData,
+      });
+
+      return NextResponse.json({
+        ...result,
+        message: "Empresa actualizada exitosamente",
+      });
+    } catch (error: unknown) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === "P2002") {
+          return NextResponse.json(
+            {
+              error:
+                "Ya existe una empresa con ese nombre o correo electrónico",
+            },
+            { status: 400 }
+          );
+        }
+        return NextResponse.json(
+          { error: "Error al actualizar la empresa en la base de datos" },
+          { status: 500 }
+        );
+      }
+
+      // Error de validación de Zod
+      if (
+        error &&
+        typeof error === "object" &&
+        "name" in error &&
+        error.name === "ZodError"
+      ) {
+        const zodError = error as import("zod").ZodError;
+        return NextResponse.json(
+          {
+            error: "Error de validación",
+            type: "VALIDATION_ERROR",
+            fields: zodError.issues.map((issue) => ({
+              field: issue.path[0],
+              message: issue.message,
+            })),
+          },
+          { status: 400 }
+        );
+      }
+
+      return NextResponse.json(
+        { error: "Error interno del servidor" },
+        { status: 500 }
+      );
+    }
+  } catch (error: unknown) {
+    console.error("Error in PUT /api/companies:", error);
+    return NextResponse.json(
+      { error: "Error interno del servidor" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = parseInt(searchParams.get("id") || "");
+
+    await prisma.company.update({
+      where: { id },
+      data: { isDeleted: true, dateDeleted: new Date() },
+    });
+
+    return NextResponse.json({ items: [] });
+  } catch (error) {
+    console.error("Error in DELETE /api/companies:", error);
+    return NextResponse.json(
+      { error: "Error al eliminar la empresa" },
       { status: 500 }
     );
   }

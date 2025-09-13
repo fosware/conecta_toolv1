@@ -29,6 +29,9 @@ export const companyCreateSchema = z.object({
   companyLogo: z.string().nullable(),
   nda: z.any().nullable(),
   ndaFileName: z.string().nullable(),
+  userId: z.number().optional(),
+  isActive: z.boolean(),
+  isDeleted: z.boolean(),
 });
 
 export const companyUpdateSchema = companyCreateSchema.partial();

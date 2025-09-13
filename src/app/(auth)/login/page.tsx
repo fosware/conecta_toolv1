@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,22 +13,55 @@ import toast from "react-hot-toast";
 const LoginPage = () => {
   const [username, setUserName] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+
+  // Limpiar campos y forzar habilitación cuando el componente se monta
+  useEffect(() => {
+    setUserName("");
+    setPassword("");
+    setIsLoading(false);
+    
+    // Forzar habilitación de inputs después de un pequeño delay
+    setTimeout(() => {
+      const usernameInput = document.getElementById('username') as HTMLInputElement;
+      const passwordInput = document.getElementById('password') as HTMLInputElement;
+      const submitButton = document.querySelector('button[type="submit"]') as HTMLButtonElement;
+      
+      if (usernameInput) {
+        usernameInput.disabled = false;
+        usernameInput.readOnly = false;
+      }
+      if (passwordInput) {
+        passwordInput.disabled = false;
+        passwordInput.readOnly = false;
+      }
+      if (submitButton) {
+        submitButton.disabled = false;
+      }
+    }, 100);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await fetch("/login/api", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password }),
-    });
+    setIsLoading(true);
+    
+    try {
+      const res = await fetch("/login/api", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
 
-    if (res.ok) {
-      const data = await res.json();
-      document.cookie = `token=${data.token}; path=/`;
-      router.push("/projects");
-    } else {
-      toast.error("Credenciales incorrectas");
+      if (res.ok) {
+        const data = await res.json();
+        document.cookie = `token=${data.token}; path=/`;
+        router.push("/projects");
+      } else {
+        toast.error("Credenciales incorrectas");
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -64,6 +97,7 @@ const LoginPage = () => {
                 placeholder="Usuario"
                 value={username}
                 onChange={(e) => setUserName(e.target.value)}
+                disabled={isLoading}
                 required
                 className="pr-10 block w-full"
               />
@@ -91,6 +125,7 @@ const LoginPage = () => {
                 placeholder="Contraseña"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading}
                 required
                 className="pr-10 block w-full"
               />
@@ -106,9 +141,10 @@ const LoginPage = () => {
             </div>
             <Button
               type="submit"
+              disabled={isLoading}
               className="w-full bg-primary text-white hover:bg-primary/90 dark:bg-primary dark:text-black/80 dark:hover:bg-primary/90"
             >
-              Ingresar
+              {isLoading ? "Ingresando..." : "Ingresar"}
             </Button>
           </form>
         </CardContent>

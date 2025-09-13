@@ -104,7 +104,8 @@ export default function Navbar({
       if (res.ok) {
         setProfileImage(null); // Limpiar la imagen antes de redirigir
         setUsername(null);
-        router.push("/login"); // Redirige al login después del logout
+        // Usar window.location para forzar recarga completa
+        window.location.href = "/login";
       } else {
         // Reemplazamos el alert por un manejo de error más elegante
         console.error("Error al cerrar sesión");
