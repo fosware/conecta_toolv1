@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { useUserRole } from "@/hooks/use-user-role";
 import {
   Form,
   FormControl,
@@ -64,12 +65,17 @@ export function ClientCompanyNDAForm({
   onSuccess,
   editItem,
 }: NDAFormProps) {
+  const { role } = useUserRole();
   const [clients, setClients] = useState<Client[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [userCompany, setUserCompany] = useState<Company | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [ndaFile, setNdaFile] = useState<File | null>(null);
   const [currentFileName, setCurrentFileName] = useState("");
+
+  // Determinar si el usuario es Asociado
+  const isAssociate = role?.toLowerCase() === 'asociado';
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -131,6 +137,26 @@ export function ClientCompanyNDAForm({
 
         const companiesData = await companiesResponse.json();
         setCompanies(companiesData.data);
+
+        // Si el usuario es Asociado, obtener su empresa
+        if (isAssociate) {
+          const userCompanyResponse = await fetch("/api/companies/user-company", {
+            headers: {
+              Authorization: `Bearer ${getToken()}`,
+            },
+          });
+
+          if (userCompanyResponse.ok) {
+            const userCompanyData = await userCompanyResponse.json();
+            if (userCompanyData.success && userCompanyData.company) {
+              setUserCompany(userCompanyData.company);
+              // Pre-seleccionar la empresa del usuario si no estamos editando
+              if (!editItem) {
+                form.setValue("companyId", userCompanyData.company.id.toString());
+              }
+            }
+          }
+        }
 
         // Si estamos editando, establecer los valores predeterminados
         if (editItem) {
@@ -339,7 +365,7 @@ export function ClientCompanyNDAForm({
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || (isAssociate && !editItem)}
                     >
                       <FormControl>
                         <SelectTrigger>

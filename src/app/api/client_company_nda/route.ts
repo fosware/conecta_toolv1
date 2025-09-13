@@ -30,6 +30,29 @@ export async function GET(request: NextRequest) {
     // Construir la condición where base
     let whereCondition: Prisma.ClientCompanyNDAWhereInput = {};
 
+    // Filtrar por empresa si el usuario es Asociado
+    if (user.role.name === "Asociado") {
+      // Obtener la empresa del usuario a través de CompanyUser
+      const userCompany = await prisma.companyUser.findFirst({
+        where: { 
+          userId: userId,
+          isActive: true,
+          isDeleted: false
+        },
+        include: { company: true }
+      });
+
+      if (userCompany?.company) {
+        whereCondition.companyId = userCompany.company.id;
+      } else {
+        // Si el usuario Asociado no tiene empresa asignada, no mostrar ningún NDA
+        return NextResponse.json({
+          success: true,
+          data: [],
+        });
+      }
+    }
+
     // Filtrar por NDAs vigentes si se solicita
     if (showOnlyValid) {
       // Obtener la fecha actual (hoy)

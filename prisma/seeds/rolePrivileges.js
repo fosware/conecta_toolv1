@@ -50,6 +50,7 @@ export async function seedRolePrivileges() {
     "Asociados",
     "Proyectos",
     "Solicitud de Proyectos",
+    "Administración de NDA's",
   ];
 
   // Función para asociar privilegios a un rol
