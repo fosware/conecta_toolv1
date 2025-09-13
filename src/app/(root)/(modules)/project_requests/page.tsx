@@ -32,6 +32,7 @@ export default function ProjectRequestsPage() {
     loading: roleLoading,
     isStaff,
     isAsociado,
+    isAdmin,
     refresh: refreshUserRole,
   } = useUserRole();
 
@@ -277,9 +278,11 @@ export default function ProjectRequestsPage() {
     <div className="container mx-auto py-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Solicitud de Proyectos</h1>
-        <Button onClick={handleCreateNew} className="gap-2">
-          <Plus className="h-4 w-4" /> Nueva Solicitud
-        </Button>
+        {isAdmin && (
+          <Button onClick={handleCreateNew} className="gap-2">
+            <Plus className="h-4 w-4" /> Nueva Solicitud
+          </Button>
+        )}
       </div>
 
       <Card className="mb-6">

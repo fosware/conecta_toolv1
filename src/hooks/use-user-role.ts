@@ -6,6 +6,7 @@ interface UserRoleInfo {
   loading: boolean;
   isStaff: boolean;
   isAsociado: boolean;
+  isAdmin: boolean;
   hasCompany: boolean;
   refresh: () => Promise<void>;
 }
@@ -67,6 +68,7 @@ export function useUserRole(): UserRoleInfo {
     loading,
     isStaff: normalizedRole === "staff",
     isAsociado: normalizedRole === "asociado",
+    isAdmin: normalizedRole === "admin",
     hasCompany,
     refresh: fetchUserRole,
   };
