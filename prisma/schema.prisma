@@ -774,7 +774,7 @@ model ProjectCategoryActivityStatus {
 // Actividades de categoría
 model ProjectCategoryActivity {
   id                              Int       @id @default(autoincrement())
-  name                            String    @unique
+  name                            String
   description                     String?
   projectCategoryId               Int
   projectCategoryActivityStatusId Int
@@ -792,6 +792,8 @@ model ProjectCategoryActivity {
   ProjectCategory              ProjectCategory               @relation(fields: [projectCategoryId], references: [id])
   ProjectCategorActivityStatus ProjectCategoryActivityStatus @relation(fields: [projectCategoryActivityStatusId], references: [id])
 
+  // Constraint: nombre único por categoría (permite mismo nombre en diferentes categorías)
+  @@unique([name, projectCategoryId], name: "unique_activity_per_category")
   @@map("d_project_category_activities")
 }
 
