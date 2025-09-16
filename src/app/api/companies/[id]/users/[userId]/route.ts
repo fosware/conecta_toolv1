@@ -66,7 +66,7 @@ export async function PUT(
         const updateData: any = {
           role: {
             connect: {
-              name: role === "Asociado" ? "Admin" : "Staff",
+              name: role,
             },
           },
         };

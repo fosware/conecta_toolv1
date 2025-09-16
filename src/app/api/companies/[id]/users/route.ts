@@ -214,7 +214,7 @@ export async function POST(
             password: hashedPassword,
             role: {
               connect: {
-                name: role === "Asociado" ? "Admin" : "Staff",
+                name: role,
               },
             },
           },
