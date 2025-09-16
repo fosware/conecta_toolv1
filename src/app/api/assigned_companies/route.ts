@@ -24,9 +24,41 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "10");
     const skip = (page - 1) * limit;
 
-    // En un entorno real, filtraríamos por la compañía del usuario asociado
-    // Por ahora, para desarrollo, mostraremos todas las asignaciones
-    const companyId = parseInt(searchParams.get("companyId") || "0");
+    // Obtener información del usuario y su rol para filtrar por empresa si es necesario
+    let companyId = parseInt(searchParams.get("companyId") || "0");
+    
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        include: { 
+          role: true,
+          CompanyUser: {
+            where: { isActive: true, isDeleted: false },
+            include: { company: true }
+          }
+        }
+      });
+
+      // Solo filtrar si el usuario es Asociado o Staff (mantener comportamiento actual para Admin)
+      const userRole = user?.role?.name;
+      if (userRole === "Asociado" || userRole === "Staff") {
+        const userCompany = user?.CompanyUser?.[0]?.company;
+        if (userCompany) {
+          companyId = userCompany.id;
+        } else {
+          // Si no tiene empresa asignada, no mostrar nada
+          return NextResponse.json({ 
+            items: [], 
+            totalPages: 0, 
+            currentPage: 1, 
+            total: 0 
+          });
+        }
+      }
+    } catch (error) {
+      console.error(`[ASSIGNED_COMPANIES] Error al obtener información del usuario:`, error);
+      // En caso de error, mantener comportamiento original (mostrar todo)
+    }
 
     // Construir el filtro base
     const baseFilter: Record<string, unknown> = {
