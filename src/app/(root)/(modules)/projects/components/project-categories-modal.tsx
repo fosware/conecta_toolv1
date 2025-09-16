@@ -50,6 +50,7 @@ interface ProjectCategoriesModalProps {
   onOpenChange: (open: boolean) => void;
   projectId: number;
   projectTitle: string;
+  requirementName?: string; // Nombre del requerimiento (opcional)
   associateName?: string; // Nombre del asociado (opcional)
   onSuccess?: () => void; // Callback para actualización optimista
 }
@@ -59,6 +60,7 @@ export function ProjectCategoriesModal({
   onOpenChange,
   projectId,
   projectTitle,
+  requirementName,
   associateName,
   onSuccess,
 }: ProjectCategoriesModalProps) {
@@ -270,6 +272,9 @@ export function ProjectCategoriesModal({
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Categorías del Proyecto: <span className="font-bold">{projectTitle}</span></DialogTitle>
+            {requirementName && (
+              <p className="text-base mt-2">Requerimiento: <span className="font-bold">{requirementName}</span></p>
+            )}
             {associateName && (
               <p className="text-base mt-2">Asociado: <span className="font-bold">{associateName}</span></p>
             )}
