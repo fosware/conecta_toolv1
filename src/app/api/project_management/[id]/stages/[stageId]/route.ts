@@ -52,8 +52,20 @@ export async function DELETE(
         return NextResponse.json({ error: "Proyecto no encontrado" }, { status: 404 });
       }
       
-      // Usar el primer proyecto relacionado
-      project = relatedProjects[0];
+      // Buscar proyecto que contiene la etapa
+      let projectWithStage = null;
+      for (const p of relatedProjects) {
+        const stage = await prisma.projectStage.findFirst({
+          where: { id: stageIdNum, projectId: p.id, isDeleted: false }
+        });
+        if (stage) { projectWithStage = p; break; }
+      }
+      
+      if (!projectWithStage) {
+        return NextResponse.json({ error: "Etapa no encontrada" }, { status: 404 });
+      }
+      
+      project = projectWithStage;
       actualProjectId = project.id;
     }
 
