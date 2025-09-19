@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-// Instancia local de Prisma para este endpoint específico
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 
 export async function GET(
   request: NextRequest,
@@ -40,6 +37,15 @@ export async function GET(
       return NextResponse.json([]);
     }
 
+    // Actualizar progreso de todas las etapas antes de consultar
+    // Esto asegura que los porcentajes reflejen el estado actual de las actividades
+    try {
+      await prisma.$executeRaw`SELECT update_all_stages_progress();`;
+    } catch (error) {
+      console.error('Error updating stages progress:', error);
+      // No fallar la consulta principal por esto
+    }
+
     // Obtener todas las etapas de todos los proyectos relacionados
     try {
       const stages = await prisma.projectStage.findMany({
@@ -72,14 +78,14 @@ export async function GET(
         ]
       });
 
-    // Formatear respuesta
+    // Formatear respuesta usando progreso estático (actualizado por update_all_stages_progress)
     const formattedStages = stages.map(stage => ({
       id: stage.id,
       name: stage.name,
       description: stage.description,
       projectId: stage.projectId,
       order: stage.order,
-      progress: stage.progress,
+      progress: Number(stage.progress) || 0,
       status: stage.status,
       assignedCompany: {
         id: stage.project.ProjectRequestCompany?.Company?.id || 0,

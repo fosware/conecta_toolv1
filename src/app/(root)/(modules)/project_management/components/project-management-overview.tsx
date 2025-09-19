@@ -371,14 +371,19 @@ export function ProjectManagementOverview({
 
   // Función para actualizar progreso de etapa después de cambios
   const updateStageProgressAfterChange = async (stageId?: number) => {
-    if (!stageId || !data) return;
+    if (!stageId || !data) {
+      return;
+    }
     
     try {
       const token = getToken();
-      if (!token) return;
+      if (!token) {
+        return;
+      }
       
       // Obtener progreso actualizado de la etapa
       const stageResponse = await fetch(`/api/project_management/${projectId}/project-stages`);
+      
       if (stageResponse.ok) {
         const updatedStages = await stageResponse.json();
         const updatedStage = updatedStages.find((s: any) => s.id === stageId);
