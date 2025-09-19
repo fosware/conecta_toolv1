@@ -85,7 +85,14 @@ export async function GET(request: NextRequest) {
       include: {
         ProjectRequirements: {
           where: { isDeleted: false, isActive: true },
-          include: {
+          select: {
+            id: true,
+            requirementName: true,
+            piecesNumber: true,
+            observation: true,
+            priority: true,
+            createdAt: true,
+            updatedAt: true,
             ProjectRequestCompany: {
               where: { isDeleted: false, isActive: true },
               include: {

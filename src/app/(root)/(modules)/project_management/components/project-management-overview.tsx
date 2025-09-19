@@ -53,6 +53,7 @@ interface ProjectActivity {
 
 interface ProjectRequirement {
   id: number;
+  requirementName?: string;
   description?: string;
   ProjectRequestCompany?: {
     id: number;
@@ -167,12 +168,6 @@ export function ProjectManagementOverview({
       const stages: ProjectStage[] = [];
       const categories: ProjectCategory[] = [];
       
-      // Mapear nombres descriptivos para los requerimientos
-      const requirementNames: { [key: number]: string } = {
-        8: 'Diseño', // Primer requerimiento - Precision Metal Stamping
-        9: 'Inyección de Nylamid' // Segundo requerimiento - Qu4tro SI
-      };
-      
       // Procesar cada requerimiento con empresa asignada
       projectRequirements.forEach((requirement, reqIndex) => {
         const assignedCompanies = requirement.ProjectRequestCompany?.filter(company => 
@@ -181,7 +176,7 @@ export function ProjectManagementOverview({
         
         if (assignedCompanies.length > 0) {
           assignedCompanies.forEach((company) => {
-            const requirementName = requirementNames[requirement.id] || `Requerimiento ${reqIndex + 1}`;
+            const requirementName = requirement.requirementName || `Requerimiento ${reqIndex + 1}`;
             const companyName = company.Company?.comercialName || company.Company?.companyName || 'Sin nombre';
             
             // Obtener todas las categorías reales para este proyecto
