@@ -1,7 +1,7 @@
 
-select * from v_quotations_vs_projects 
+select * from v_quotations_vs_projects;
 
-DROP VIEW v_quotations_vs_projects
+DROP VIEW v_quotations_vs_projects;
 
 CREATE OR REPLACE VIEW v_quotations_vs_projects AS
 WITH company_project_stats AS (
@@ -73,11 +73,9 @@ ORDER BY
     "Asociado", "Fecha de Cotización";
 
 ----------------------------------------------------
-select  * from v_projects_costs_summary
+select  * from v_projects_costs_summary;
 
-SELECT * FROM v_projects_costs_summary 
-WHERE (TO_DATE("Fecha de Inicio", 'DD/MM/YYYY') <= TO_DATE('2025-05-01', 'YYYY-MM-DD') 
-   AND TO_DATE("Fecha de Término", 'DD/MM/YYYY') >= TO_DATE('2025-05-01', 'YYYY-MM-DD'));
+DROP VIEW v_projects_costs_summary;
 
 CREATE OR REPLACE VIEW v_projects_costs_summary AS
 WITH project_costs AS (
