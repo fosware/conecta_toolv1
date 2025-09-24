@@ -326,7 +326,13 @@ const ProjectOverview = forwardRef<ProjectOverviewRef, ProjectOverviewProps>(fun
         });
         
         // Actualizar el estado del proyecto basado en el progreso
-        setProjectStatusBadge(getProjectStatusBadge(newProgress, hasInProgressActivities));
+        const initialStatusBadge = getProjectStatusBadge(newProgress, hasInProgressActivities);
+        setProjectStatusBadge(initialStatusBadge);
+        
+        // Notificar al componente padre del progreso inicial
+        if (onProjectStatusChange) {
+          onProjectStatusChange(projectId, newProgress, initialStatusBadge.text);
+        }
         
         // Si no hay categoría activa, seleccionar la primera
         if (mappedCategories.length > 0 && !activeCategoryId) {

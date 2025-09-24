@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -25,16 +25,16 @@ import {
 import { TableSkeleton } from "@/components/table-skeleton";
 import {
   Search,
-  ChevronDown,
   ChevronRight,
   FileText,
   LayoutList,
   MessageSquare,
 } from "lucide-react";
-import { Pagination } from "@/components/ui/pagination";
+import { ChevronDown, Eye, Settings } from "lucide-react";
 import { useUserRole } from "@/hooks/use-user-role";
 import { getToken } from "@/lib/auth";
 import { toast } from "sonner";
+import { Pagination } from "@/components/ui/pagination";
 import ProjectOverview, {
   ProjectOverviewRef,
 } from "./components/project-overview";
@@ -135,6 +135,42 @@ const getProjectTitle = (project: ProjectWithRelations) => {
   return "Sin título";
 };
 
+// Componente memoizado para el cálculo del progreso (optimización de rendimiento)
+const ProgressDisplay = React.memo(
+  ({ groupedProject }: { groupedProject: GroupedProject }) => {
+    const progresoPromedio = useMemo(() => {
+      const totalAsociados = groupedProject.asociados.length;
+      if (totalAsociados === 0) return 0;
+
+      const totalProgress = groupedProject.asociados.reduce((acc, asociado) => {
+        // Si no tiene realProgress, mostrar 0% para mejorar UX (efecto "cargando")
+        const progress = asociado.realProgress ?? 0;
+        return acc + progress;
+      }, 0);
+
+      return Math.round(totalProgress / totalAsociados);
+    }, [groupedProject.asociados]);
+
+    return (
+      <div className="flex items-center">
+        <div className="flex items-center gap-3 w-[200px]">
+          <div className="flex-1 bg-gray-200 rounded-full h-2 min-w-[140px]">
+            <div
+              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${progresoPromedio}%` }}
+            />
+          </div>
+          <span className="text-sm font-medium text-gray-700 min-w-[35px] text-right">
+            {progresoPromedio}%
+          </span>
+        </div>
+      </div>
+    );
+  }
+);
+
+ProgressDisplay.displayName = "ProgressDisplay";
+
 export default function ProjectsPage() {
   const {
     role,
@@ -170,6 +206,11 @@ export default function ProjectsPage() {
   const [projectForLogs, setProjectForLogs] =
     useState<ProjectWithRelations | null>(null);
 
+  // Estado para batch updates de progreso (optimización de rendimiento)
+  const [pendingProgressUpdates, setPendingProgressUpdates] = useState<
+    Map<number, { progress: number; status: string }>
+  >(new Map());
+
   // Ref para acceder al método de refresh del ProjectOverview
   const projectOverviewRef = useRef<ProjectOverviewRef>(null);
 
@@ -193,6 +234,52 @@ export default function ProjectsPage() {
   const refreshProjectOverview = () => {
     setRefreshKey((prev) => prev + 1);
   };
+
+  // Función optimizada para manejar actualizaciones de progreso con debounce
+  const handleProgressUpdate = useCallback(
+    (projectId: number, progress: number, status: string) => {
+      // Si es la carga inicial (proyecto con realProgress por defecto), actualizar inmediatamente
+      const currentProject = groupedProjects.find((gp) =>
+        gp.asociados.some((a) => a.id === projectId)
+      );
+      const asociado = currentProject?.asociados.find(
+        (a) => a.id === projectId
+      );
+      const isInitialLoad =
+        asociado?.realProgress === undefined || asociado?.realProgress === null;
+
+      if (isInitialLoad) {
+        // Para carga inicial, usar un timeout muy corto para evitar dependencia circular
+        setTimeout(() => {
+          handleProjectStatusChange(projectId, progress, status);
+        }, 1); // 1ms - prácticamente inmediato
+      } else {
+        // Usar batch update para cambios posteriores
+        setPendingProgressUpdates((prev) => {
+          const newMap = new Map(prev);
+          newMap.set(projectId, { progress, status });
+          return newMap;
+        });
+      }
+    },
+    [groupedProjects]
+  );
+
+  // Effect para procesar batch updates con debounce (optimización de rendimiento)
+  useEffect(() => {
+    if (pendingProgressUpdates.size > 0) {
+      const timer = setTimeout(() => {
+        // Procesar todas las actualizaciones pendientes de una vez
+        pendingProgressUpdates.forEach((update, projectId) => {
+          handleProjectStatusChange(projectId, update.progress, update.status);
+        });
+        // Limpiar actualizaciones pendientes
+        setPendingProgressUpdates(new Map());
+      }, 100); // Solo para cambios posteriores
+
+      return () => clearTimeout(timer);
+    }
+  }, [pendingProgressUpdates]);
 
   // Función para actualizar el estado de un proyecto en la lista cuando cambia su estado
   const handleProjectStatusChange = useCallback(
@@ -339,13 +426,8 @@ export default function ProjectsPage() {
               ...group,
               asociados: group.asociados.map((asociado) => ({
                 ...asociado,
-                realProgress:
-                  asociado.realProgress ??
-                  (asociado.projectStatusId === 3
-                    ? 100 // Completado
-                    : asociado.projectStatusId === 2
-                      ? 50 // En progreso
-                      : 0), // Por iniciar
+                // Inicializar realProgress como undefined para forzar cálculo real
+                realProgress: undefined,
               })),
             })
           );
@@ -548,51 +630,9 @@ export default function ProjectsPage() {
                                     {groupedProject.projectRequestTitle}
                                   </TableCell>
                                   <TableCell>
-                                    {(() => {
-                                      // Calcular progreso general promediando todos los asociados
-                                      const totalAsociados =
-                                        groupedProject.asociados.length;
-
-                                      if (totalAsociados === 0) return null;
-
-                                      const totalProgress =
-                                        groupedProject.asociados.reduce(
-                                          (acc, asociado) => {
-                                            // Si no tiene realProgress, usar valor por defecto basado en estado
-                                            const progress =
-                                              asociado.realProgress ??
-                                              (asociado.projectStatusId === 3
-                                                ? 100 // Completado
-                                                : asociado.projectStatusId === 2
-                                                  ? 50 // En progreso
-                                                  : 0); // Por iniciar
-                                            return acc + progress;
-                                          },
-                                          0
-                                        );
-
-                                      const progresoPromedio = Math.round(
-                                        totalProgress / totalAsociados
-                                      );
-
-                                      return (
-                                        <div className="flex items-center">
-                                          <div className="flex items-center gap-3 w-[200px]">
-                                            <div className="flex-1 bg-gray-200 rounded-full h-2 min-w-[140px]">
-                                              <div
-                                                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                                                style={{
-                                                  width: `${progresoPromedio}%`,
-                                                }}
-                                              ></div>
-                                            </div>
-                                            <span className="text-sm font-medium text-gray-700 min-w-[35px] text-right">
-                                              {progresoPromedio}%
-                                            </span>
-                                          </div>
-                                        </div>
-                                      );
-                                    })()}
+                                    <ProgressDisplay
+                                      groupedProject={groupedProject}
+                                    />
                                   </TableCell>
                                   <TableCell>
                                     {formatDateForDisplay(
@@ -670,7 +710,7 @@ export default function ProjectsPage() {
                                                 projectTitle="" // Título vacío para evitar repetición
                                                 refreshKey={refreshKey}
                                                 onProjectStatusChange={
-                                                  handleProjectStatusChange
+                                                  handleProgressUpdate
                                                 }
                                               />
                                             </div>
@@ -825,7 +865,7 @@ export default function ProjectsPage() {
                                             )}
                                             refreshKey={refreshKey}
                                             onProjectStatusChange={
-                                              handleProjectStatusChange
+                                              handleProgressUpdate
                                             }
                                           />
                                         </div>
@@ -836,6 +876,33 @@ export default function ProjectsPage() {
                               ))}
                       </TableBody>
                     </Table>
+
+                    {/* ProjectOverview ocultos para calcular progreso inicial */}
+                    <div style={{ display: "none" }}>
+                      {isAdmin
+                        ? // Para admin: usar proyectos agrupados
+                          groupedProjects.map((groupedProject) =>
+                            groupedProject.asociados.map((asociado) => (
+                              <ProjectOverview
+                                key={`hidden-${asociado.id}`}
+                                projectId={asociado.id}
+                                projectTitle=""
+                                refreshKey={refreshKey}
+                                onProjectStatusChange={handleProgressUpdate}
+                              />
+                            ))
+                          )
+                        : // Para asociado/staff: usar proyectos individuales
+                          projects.map((project) => (
+                            <ProjectOverview
+                              key={`hidden-${project.id}`}
+                              projectId={project.id}
+                              projectTitle=""
+                              refreshKey={refreshKey}
+                              onProjectStatusChange={handleProgressUpdate}
+                            />
+                          ))}
+                    </div>
                   </div>
                 )}
 
@@ -862,11 +929,21 @@ export default function ProjectsPage() {
           projectTitle={getProjectTitle(selectedProject)}
           requirementName={
             // Para Admin: ProjectRequirements es objeto directo
-            (selectedProject.ProjectRequestCompany?.ProjectRequirements as { requirementName?: string })?.requirementName ||
+            (
+              selectedProject.ProjectRequestCompany?.ProjectRequirements as {
+                requirementName?: string;
+              }
+            )?.requirementName ||
             // Para Asociado: ProjectRequirements es array
-            (selectedProject.ProjectRequestCompany?.ProjectRequirements as { requirementName?: string }[])?.[0]?.requirementName
+            (
+              selectedProject.ProjectRequestCompany?.ProjectRequirements as {
+                requirementName?: string;
+              }[]
+            )?.[0]?.requirementName
           }
-          associateName={getCompanyName(selectedProject.ProjectRequestCompany?.Company)}
+          associateName={getCompanyName(
+            selectedProject.ProjectRequestCompany?.Company
+          )}
           onSuccess={async () => {
             // Refrescar las categorías del proyecto sin parpadeo
 
