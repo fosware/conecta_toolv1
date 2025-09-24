@@ -279,9 +279,10 @@ export default function AssignedCompaniesPage() {
         <h1 className="text-2xl font-semibold text-gray-700">
           Solicitudes Asignadas
         </h1>
-        <Button>
+        {/* Botón "Nueva Asignación" ocultado - Las asignaciones se crean desde project_requests */}
+        {/* <Button>
           <Plus className="mr-2 h-4 w-4" /> Nueva Asignación
-        </Button>
+        </Button> */}
       </div>
 
       <Card>
