@@ -15,6 +15,7 @@ import { useUserStore } from "@/lib/store/useUserState";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LogOut, User } from "lucide-react";
+import { usePathname } from "next/navigation";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,9 +35,13 @@ export default function Navbar({
   setSidebarOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { profileImage, setProfileImage } = useUserStore();
   const [username, setUsername] = useState<string | null>(null);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  
+  // Detectar si estamos en la página del manual
+  const isManualPage = pathname === '/manual';
 
   // Fetch profile image on mount
   useEffect(() => {
@@ -124,11 +129,11 @@ export default function Navbar({
       <div className="flex items-center justify-between pl-4 pr-4 md:pr-6 lg:pr-8 py-4">
         {/* Contenedor del Botón Hamburguesa y Título */}
         <div className="flex items-center space-x-2 md:space-x-4">
-          {/* Botón Hamburguesa en Pantallas Pequeñas y Medianas */}
+          {/* Botón Hamburguesa en Pantallas Pequeñas y Medianas, y siempre en Manual */}
           <Button
             variant="ghost"
             size="icon"
-            className="lg:hidden" // Visible en pantallas menores a lg
+            className={isManualPage ? "" : "lg:hidden"} // Siempre visible en manual, solo en móvil en otras páginas
             onClick={() => setSidebarOpen(!isSidebarOpen)}
           >
             <svg

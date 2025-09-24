@@ -1,0 +1,242 @@
+{
+  "IMG-0": {
+    "description": "inicio de sesión",
+    "originalText": "Usuario\nContraseña\nIngresar",
+    "type": "click",
+    "timestamp": "2025-09-24T21:04:06.724Z"
+  },
+  "IMG-2": {
+    "description": "Módulo de Proyectos",
+    "originalText": "Proyectos",
+    "type": "click",
+    "timestamp": "2025-09-24T21:04:17.277Z"
+  },
+  "IMG-3": {
+    "description": "Detalle de Proyecto (overview)",
+    "originalText": "pmstamping\n2\n75% completado\nEn progreso\nDiseño de tapa\n100%\n2\nEntrega de material\n50%\nDiseño de tapa\n\nSe entregan archivos con diseño de acuerdo a medidas recibidas\n\n100%\nCompletada\nActividades\nAñadir Actividad\nPor iniciar\n0\n\nNo hay actividades en esta columna\n\nAñadir\nEn progreso\n0\n\nNo hay actividades en esta columna\n\nCompletada\n2\nEnvío de diseño\nFecha límite: 16/09/2025\nAprobación del cliente final\n\nVo. Bo. del cliente\n\nFecha límite: 17/09/2025\nCanceladas",
+    "type": "click",
+    "timestamp": "2025-09-24T21:04:22.877Z"
+  },
+  "IMG-4": {
+    "description": "Crear categorias de proyecto",
+    "originalText": "",
+    "type": "click",
+    "timestamp": "2025-09-24T21:04:25.860Z"
+  },
+  "IMG-5": {
+    "description": "Muestra Proyecto con actividades",
+    "originalText": "",
+    "type": "click",
+    "timestamp": "2025-09-24T21:04:28.460Z"
+  },
+  "IMG-6": {
+    "description": "Ventana para leer bitácora",
+    "originalText": "2",
+    "type": "click",
+    "timestamp": "2025-09-24T21:04:29.965Z"
+  },
+  "IMG-8": {
+    "description": "Crear actividad en proyecto",
+    "originalText": "Crear Actividad\nNombre de la Actividad*\nDescripción\nFecha Tentativa de Inicio*\nFecha Tentativa de Finalización*\nObservaciones\nCancelar\nCrear Actividad\nClose",
+    "type": "click",
+    "timestamp": "2025-09-24T21:04:36.580Z"
+  },
+  "IMG-9": {
+    "description": "muestra actividades canceladas del proyecto",
+    "originalText": "Canceladas",
+    "type": "click",
+    "timestamp": "2025-09-24T21:04:49.159Z"
+  },
+  "IMG-11": {
+    "description": "Crear etapas al proyecto",
+    "originalText": "Cancelar\nGuardar",
+    "type": "click",
+    "timestamp": "2025-09-24T21:05:04.365Z"
+  },
+  "IMG-13": {
+    "description": "Muestra Categorias en proyecto, asignadas a Etapas",
+    "originalText": "×",
+    "type": "click",
+    "timestamp": "2025-09-24T21:05:11.558Z"
+  },
+  "IMG-14": {
+    "description": "Gestión de proyectos",
+    "originalText": "",
+    "type": "click",
+    "timestamp": "2025-09-24T21:05:22.358Z"
+  },
+  "IMG-15": {
+    "description": "Solicitud de proyectos",
+    "originalText": "",
+    "type": "click",
+    "timestamp": "2025-09-24T21:05:30.669Z"
+  },
+  "IMG-16": {
+    "description": "Gestionar Requerimientos de una solicitud",
+    "originalText": "Requerimientos de la Solicitud\n\nGestionar requerimientos para la solicitud: Creación de tubo roscado de nylamid con buje negro de nylamid para inmersión.\n\nNombre del Requerimiento\nNúmero de Piezas\nPrioridad\nObservación\nAgregar Requerimiento\nRequerimientos Existentes\nPrioridad\tRequerimiento\tPiezas\tObservación\tAcciones\n1\tConector nylamid\t1000\tConecto 3/4 nylamid\t\n\n2\tTapa con buje\t200\tTapa roscada de 6 pulgadas con cuerda fina. Elaboración con buje nylamid de color negro.\t\nCerrar\nClose",
+    "type": "click",
+    "timestamp": "2025-09-24T21:05:39.157Z"
+  },
+  "IMG-17": {
+    "description": "solicitud de proyecto con detalle",
+    "originalText": "Cerrar",
+    "type": "click",
+    "timestamp": "2025-09-24T21:05:42.418Z"
+  },
+  "IMG-18": {
+    "description": "Editar una solicitud de proyecto",
+    "originalText": "",
+    "type": "click",
+    "timestamp": "2025-09-24T21:05:44.989Z"
+  },
+  "IMG-20": {
+    "description": "Gestionar Especialidades de requerimientos de proyecto",
+    "originalText": "Especialidades",
+    "type": "click",
+    "timestamp": "2025-09-24T21:06:00.222Z"
+  },
+  "IMG-21": {
+    "description": "mustra requerimientos de una solicitud",
+    "originalText": "Cerrar",
+    "type": "click",
+    "timestamp": "2025-09-24T21:06:04.871Z"
+  },
+  "IMG-22": {
+    "description": "Agrear certificaciones requeridas a una solicitud",
+    "originalText": "Certificaciones",
+    "type": "click",
+    "timestamp": "2025-09-24T21:06:06.117Z"
+  },
+  "IMG-23": {
+    "description": "Gestión de Asociados participantes",
+    "originalText": "Todos",
+    "type": "click",
+    "timestamp": "2025-09-24T21:06:16.582Z"
+  },
+  "IMG-25": {
+    "description": "lista asociados en elk detalle de una solicitud",
+    "originalText": "",
+    "type": "click",
+    "timestamp": "2025-09-24T21:06:25.933Z"
+  },
+  "IMG-26": {
+    "description": "muestra el detalalle de la cotización al cliente",
+    "originalText": "pmstamping",
+    "type": "click",
+    "timestamp": "2025-09-24T21:06:36.997Z"
+  },
+  "IMG-27": {
+    "description": "Muestra Aceptar o Rechazar cotización del cliente",
+    "originalText": "Cancelar",
+    "type": "click",
+    "timestamp": "2025-09-24T21:06:40.792Z"
+  },
+  "IMG-28": {
+    "description": "Aolicitudes asignadas",
+    "originalText": "",
+    "type": "click",
+    "timestamp": "2025-09-24T21:06:51.221Z"
+  },
+  "IMG-29": {
+    "description": "Documentos y cotizaciones de un asociado a una solicitud asignada",
+    "originalText": "Cotización",
+    "type": "click",
+    "timestamp": "2025-09-24T21:07:00.438Z"
+  },
+  "IMG-30": {
+    "description": "Crear asociado",
+    "originalText": "Nuevo Asociado",
+    "type": "click",
+    "timestamp": "2025-09-24T21:07:19.447Z"
+  },
+  "IMG-31": {
+    "description": "lista de Asociados",
+    "originalText": "",
+    "type": "click",
+    "timestamp": "2025-09-24T21:07:22.165Z"
+  },
+  "IMG-32": {
+    "description": "detalle de Aosciado",
+    "originalText": "",
+    "type": "click",
+    "timestamp": "2025-09-24T21:07:28.703Z"
+  },
+  "IMG-33": {
+    "description": "Certificados de un asociado",
+    "originalText": "Certificados de AioT4all\nCertificación\nSelecciona una certificación\nEs un compromiso de certificación\nFecha de Vencimiento\nArchivo de Certificado\nAgregar\nCertificación\tArchivo\tVence\tCompromiso\tAcciones\nNo hay certificados registrados\nClose",
+    "type": "click",
+    "timestamp": "2025-09-24T21:07:34.966Z"
+  },
+  "IMG-34": {
+    "description": "Especialidades de un asociado",
+    "originalText": "",
+    "type": "click",
+    "timestamp": "2025-09-24T21:07:40.286Z"
+  },
+  "IMG-35": {
+    "description": "Agregar usuarios a Asociados",
+    "originalText": "Agregar Usuario de AioT4all",
+    "type": "click",
+    "timestamp": "2025-09-24T21:07:49.758Z"
+  },
+  "IMG-36": {
+    "description": "nuevo Cliente",
+    "originalText": "Nuevo Cliente",
+    "type": "click",
+    "timestamp": "2025-09-24T21:07:58.655Z"
+  },
+  "IMG-37": {
+    "description": "Listado de Clientes",
+    "originalText": "",
+    "type": "click",
+    "timestamp": "2025-09-24T21:08:01.526Z"
+  },
+  "IMG-38": {
+    "description": "Nuevo Contacto para un Cliente",
+    "originalText": "Nuevo Contacto",
+    "type": "click",
+    "timestamp": "2025-09-24T21:08:06.798Z"
+  },
+  "IMG-39": {
+    "description": "Listado de Clientes (overview)",
+    "originalText": "",
+    "type": "click",
+    "timestamp": "2025-09-24T21:08:10.336Z"
+  },
+  "IMG-41": {
+    "description": "Modulo reportes",
+    "originalText": "Cat Especialidades",
+    "type": "click",
+    "timestamp": "2025-09-24T21:08:20.479Z"
+  },
+  "IMG-42": {
+    "description": "Catalogo especialdades",
+    "originalText": "Cat Certificaciones",
+    "type": "click",
+    "timestamp": "2025-09-24T21:08:23.847Z"
+  },
+  "IMG-43": {
+    "description": "catálogo Certificaciones",
+    "originalText": "Usuarios",
+    "type": "click",
+    "timestamp": "2025-09-24T21:08:26.247Z"
+  },
+  "IMG-44": {
+    "description": "Administrar NDAs",
+    "originalText": "",
+    "type": "click",
+    "timestamp": "2025-09-24T21:08:37.289Z"
+  },
+  "IMG-45": {
+    "description": "editar perfil de usuario",
+    "originalText": "Tooling Cluster\nA\nadmin\nProyectos\nGestión de Proyectos\nSolicitud de Proyectos\nSolicitudes Asignadas\nAsociados\nClientes\nReportes\nCat Especialidades\nCat Certificaciones\nUsuarios\nAdministración de NDA's\nEditar Perfil\nNombre *\nUsuario *\nPrimer Apellido *\nSegundo Apellido\nTeléfono\nEmail *\nContraseña\nConfirmar Contraseña\nGuardar Cambios\nPerfil\nCerrar Sesión",
+    "type": "click",
+    "timestamp": "2025-09-24T21:08:43.639Z"
+  },
+  "IMG-46": {
+    "description": "cerrar sesión",
+    "originalText": "Cerrar Sesión",
+    "type": "click",
+    "timestamp": "2025-09-24T21:08:44.565Z"
+  }
+}

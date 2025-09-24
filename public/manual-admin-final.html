@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual Completo - Administrador | Conecta Tool</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; background: #f8f9fa; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; display: grid; grid-template-columns: 300px 1fr; gap: 30px; }
+        .sidebar { position: sticky; top: 20px; height: fit-content; background: white; border-radius: 12px; padding: 25px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); border-left: 5px solid #667eea; }
+        .sidebar h3 { color: #667eea; margin-bottom: 20px; font-size: 1.2rem; border-bottom: 2px solid #e9ecef; padding-bottom: 10px; }
+        .sidebar ul { list-style: none; }
+        .sidebar li { margin-bottom: 8px; }
+        .sidebar a { color: #495057; text-decoration: none; padding: 8px 12px; border-radius: 6px; transition: all 0.3s ease; display: block; font-size: 0.9rem; }
+        .sidebar a:hover { background: #667eea; color: white; transform: translateX(5px); }
+        .main-content { background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); overflow: hidden; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px; text-align: center; }
+        .header h1 { font-size: 2.5rem; margin-bottom: 10px; font-weight: 700; }
+        .content { padding: 40px; }
+        .section { margin-bottom: 50px; padding-bottom: 30px; border-bottom: 1px solid #e9ecef; }
+        .section h2 { color: #667eea; font-size: 2.2rem; margin-bottom: 25px; border-bottom: 3px solid #667eea; padding-bottom: 15px; }
+        .section h3 { color: #495057; font-size: 1.6rem; margin: 30px 0 15px 0; }
+        .section h4 { color: #6c757d; font-size: 1.3rem; margin: 25px 0 12px 0; }
+        .screenshot-container { text-align: center; margin: 30px 0; padding: 25px; background: #f8f9fa; border-radius: 12px; border-left: 5px solid #667eea; }
+        .screenshot { max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 8px 25px rgba(0,0,0,0.15); border: 1px solid #e9ecef; }
+        .screenshot-caption { font-size: 0.9rem; color: #6c757d; margin-top: 15px; font-style: italic; }
+        .alert { padding: 18px; border-radius: 8px; margin: 25px 0; border-left: 5px solid; }
+        .alert-info { background: #d1ecf1; border-color: #17a2b8; color: #0c5460; }
+        .alert-success { background: #d4edda; border-color: #28a745; color: #155724; }
+        .alert-warning { background: #fff3cd; border-color: #ffc107; color: #856404; }
+        .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin: 30px 0; }
+        .feature-card { background: #f8f9fa; padding: 25px; border-radius: 10px; border-left: 5px solid #667eea; }
+        .feature-card h4 { color: #667eea; margin-bottom: 12px; font-size: 1.1rem; }
+        .step-list { counter-reset: step-counter; list-style: none; padding-left: 0; }
+        .step-list li { counter-increment: step-counter; margin-bottom: 15px; padding-left: 40px; position: relative; }
+        .step-list li::before { content: counter(step-counter); position: absolute; left: 0; top: 0; background: #667eea; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; font-weight: bold; }
+        .faq-container { margin: 30px 0; }
+        .faq-item { background: #f8f9fa; border-radius: 10px; padding: 25px; margin-bottom: 20px; border-left: 5px solid #667eea; transition: all 0.3s ease; }
+        .faq-item:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+        .faq-item h4 { color: #667eea; margin-bottom: 15px; font-size: 1.1rem; }
+        .faq-item p { margin-bottom: 10px; line-height: 1.6; }
+        .faq-item a { color: #667eea; text-decoration: none; font-weight: 600; }
+        .faq-item a:hover { text-decoration: underline; }
+        @media (max-width: 1024px) { .container { grid-template-columns: 1fr; } .sidebar { position: relative; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h3>📋 Navegación</h3>
+            <ul>
+                <li><a href="#introduccion">🏠 Introducción</a></li>
+                <li><a href="#login">🔐 Inicio de Sesión</a></li>
+                <li><a href="#proyectos">🚀 Gestión de Proyectos</a></li>
+                <li><a href="#solicitudes">📋 Solicitudes</a></li>
+                <li><a href="#asignadas">👥 Solicitudes Asignadas</a></li>
+                <li><a href="#asociados">🏢 Asociados</a></li>
+                <li><a href="#clientes">👤 Clientes</a></li>
+                <li><a href="#ndas">📄 NDAs</a></li>
+                <li><a href="#reportes">📈 Reportes</a></li>
+                <li><a href="#catalogos">⚙️ Catálogos</a></li>
+                <li><a href="#usuarios">👥 Usuarios</a></li>
+                <li><a href="#perfil">👤 Perfil</a></li>
+                <li><a href="#faq">❓ FAQ</a></li>
+                <li><a href="#casos-uso">🎯 Casos de Uso</a></li>
+            </ul>
+        </div>
+
+        <div class="main-content">
+            <div class="header">
+                <h1>📚 Manual Completo - Administrador</h1>
+                <p>Conecta Tool - Guía definitiva con imágenes reales</p>
+            </div>
+
+            <div class="content" id="manual-content">
+                <div class="section" id="introduccion">
+                    <h2>🏠 Introducción</h2>
+                    <p>Conecta Tool es una plataforma integral para la gestión y certificación de empresas, optimizando la conexión entre clientes y asociados calificados. Como administrador, tienes acceso completo a todas las herramientas del sistema.</p>
+                    
+                    <div class="feature-grid">
+                        <div class="feature-card">
+                            <h4>🗂️ Centralizar información</h4>
+                            <p>Administra empresas, certificaciones y proyectos desde un lugar.</p>
+                        </div>
+                        <div class="feature-card">
+                            <h4>⚡ Optimizar procesos</h4>
+                            <p>Automatiza la búsqueda de proveedores calificados.</p>
+                        </div>
+                        <div class="feature-card">
+                            <h4>✅ Garantizar calidad</h4>
+                            <p>Supervisa certificaciones y avance en tiempo real.</p>
+                        </div>
+                        <div class="feature-card">
+                            <h4>🤝 Facilitar colaboración</h4>
+                            <p>Conecta clientes, asociados y administradores.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section" id="login">
+                    <h2>🔐 Inicio de Sesión</h2>
+                    <p>El primer paso para utilizar Conecta Tool es autenticarte en el sistema. Como administrador, tendrás acceso completo a todas las funcionalidades.</p>
+                    
+                    <div class="screenshot-container" id="login-image">
+                        <!-- Imagen se carga dinámicamente -->
+                    </div>
+                    
+                    <h3>¿Cómo iniciar sesión?</h3>
+                    <ol class="step-list">
+                        <li><strong>Accede a la URL:</strong> Abre tu navegador y ve a la dirección del sistema</li>
+                        <li><strong>Ingresa tu usuario:</strong> En el campo "Usuario", escribe tu nombre de usuario asignado</li>
+                        <li><strong>Introduce tu contraseña:</strong> En el campo "Contraseña", ingresa tu clave de acceso</li>
+                        <li><strong>Inicia sesión:</strong> Haz clic en el botón "Ingresar"</li>
+                        <li><strong>Verificación:</strong> El sistema validará tus credenciales y te redirigirá al dashboard</li>
+                    </ol>
+
+                    <div class="alert alert-warning">
+                        <strong>⚠️ Importante:</strong> Si olvidaste tu contraseña, contacta al administrador del sistema para restablecerla.
+                    </div>
+
+                    <h3>¿Qué pasa después del login?</h3>
+                    <p>Una vez autenticado, accederás al <strong>dashboard principal</strong> donde verás:</p>
+                    <ul>
+                        <li>📊 <strong>Métricas generales</strong> del sistema</li>
+                        <li>🧭 <strong>Menú de navegación lateral</strong> con todos los módulos</li>
+                        <li>👤 <strong>Tu perfil de usuario</strong> en la esquina superior derecha</li>
+                    </ul>
+                </div>
+
+                <div class="section" id="proyectos">
+                    <h2>🚀 Gestión de Proyectos</h2>
+                    <p>El módulo de Gestión de Proyectos es tu <strong>torre de control</strong> para supervisar todos los proyectos activos. Aquí puedes monitorear el progreso, gestionar actividades y asegurar que todo marche según lo planeado.</p>
+                    
+                    <div class="screenshot-container" id="proyectos-image">
+                        <!-- Imagen se carga dinámicamente -->
+                    </div>
+                    
+                    <h3>¿Cómo acceder a Gestión de Proyectos?</h3>
+                    <ol class="step-list">
+                        <li><strong>Desde el menú lateral:</strong> Haz clic en "Gestión de Proyectos"</li>
+                        <li><strong>Vista general:</strong> Verás una lista de todos los proyectos activos</li>
+                        <li><strong>Expandir detalles:</strong> Haz clic en cualquier proyecto para ver su información completa</li>
+                    </ol>
+
+                    <h3>¿Qué información puedo ver de cada proyecto?</h3>
+                    <div class="screenshot-container" id="detalle-proyecto-image">
+                        <!-- Imagen se carga dinámicamente -->
+                    </div>
+                    
+                    <p>Cada proyecto te muestra:</p>
+                    <ul>
+                        <li>📊 <strong>Porcentaje de completado:</strong> Progreso general del proyecto</li>
+                        <li>🏢 <strong>Empresa asignada:</strong> Qué asociado está trabajando en el proyecto</li>
+                        <li>📋 <strong>Categorías del proyecto:</strong> Diferentes fases como "Diseño", "Producción", etc.</li>
+                        <li>📈 <strong>Progreso por categoría:</strong> Barras de avance individuales para cada fase</li>
+                        <li>🎯 <strong>Actividades:</strong> Tareas específicas organizadas por estado</li>
+                    </ul>
+
+                    <div class="alert alert-info">
+                        <strong>💡 Tip:</strong> Los porcentajes se calculan automáticamente basándose en las actividades completadas por el asociado.
+                    </div>
+
+                    <h3>¿Cómo crear una nueva actividad?</h3>
+                    <p>Las actividades son las tareas específicas que el asociado debe completar. Como administrador, puedes crear actividades para organizar mejor el trabajo.</p>
+                    
+                    <div class="screenshot-container" id="crear-actividad-image">
+                        <!-- Imagen se carga dinámicamente -->
+                    </div>
+
+                    <ol class="step-list">
+                        <li><strong>Busca el botón "Añadir Actividad":</strong> Dentro del proyecto, localiza este botón</li>
+                        <li><strong>Completa el formulario:</strong>
+                            <ul>
+                                <li><strong>Nombre de la Actividad:</strong> Título descriptivo (ej: "Envío de diseño")</li>
+                                <li><strong>Descripción:</strong> Detalles de lo que debe hacerse</li>
+                                <li><strong>Fecha de Inicio:</strong> Cuándo debe comenzar la actividad</li>
+                                <li><strong>Fecha de Finalización:</strong> Cuándo debe estar terminada</li>
+                                <li><strong>Observaciones:</strong> Notas adicionales para el asociado</li>
+                            </ul>
+                        </li>
+                        <li><strong>Guarda la actividad:</strong> Haz clic en "Crear Actividad"</li>
+                        <li><strong>Verificación:</strong> La nueva actividad aparecerá en la columna "Por iniciar"</li>
+                    </ol>
+
+                    <div class="alert alert-success">
+                        <strong>✅ Resultado:</strong> El asociado podrá ver la nueva actividad en su panel y cambiar su estado conforme avance.
+                    </div>
+
+                    <h3>¿Cómo crear y gestionar etapas del proyecto?</h3>
+                    <p>Las <strong>etapas</strong> son grandes agrupaciones que tú, como administrador, creas para organizar todas las categorías que los asociados han creado en sus proyectos.</p>
+                    
+                    <div class="screenshot-container" id="etapas-proyecto-image">
+                        <!-- Imagen se carga dinámicamente -->
+                    </div>
+
+                    <ol class="step-list">
+                        <li><strong>Accede a Gestión de Proyectos:</strong> Ve al módulo principal de proyectos</li>
+                        <li><strong>Selecciona un proyecto:</strong> Haz clic en el proyecto que quieres organizar</li>
+                        <li><strong>Crea etapas:</strong> Define grandes fases como "Diseño", "Producción", "Entrega"</li>
+                        <li><strong>Agrupa categorías:</strong> Asigna las categorías creadas por los asociados a cada etapa</li>
+                    </ol>
+
+                    <div class="alert alert-info">
+                        <strong>📌 Diferencia clave:</strong> Las <strong>categorías</strong> las crean los asociados para agrupar sus actividades. Las <strong>etapas</strong> las creas tú para organizar esas categorías.
+                    </div>
+
+                    <h3>Vista de categorías organizadas por etapas</h3>
+                    <p>Una vez que hayas organizado las categorías en etapas, podrás ver cómo se agruparon:</p>
+                    
+                    <div class="screenshot-container" id="categorias-etapas-image">
+                        <!-- Imagen se carga dinámicamente -->
+                    </div>
+
+                    <p>Esta vista te permite:</p>
+                    <ul>
+                        <li>📊 <strong>Ver el progreso por etapa:</strong> Cada etapa muestra su porcentaje de avance</li>
+                        <li>🔄 <strong>Reorganizar categorías:</strong> Mover categorías entre etapas si es necesario</li>
+                        <li>👀 <strong>Supervisar el flujo:</strong> Entender en qué fase general está el proyecto</li>
+                    </ul>
+
+                    <h3>Vista Completa del Proyecto</h3>
+                    <p>Visualización integral con todas las actividades y su estado:</p>
+                    
+                    <div class="screenshot-container" id="proyecto-actividades-image">
+                        <!-- Imagen se carga dinámicamente -->
+                    </div>
+
+                    <h3>Bitácora del Proyecto</h3>
+                    <p>Registro completo de eventos y cambios en el proyecto:</p>
+                    
+                    <div class="screenshot-container" id="bitacora-image">
+                        <!-- Imagen se carga dinámicamente -->
+                    </div>
+
+                    <h3>Actividades Canceladas</h3>
+                    <p>Gestión de actividades que fueron canceladas durante el proyecto:</p>
+                    
+                    <div class="screenshot-container" id="actividades-canceladas-image">
+                        <!-- Imagen se carga dinámicamente -->
+                    </div>
+
+                    <div class="alert alert-info">
+                        <strong>📌 Nota:</strong> La bitácora registra automáticamente todos los cambios de estado y eventos importantes del proyecto.
+                    </div>
+                </div>
+
+                <div class="section" id="solicitudes">
+                    <h2>📋 Solicitudes de Proyecto</h2>
+                    <p>Las <strong>Solicitudes de Proyecto</strong> son el punto de partida para conectar las necesidades de tus clientes con los asociados ideales. Aquí es donde comienza toda la magia del sistema.</p>
+                    
+                    <div class="screenshot-container" id="solicitudes-image">
+                        <!-- Imagen se carga dinámicamente -->
+                    </div>
+
+                    <h3>¿Cómo crear una nueva solicitud?</h3>
+                    <p>Cuando un cliente te contacta con una nueva necesidad, este es el proceso que debes seguir:</p>
+                    
+                    <ol class="step-list">
+                        <li><strong>Accede al módulo:</strong> Haz clic en "Solicitud de Proyectos" en el menú lateral</li>
+                        <li><strong>Inicia nueva solicitud:</strong> Haz clic en el botón "Nueva Solicitud"</li>
+                        <li><strong>Completa la información básica:</strong>
+                            <ul>
+                                <li><strong>Título:</strong> Nombre descriptivo del proyecto</li>
+                                <li><strong>Cliente:</strong> Selecciona la empresa cliente</li>
+                                <li><strong>Área/Contacto:</strong> Elige el departamento específico</li>
+                                <li><strong>Fecha de petición:</strong> Cuándo se solicitó</li>
+                                <li><strong>Observaciones:</strong> Detalles adicionales</li>
+                            </ul>
+                        </li>
+                        <li><strong>Guarda la solicitud:</strong> Haz clic en "Guardar"</li>
+                    </ol>
+
+                    <div class="alert alert-info">
+                        <strong>📌 Importante:</strong> Una solicitud es solo el contenedor. Lo realmente importante son los <strong>requerimientos</strong> que definirás después.
+                    </div>
+
+                    <h3>¿Cómo gestionar los requerimientos?</h3>
+                    <p>Los requerimientos son las piezas o servicios específicos que necesita el cliente. Una solicitud puede tener múltiples requerimientos.</p>
+                    
+                    <div class="screenshot-container" id="requerimientos-image">
+                        <!-- Imagen se carga dinámicamente -->
+                    </div>
+
+                    <ol class="step-list">
+                        <li><strong>Abre el gestor:</strong> En la tabla de solicitudes, haz clic en "Gestionar Requerimientos"</li>
+                        <li><strong>Agrega un requerimiento:</strong> Completa el formulario con:
+                            <ul>
+                                <li><strong>Nombre:</strong> Descripción específica (ej: "Pieza de sujeción A-45")</li>
+                                <li><strong>Número de piezas:</strong> Cantidad requerida</li>
+                                <li><strong>Prioridad:</strong> Orden de importancia</li>
+                                <li><strong>Observación:</strong> Detalles técnicos, materiales, acabados</li>
+                            </ul>
+                        </li>
+                        <li><strong>Define los criterios técnicos:</strong> Esto es crucial para encontrar los asociados correctos</li>
+                    </ol>
+
+                    <h3>¿Cómo definir especialidades requeridas?</h3>
+                    <p>Para cada requerimiento, debes especificar qué <strong>especialidades técnicas</strong> necesita el asociado para poder fabricar o proveer lo solicitado.</p>
+                    
+                    <div class="screenshot-container" id="especialidades-req-image">
+                        <!-- Imagen se carga dinámicamente -->
+                    </div>
+
+                    <ol class="step-list">
+                        <li><strong>Desde el requerimiento:</strong> Haz clic en "Especialidades" en la fila del requerimiento</li>
+                        <li><strong>Selecciona especialidades:</strong> Elige las capacidades técnicas necesarias (ej: "Maquinado CNC", "Inyección de Plástico")</li>
+                        <li><strong>Define nivel requerido:</strong> Especifica si necesita nivel básico, intermedio o avanzado</li>
+                        <li><strong>Guarda los criterios:</strong> El sistema buscará solo asociados con esas especialidades</li>
+                    </ol>
+
+                    <h3>¿Cómo agregar certificaciones requeridas?</h3>
+                    <p>Además de las especialidades, puedes requerir <strong>certificaciones específicas</strong> que garanticen la calidad y cumplimiento normativo.</p>
+                    
+                    <div class="screenshot-container" id="certificaciones-req-image">
+                        <!-- Imagen se carga dinámicamente -->
+                    </div>
+
+                    <ol class="step-list">
+                        <li><strong>Desde el requerimiento:</strong> Haz clic en "Certificaciones" en la fila del requerimiento</li>
+                        <li><strong>Selecciona certificaciones:</strong> Elige las normas necesarias (ej: "ISO 9001", "ISO 14001", "IATF 16949")</li>
+                        <li><strong>Verifica vigencia:</strong> El sistema solo considerará certificaciones vigentes</li>
+                        <li><strong>Aplica filtros:</strong> Solo aparecerán asociados que cumplan TODOS los criterios</li>
+                    </ol>
+
+                    <div class="alert alert-warning">
+                        <strong>⚠️ Importante:</strong> Mientras más específicos sean los criterios, menos asociados aparecerán como candidatos. Balancea la especificidad con la disponibilidad.
+                    </div>
+
+                    <h3>¿Cómo seleccionar asociados participantes?</h3>
+                    <p>Una vez definidos los criterios técnicos, puedes <strong>seleccionar manualmente</strong> qué asociados invitarás a cotizar, incluso si el sistema encontró más candidatos.</p>
+                    
+                    <div class="screenshot-container" id="participantes-image">
+                        <!-- Imagen se carga dinámicamente -->
+                    </div>
+
+                    <ol class="step-list">
+                        <li><strong>Revisa candidatos:</strong> El sistema te muestra todos los asociados que cumplen los criterios</li>
+                        <li><strong>Evalúa capacidades:</strong> Considera experiencia previa, capacidad productiva, ubicación</li>
+                        <li><strong>Selecciona participantes:</strong> Marca los asociados que invitarás (recomendado: 3-5 empresas)</li>
+                        <li><strong>Envía invitaciones:</strong> El sistema notificará a los asociados seleccionados</li>
+                    </ol>
+
+                    <div class="alert alert-info">
+                        <strong>💡 Estrategia:</strong> Invita suficientes asociados para tener opciones, pero no tantos que se diluya la competencia.
+                    </div>
+
+                    <h3>¿Cómo visualizar el detalle completo de una solicitud?</h3>
+                    <p>Desde la tabla principal de solicitudes, puedes acceder a toda la información detallada:</p>
+                    
+                    <div class="screenshot-container" id="vista-requerimientos-image">
+                        <!-- Imagen se carga dinámicamente -->
+                    </div>
+
+                    <p>En esta vista puedes ver:</p>
+                    <ul>
+                        <li>📋 <strong>Todos los requerimientos:</strong> Lista completa con cantidades y especificaciones</li>
+                        <li>🏢 <strong>Asociados invitados:</strong> Quiénes fueron seleccionados para cotizar</li>
+                        <li>📊 <strong>Estado de cotizaciones:</strong> Cuáles ya respondieron y cuáles están pendientes</li>
+                        <li>📅 <strong>Fechas importantes:</strong> Cuándo se creó, cuándo vence, etc.</li>
+                    </ul>
+
+                    <h3>Vista de asociados candidatos en detalle</h3>
+                    <div class="screenshot-container" id="lista-asociados-solicitud-image">
+                        <!-- Imagen se carga dinámicamente -->
+                    </div>
+
+                    <h3>¿Cómo gestionar las cotizaciones recibidas?</h3>
+                    <p>Cuando los asociados envían sus cotizaciones, tú decides cuáles incluir en la propuesta final al cliente:</p>
+                    
+                    <div class="screenshot-container" id="detalle-cotizacion-image">
+                        <!-- Imagen se carga dinámicamente -->
+                    </div>
+
+                    <ol class="step-list">
+                        <li><strong>Revisa cada cotización:</strong> Analiza precios, tiempos de entrega, condiciones</li>
+                        <li><strong>Selecciona las mejores:</strong> Marca las cotizaciones que enviarás al cliente</li>
+                        <li><strong>Justifica exclusiones:</strong> Si no seleccionas a algún asociado, escribe el motivo</li>
+                        <li><strong>Verifica el resumen:</strong> Revisa quién está seleccionado y el monto total</li>
+                        <li><strong>Envía al cliente:</strong> La propuesta consolidada se envía automáticamente</li>
+                    </ol>
+
+                    <div class="alert alert-warning">
+                        <strong>⚠️ Obligatorio:</strong> Si excluyes a un asociado de la propuesta final, DEBES escribir el motivo de la exclusión.
+                    </div>
+
+                    <h3>¿Qué pasa cuando el cliente responde?</h3>
+                    <p>El cliente puede <strong>aceptar o rechazar</strong> la cotización consolidada:</p>
+                    
+                    <div class="screenshot-container" id="aceptar-rechazar-cotizacion-image">
+                        <!-- Imagen se carga dinámicamente -->
+                    </div>
+
+                    <div class="feature-grid">
+                        <div class="feature-card">
+                            <h4>✅ Si ACEPTA:</h4>
+                            <p>La solicitud se convierte automáticamente en <strong>PROYECTO</strong> y aparece en "Gestión de Proyectos"</p>
+                        </div>
+                        <div class="feature-card">
+                            <h4>❌ Si RECHAZA:</h4>
+                            <p>La solicitud queda marcada como rechazada y puedes crear una nueva versión modificada</p>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-success">
+                        <strong>🎉 ¡Importante!</strong> Cuando el cliente acepta, el sistema automáticamente crea el proyecto y notifica a los asociados seleccionados para que inicien el trabajo.
+                    </div>
+
+                    <div class="alert alert-success">
+                        <strong>✅ Flujo Automático:</strong> El sistema busca asociados que cumplan 100% con los criterios técnicos definidos.
+                    </div>
+                </div>
+
+                <div class="section" id="asignadas">
+                    <h2>👥 Solicitudes Asignadas</h2>
+                    <p>Este módulo te muestra la <strong>relación entre asociados y solicitudes</strong> de manera organizada. Aquí puedes ver qué empresa está trabajando en qué proyecto y el estado de cada asignación.</p>
+                    
+                    <div class="screenshot-container" id="asignadas-image">
+                        <!-- Imagen se carga dinámicamente -->
+                    </div>
+
+                    <h3>¿Qué información puedo ver aquí?</h3>
+                    <p>En esta vista tienes una tabla que muestra:</p>
+                    <ul>
+                        <li>🏢 <strong>Asociado:</strong> Qué empresa está asignada</li>
+                        <li>📋 <strong>Solicitud:</strong> A qué proyecto específico</li>
+                        <li>📊 <strong>Estado:</strong> Si está cotizando, en proceso, completado, etc.</li>
+                        <li>📅 <strong>Fechas:</strong> Cuándo se asignó y fechas límite</li>
+                        <li>💰 <strong>Monto:</strong> Valor de la cotización si ya fue enviada</li>
+                    </ul>
+
+                    <h3>¿Cómo revisar documentos y cotizaciones?</h3>
+                    <p>Para cada asignación puedes ver un resumen completo de los documentos que ha subido el asociado:</p>
+                    
+                    <div class="screenshot-container" id="cotizaciones-image">
+                        <!-- Imagen se carga dinámicamente -->
+                    </div>
+
+                    <p>Desde aquí puedes:</p>
+                    <ol class="step-list">
+                        <li><strong>Descargar cotizaciones:</strong> Revisa las propuestas económicas</li>
+                        <li><strong>Ver documentos técnicos:</strong> Planos, especificaciones, muestras</li>
+                        <li><strong>Verificar certificaciones:</strong> Confirma que los documentos estén vigentes</li>
+                        <li><strong>Comunicarte con el asociado:</strong> Envía mensajes o solicita aclaraciones</li>
+                    </ol>
+
+                    <div class="alert alert-info">
+                        <strong>📌 Flujo automático:</strong> Las asignaciones se crean automáticamente cuando invitas asociados desde el módulo de "Solicitudes de Proyecto".
+                    </div>
+                </div>
+
+                <div class="section" id="asociados">
+                    <h2>🏢 Gestión de Asociados</h2>
+                    <p>Los <strong>Asociados</strong> son el corazón del sistema. Son las empresas proveedoras que fabricarán o suministrarán lo que tus clientes necesitan. Aquí gestionas toda su información, capacidades y certificaciones.</p>
+                    
+                    <div class="screenshot-container" id="asociados-list-image">
+                        <!-- Imagen se carga dinámicamente -->
+                    </div>
+
+                    <h3>¿Qué puedo hacer en la lista de asociados?</h3>
+                    <p>En esta vista principal puedes:</p>
+                    <ul>
+                        <li>👀 <strong>Ver todos los asociados:</strong> Lista completa de empresas registradas</li>
+                        <li>🔍 <strong>Buscar y filtrar:</strong> Encuentra asociados por nombre, especialidad o certificación</li>
+                        <li>📊 <strong>Ver estado:</strong> Activos, inactivos, en proceso de validación</li>
+                        <li>⚙️ <strong>Gestionar:</strong> Accede a certificaciones, especialidades y usuarios</li>
+                    </ul>
+
+                    <h3>¿Cómo crear un nuevo asociado?</h3>
+                    <p>Cuando una nueva empresa quiere ser proveedor, este es el proceso completo:</p>
+                    
+                    <div class="screenshot-container" id="nuevo-asociado-image">
+                        <!-- Imagen se carga dinámicamente -->
+                    </div>
+
+                    <ol class="step-list">
+                        <li><strong>Haz clic en "Nuevo Asociado":</strong> Botón en la parte superior de la lista</li>
+                        <li><strong>Completa información básica:</strong>
+                            <ul>
+                                <li><strong>Razón Social:</strong> Nombre legal de la empresa</li>
+                                <li><strong>Nombre Comercial:</strong> Como se conoce en el mercado</li>
+                                <li><strong>RFC/NIT:</strong> Identificación fiscal</li>
+                                <li><strong>Dirección completa:</strong> Ubicación física</li>
+                                <li><strong>Contacto principal:</strong> Teléfono y email</li>
+                            </ul>
+                        </li>
+                        <li><strong>Define capacidad productiva:</strong> Cuánto puede producir mensualmente</li>
+                        <li><strong>Establece área de cobertura:</strong> Dónde puede entregar</li>
+                        <li><strong>Guarda el registro:</strong> La empresa queda registrada pero inactiva</li>
+                    </ol>
+
+                    <div class="alert alert-warning">
+                        <strong>⚠️ Siguiente paso:</strong> Después de crear la empresa, DEBES agregar sus certificaciones y especialidades para que aparezca en las búsquedas.
+                    </div>
+
+                    <h3>¿Cómo gestionar certificaciones de un asociado?</h3>
+                    <p>Las certificaciones son fundamentales porque determinan en qué proyectos puede participar cada asociado:</p>
+                    
+                    <div class="screenshot-container" id="certificados-asociado-image">
+                        <!-- Imagen se carga dinámicamente -->
+                    </div>
+
+                    <ol class="step-list">
+                        <li><strong>Accede desde la lista:</strong> Haz clic en el ícono 🏆 "Certificados" del asociado</li>
+                        <li><strong>Agrega certificación:</strong>
+                            <ul>
+                                <li><strong>Selecciona tipo:</strong> ISO 9001, ISO 14001, IATF 16949, etc.</li>
+                                <li><strong>Sube el archivo:</strong> PDF del certificado oficial</li>
+                                <li><strong>Fecha de vencimiento:</strong> Cuándo expira</li>
+                                <li><strong>Marca si es compromiso:</strong> Si aún no la tiene pero se compromete a obtenerla</li>
+                            </ul>
+                        </li>
+                        <li><strong>Verifica vigencia:</strong> El sistema alertará cuando esté por vencer</li>
+                    </ol>
+
+                    <div class="alert alert-info">
+                        <strong>💡 Tip:</strong> Los "compromisos de certificación" permiten que asociados participen mientras obtienen la certificación requerida.
+                    </div>
+
+                    <h3>¿Cómo definir especialidades de un asociado?</h3>
+                    <p>Las especialidades definen QUÉ puede hacer cada asociado técnicamente:</p>
+                    
+                    <div class="screenshot-container" id="especialidades-asociado-image">
+                        <!-- Imagen se carga dinámicamente -->
+                    </div>
+
+                    <ol class="step-list">
+                        <li><strong>Accede desde la lista:</strong> Haz clic en el ícono 🛠️ "Especialidades" del asociado</li>
+                        <li><strong>Selecciona capacidades:</strong> Maquinado CNC, Inyección de Plástico, Soldadura, etc.</li>
+                        <li><strong>Define nivel de experiencia:</strong> Básico, Intermedio, Avanzado</li>
+                        <li><strong>Especifica materiales:</strong> Con qué materiales trabaja (acero, aluminio, plásticos, etc.)</li>
+                        <li><strong>Indica capacidad:</strong> Volúmenes que puede manejar</li>
+                    </ol>
+
+                    <h3>¿Cómo ver el perfil completo de un asociado?</h3>
+                    <p>Para tener una vista integral de toda la información:</p>
+                    
+                    <div class="screenshot-container" id="detalle-asociado-image">
+                        <!-- Imagen se carga dinámicamente -->
+                    </div>
+
+                    <p>En el perfil completo puedes ver:</p>
+                    <ul>
+                        <li>📋 <strong>Información general:</strong> Datos de contacto y ubicación</li>
+                        <li>🏆 <strong>Certificaciones vigentes:</strong> Qué normas cumple</li>
+                        <li>🛠️ <strong>Especialidades técnicas:</strong> Qué puede fabricar</li>
+                        <li>📊 <strong>Historial de proyectos:</strong> En qué ha trabajado</li>
+                        <li>⭐ <strong>Calificaciones:</strong> Evaluaciones de desempeño</li>
+                    </ul>
+
+                    <h3>¿Cómo asignar usuarios a un asociado?</h3>
+                    <p>Cada empresa asociada necesita usuarios para acceder al sistema:</p>
+                    
+                    <div class="screenshot-container" id="usuarios-asociado-image">
+                        <!-- Imagen se carga dinámicamente -->
+                    </div>
+
+                    <ol class="step-list">
+                        <li><strong>Accede desde la lista:</strong> Haz clic en el ícono 👤 "Usuarios" del asociado</li>
+                        <li><strong>Agrega usuario existente:</strong> Selecciona de la lista de usuarios con rol "Asociado"</li>
+                        <li><strong>O crea usuario nuevo:</strong> Ve a "Usuarios" → "Nuevo Usuario" → Rol "Asociado"</li>
+                        <li><strong>Vincula a la empresa:</strong> El usuario podrá ver solo los proyectos de su empresa</li>
+                    </ol>
+
+                    <div class="alert alert-warning">
+                        <strong>⚠️ Importante:</strong> Los usuarios deben tener rol "Asociado" para poder ser asignados a empresas. Un usuario "Admin" no puede ser asociado a una empresa.
+                    </div>
+
+                    <div class="alert alert-success">
+                        <strong>✅ Flujo completo:</strong> Empresa → Certificaciones → Especialidades → Usuario → ¡Lista para recibir invitaciones!
+                    </div>
+                </div>
+
+                <div class="section" id="clientes">
+                    <h2>👤 Gestión de Clientes</h2>
+                    <p>Los <strong>Clientes</strong> son las empresas que solicitan productos o servicios. Aquí administras su información, áreas de negocio y contactos para facilitar la creación de solicitudes de proyecto.</p>
+                    
+                    <div class="screenshot-container" id="clientes-list-image">
+                        <!-- Imagen se carga dinámicamente -->
+                    </div>
+
+                    <h3>¿Qué información veo en la lista de clientes?</h3>
+                    <p>La vista principal te muestra:</p>
+                    <ul>
+                        <li>🏢 <strong>Nombre de la empresa:</strong> Razón social y nombre comercial</li>
+                        <li>📍 <strong>Ubicación:</strong> Ciudad y país donde opera</li>
+                        <li>📊 <strong>Número de proyectos:</strong> Cuántas solicitudes ha hecho</li>
+                        <li>📅 <strong>Último contacto:</strong> Cuándo fue la última interacción</li>
+                        <li>⚙️ <strong>Acciones:</strong> Gestionar áreas, contactos y ver historial</li>
+                    </ul>
+
+                    <h3>¿Cómo crear un nuevo cliente?</h3>
+                    <p>Cuando una nueva empresa quiere ser tu cliente, registra su información básica:</p>
+                    
+                    <div class="screenshot-container" id="nuevo-cliente-image">
+                        <!-- Imagen se carga dinámicamente -->
+                    </div>
+
+                    <ol class="step-list">
+                        <li><strong>Haz clic en "Nuevo Cliente":</strong> Botón en la parte superior de la lista</li>
+                        <li><strong>Completa información corporativa:</strong>
+                            <ul>
+                                <li><strong>Razón Social:</strong> Nombre legal de la empresa</li>
+                                <li><strong>Nombre Comercial:</strong> Como se conoce en el mercado</li>
+                                <li><strong>RFC/NIT:</strong> Identificación fiscal</li>
+                                <li><strong>Giro empresarial:</strong> A qué se dedica (automotriz, aeroespacial, etc.)</li>
+                            </ul>
+                        </li>
+                        <li><strong>Agrega información de contacto:</strong>
+                            <ul>
+                                <li><strong>Dirección fiscal:</strong> Domicilio legal</li>
+                                <li><strong>Teléfono principal:</strong> Número de contacto general</li>
+                                <li><strong>Email corporativo:</strong> Correo oficial</li>
+                                <li><strong>Sitio web:</strong> URL de la empresa</li>
+                            </ul>
+                        </li>
+                        <li><strong>Guarda el cliente:</strong> Queda registrado y listo para agregar áreas</li>
+                    </ol>
+
+                    <div class="alert alert-info">
+                        <strong>📌 Siguiente paso:</strong> Después de crear el cliente, debes agregar sus áreas de negocio y contactos específicos.
+                    </div>
+
+                    <h3>¿Cómo gestionar contactos por área?</h3>
+                    <p>Cada cliente puede tener múltiples áreas (Compras, Ingeniería, Calidad) y cada área sus propios contactos:</p>
+                    
+                    <div class="screenshot-container" id="nuevo-contacto-image">
+                        <!-- Imagen se carga dinámicamente -->
+                    </div>
+
+                    <ol class="step-list">
+                        <li><strong>Accede desde la lista:</strong> Haz clic en "Gestionar" en la fila del cliente</li>
+                        <li><strong>Crea áreas de negocio:</strong> Define departamentos como "Compras", "Ingeniería", "Producción"</li>
+                        <li><strong>Agrega contactos por área:</strong>
+                            <ul>
+                                <li><strong>Nombre completo:</strong> Del contacto específico</li>
+                                <li><strong>Puesto:</strong> Gerente de Compras, Ingeniero de Diseño, etc.</li>
+                                <li><strong>Email directo:</strong> Para comunicación específica</li>
+                                <li><strong>Teléfono directo:</strong> Línea directa o extensión</li>
+                            </ul>
+                        </li>
+                        <li><strong>Define responsabilidades:</strong> Qué tipo de solicitudes maneja cada contacto</li>
+                    </ol>
+
+                    <h3>Vista general de la cartera de clientes</h3>
+                    <p>Para tener una perspectiva completa de todos tus clientes:</p>
+                    
+                    <div class="screenshot-container" id="clientes-overview-image">
+                        <!-- Imagen se carga dinámicamente -->
+                    </div>
+
+                    <p>Esta vista te permite:</p>
+                    <ul>
+                        <li>📊 <strong>Analizar actividad:</strong> Qué clientes son más activos</li>
+                        <li>💰 <strong>Ver valor de proyectos:</strong> Cuánto facturación genera cada cliente</li>
+                        <li>📈 <strong>Identificar tendencias:</strong> Qué tipos de proyectos solicita cada uno</li>
+                        <li>🎯 <strong>Planificar seguimiento:</strong> A quién contactar para nuevos proyectos</li>
+                    </ul>
+
+                    <div class="alert alert-success">
+                        <strong>📌 Estructura jerárquica:</strong> Cliente → Áreas de Negocio → Contactos Específicos → Solicitudes de Proyecto
+                    </div>
+
+                    <div class="alert alert-info">
+                        <strong>💡 Tip:</strong> Mantén actualizados los contactos. Un contacto desactualizado puede retrasar todo un proyecto.
+                    </div>
+                </div>
+
+                <div class="section" id="ndas">
+                    <h2>📄 Administración de NDAs</h2>
+                    <p>Gestiona los Acuerdos de Confidencialidad (NDAs) con empresas asociadas.</p>
+                    
+                    <div class="screenshot-container" id="ndas-image">
+                        <!-- Imagen se carga dinámicamente -->
+                    </div>
+
+                    <h3>Importancia de los NDAs</h3>
+                    <ul>
+                        <li><strong>Protección de información:</strong> Documentos técnicos protegidos</li>
+                        <li><strong>Acceso controlado:</strong> Solo empresas con NDA firmado ven documentos</li>
+                        <li><strong>Cumplimiento legal:</strong> Respaldo jurídico para proyectos</li>
+                    </ul>
+
+                    <div class="alert alert-warning">
+                        <strong>⚠️ Requisito:</strong> Las empresas deben tener NDA firmado para acceder a documentos técnicos de proyectos.
+                    </div>
+                </div>
+
+                <div class="section" id="reportes">
+                    <h2>📈 Módulo de Reportes</h2>
+                    <p>Centro de inteligencia de negocio con herramientas avanzadas para análisis.</p>
+                    
+                    <div class="screenshot-container" id="reportes-image">
+                        <!-- Imagen se carga dinámicamente -->
+                    </div>
+
+                    <div class="alert alert-info">
+                        <strong>💡 Tip:</strong> Usa los filtros de fecha para análisis específicos por períodos.
+                    </div>
+                </div>
+
+                <div class="section" id="catalogos">
+                    <h2>⚙️ Catálogos</h2>
+                    <p>Configuración de especialidades y certificaciones que el sistema reconocerá.</p>
+                    
+                    <h3>Catálogo de Especialidades</h3>
+                    <div class="screenshot-container" id="cat-especialidades-image">
+                        <!-- Imagen se carga dinámicamente -->
+                    </div>
+
+                    <h3>Catálogo de Certificaciones</h3>
+                    <div class="screenshot-container" id="cat-certificaciones-image">
+                        <!-- Imagen se carga dinámicamente -->
+                    </div>
+
+                    <div class="alert alert-success">
+                        <strong>💡 Consejo:</strong> Una estructura bien definida es clave para encontrar al asociado ideal automáticamente.
+                    </div>
+                </div>
+
+                <div class="section" id="usuarios">
+                    <h2>👥 Gestión de Usuarios</h2>
+                    <p>Administra las cuentas de usuario y sus roles en el sistema.</p>
+                    
+                    <div class="alert alert-warning">
+                        <strong>⚠️ Importante:</strong> Los usuarios con rol "Asociado" deben estar vinculados a una empresa para acceder a sus funcionalidades.
+                    </div>
+                </div>
+
+                <div class="section" id="perfil">
+                    <h2>👤 Perfil de Usuario</h2>
+                    <p>Gestiona tu información personal y configuración de cuenta.</p>
+                    
+                    <div class="screenshot-container" id="perfil-image">
+                        <!-- Imagen se carga dinámicamente -->
+                    </div>
+
+                    <h3>Cerrar Sesión</h3>
+                    <div class="screenshot-container" id="logout-image">
+                        <!-- Imagen se carga dinámicamente -->
+                    </div>
+                </div>
+
+                <div class="section" id="faq">
+                    <h2>❓ Preguntas Frecuentes (FAQ)</h2>
+                    <p>Aquí encontrarás respuestas rápidas a las preguntas más comunes sobre Conecta Tool, con enlaces directos a las secciones detalladas.</p>
+
+                    <div class="faq-container">
+                        <h3>🚀 Gestión de Proyectos</h3>
+                        
+                        <div class="faq-item">
+                            <h4>¿Cómo puedo ver el progreso de un proyecto?</h4>
+                            <p><strong>Respuesta:</strong> Ve a "Gestión de Proyectos" desde el menú lateral. Cada proyecto muestra su porcentaje de completado y puedes expandir los detalles para ver actividades específicas por estado (Por iniciar, En progreso, Completadas).</p>
+                            <p><strong>📖 Ver detalles:</strong> <a href="#proyectos">Gestión de Proyectos</a></p>
+                        </div>
+
+                        <div class="faq-item">
+                            <h4>¿Cuál es la diferencia entre etapas y categorías?</h4>
+                            <p><strong>Respuesta:</strong> Las <strong>categorías</strong> las crean los asociados para agrupar sus actividades (ej: "Diseño", "Fabricación"). Las <strong>etapas</strong> las creas tú como administrador para organizar esas categorías en grandes fases del proyecto.</p>
+                            <p><strong>📖 Ver detalles:</strong> <a href="#proyectos">Gestión de Proyectos - Etapas</a></p>
+                        </div>
+
+                        <div class="faq-item">
+                            <h4>¿Cómo agrego una nueva actividad a un proyecto?</h4>
+                            <p><strong>Respuesta:</strong> Dentro del proyecto, busca el botón "Añadir Actividad", completa el formulario con nombre, descripción, fechas y observaciones. La actividad aparecerá en "Por iniciar" y el asociado podrá cambiar su estado.</p>
+                            <p><strong>📖 Ver detalles:</strong> <a href="#proyectos">Gestión de Proyectos - Crear Actividades</a></p>
+                        </div>
+
+                        <h3>📋 Solicitudes y Cotizaciones</h3>
+
+                        <div class="faq-item">
+                            <h4>¿Cómo creo una nueva solicitud de proyecto?</h4>
+                            <p><strong>Respuesta:</strong> Ve a "Solicitud de Proyectos" → "Nueva Solicitud". Completa la información básica (título, cliente, área, fecha). Después agrega requerimientos específicos con cantidades y especificaciones técnicas.</p>
+                            <p><strong>📖 Ver detalles:</strong> <a href="#solicitudes">Solicitudes de Proyecto</a></p>
+                        </div>
+
+                        <div class="faq-item">
+                            <h4>¿Cómo defino qué asociados pueden participar?</h4>
+                            <p><strong>Respuesta:</strong> Para cada requerimiento, define especialidades técnicas y certificaciones necesarias. El sistema automáticamente filtrará y mostrará solo los asociados que cumplan TODOS los criterios.</p>
+                            <p><strong>📖 Ver detalles:</strong> <a href="#solicitudes">Solicitudes - Criterios Técnicos</a></p>
+                        </div>
+
+                        <div class="faq-item">
+                            <h4>¿Qué pasa si excluyo a un asociado de la cotización final?</h4>
+                            <p><strong>Respuesta:</strong> Es OBLIGATORIO escribir el motivo de la exclusión. El sistema no te permitirá enviar la cotización al cliente sin justificar por qué no incluiste a algún asociado que cotizó.</p>
+                            <p><strong>📖 Ver detalles:</strong> <a href="#solicitudes">Solicitudes - Gestión de Cotizaciones</a></p>
+                        </div>
+
+                        <div class="faq-item">
+                            <h4>¿Cuándo se convierte una solicitud en proyecto?</h4>
+                            <p><strong>Respuesta:</strong> Automáticamente cuando el cliente ACEPTA la cotización consolidada. El sistema crea el proyecto y notifica a los asociados seleccionados para que inicien el trabajo.</p>
+                            <p><strong>📖 Ver detalles:</strong> <a href="#solicitudes">Solicitudes - Aceptar/Rechazar</a></p>
+                        </div>
+
+                        <h3>🏢 Gestión de Asociados</h3>
+
+                        <div class="faq-item">
+                            <h4>¿Cómo registro un nuevo asociado?</h4>
+                            <p><strong>Respuesta:</strong> Ve a "Asociados" → "Nuevo Asociado". Completa información básica, luego DEBES agregar certificaciones y especialidades para que aparezca en las búsquedas. Finalmente, crea y asigna un usuario con rol "Asociado".</p>
+                            <p><strong>📖 Ver detalles:</strong> <a href="#asociados">Gestión de Asociados</a></p>
+                        </div>
+
+                        <div class="faq-item">
+                            <h4>¿Por qué un asociado no aparece en las búsquedas?</h4>
+                            <p><strong>Respuesta:</strong> Verifica que tenga: 1) Especialidades técnicas definidas, 2) Certificaciones vigentes, 3) Usuario asignado con rol "Asociado", 4) Estado activo. Sin estos elementos, no aparecerá como candidato.</p>
+                            <p><strong>📖 Ver detalles:</strong> <a href="#asociados">Gestión de Asociados - Flujo Completo</a></p>
+                        </div>
+
+                        <div class="faq-item">
+                            <h4>¿Qué son los "compromisos de certificación"?</h4>
+                            <p><strong>Respuesta:</strong> Permiten que un asociado participe en proyectos mientras obtiene una certificación requerida. Se marca como "compromiso" y el asociado debe obtener la certificación real en el plazo acordado.</p>
+                            <p><strong>📖 Ver detalles:</strong> <a href="#asociados">Gestión de Asociados - Certificaciones</a></p>
+                        </div>
+
+                        <h3>👤 Gestión de Clientes</h3>
+
+                        <div class="faq-item">
+                            <h4>¿Cómo organizo los contactos de un cliente?</h4>
+                            <p><strong>Respuesta:</strong> Cada cliente puede tener múltiples áreas (Compras, Ingeniería, Calidad) y cada área sus propios contactos específicos. Esto facilita dirigir las solicitudes al departamento correcto.</p>
+                            <p><strong>📖 Ver detalles:</strong> <a href="#clientes">Gestión de Clientes</a></p>
+                        </div>
+
+                        <h3>👥 Solicitudes Asignadas</h3>
+
+                        <div class="faq-item">
+                            <h4>¿Cuál es la diferencia entre "Solicitudes" y "Solicitudes Asignadas"?</h4>
+                            <p><strong>Respuesta:</strong> "Solicitudes" es donde creas y gestionas nuevas peticiones. "Solicitudes Asignadas" muestra la relación asociado-solicitud, documentos subidos y el estado de cada asignación.</p>
+                            <p><strong>📖 Ver detalles:</strong> <a href="#asignadas">Solicitudes Asignadas</a></p>
+                        </div>
+
+                        <h3>📄 NDAs y Seguridad</h3>
+
+                        <div class="faq-item">
+                            <h4>¿Por qué son importantes los NDAs?</h4>
+                            <p><strong>Respuesta:</strong> Los Acuerdos de Confidencialidad protegen la información técnica. Solo las empresas con NDA firmado pueden acceder a documentos técnicos de proyectos, garantizando protección legal.</p>
+                            <p><strong>📖 Ver detalles:</strong> <a href="#ndas">Administración de NDAs</a></p>
+                        </div>
+
+                        <h3>⚙️ Catálogos y Configuración</h3>
+
+                        <div class="faq-item">
+                            <h4>¿Cómo agrego nuevas especialidades o certificaciones al sistema?</h4>
+                            <p><strong>Respuesta:</strong> Ve a "Cat Especialidades" o "Cat Certificaciones" desde el menú. Puedes agregar nuevas categorías técnicas que luego estarán disponibles para asociados y requerimientos de proyectos.</p>
+                            <p><strong>📖 Ver detalles:</strong> <a href="#catalogos">Catálogos</a></p>
+                        </div>
+
+                        <h3>👥 Usuarios y Permisos</h3>
+
+                        <div class="faq-item">
+                            <h4>¿Qué diferencia hay entre los roles de usuario?</h4>
+                            <p><strong>Respuesta:</strong> <strong>Admin:</strong> Acceso completo a todo el sistema. <strong>Asociado:</strong> Solo ve proyectos de su empresa. <strong>Staff:</strong> Acceso limitado según configuración. Los usuarios "Asociado" deben estar vinculados a una empresa.</p>
+                            <p><strong>📖 Ver detalles:</strong> <a href="#usuarios">Gestión de Usuarios</a></p>
+                        </div>
+
+                        <h3>🔧 Problemas Técnicos</h3>
+
+                        <div class="faq-item">
+                            <h4>¿Qué hago si no puedo acceder al sistema?</h4>
+                            <p><strong>Respuesta:</strong> Verifica tu usuario y contraseña. Si olvidaste tu contraseña, contacta al administrador del sistema. Asegúrate de usar la URL correcta y que tu usuario tenga los permisos adecuados.</p>
+                            <p><strong>📖 Ver detalles:</strong> <a href="#login">Inicio de Sesión</a></p>
+                        </div>
+
+                        <div class="faq-item">
+                            <h4>¿Cómo actualizo mi información de perfil?</h4>
+                            <p><strong>Respuesta:</strong> Haz clic en tu nombre de usuario (esquina superior derecha) → "Editar Perfil". Puedes cambiar nombre, apellidos, teléfono, email y contraseña.</p>
+                            <p><strong>📖 Ver detalles:</strong> <a href="#perfil">Perfil de Usuario</a></p>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <strong>💡 ¿No encuentras tu pregunta?</strong> Revisa los <a href="#casos-uso">Casos de Uso Prácticos</a> para escenarios específicos o consulta las secciones detalladas del manual.
+                    </div>
+                </div>
+
+                <div class="section" id="casos-uso">
+                    <h2>🎯 Casos de Uso Prácticos</h2>
+                    <p>Aquí tienes algunos escenarios reales de cómo usar Conecta Tool en tu día a día:</p>
+
+                    <h3>📋 Caso 1: Cliente solicita nuevas piezas</h3>
+                    <div class="feature-card">
+                        <h4>Situación:</h4>
+                        <p>La empresa ABC necesita 500 conectores de nylamid con certificación ISO 9001.</p>
+                        
+                        <h4>¿Qué hacer?</h4>
+                        <ol>
+                            <li><strong>Crear solicitud:</strong> Ve a "Solicitud de Proyectos" → "Nueva Solicitud"</li>
+                            <li><strong>Agregar requerimiento:</strong> "500 conectores nylamid 3/4"</li>
+                            <li><strong>Definir criterios:</strong> Especialidad "Inyección de Plástico" + Certificación "ISO 9001"</li>
+                            <li><strong>Buscar asociados:</strong> El sistema te mostrará solo empresas que cumplan ambos criterios</li>
+                            <li><strong>Invitar a cotizar:</strong> Selecciona 3-5 asociados y envía invitaciones</li>
+                            <li><strong>Gestionar cotizaciones:</strong> Revisa propuestas en "Solicitudes Asignadas"</li>
+                        </ol>
+                    </div>
+
+                    <h3>🏢 Caso 2: Registrar nuevo asociado</h3>
+                    <div class="feature-card">
+                        <h4>Situación:</h4>
+                        <p>Una nueva empresa quiere ser proveedor y tiene certificaciones específicas.</p>
+                        
+                        <h4>¿Qué hacer?</h4>
+                        <ol>
+                            <li><strong>Crear empresa:</strong> Ve a "Asociados" → "Nuevo Asociado"</li>
+                            <li><strong>Completar perfil:</strong> Datos básicos, contacto, capacidad productiva</li>
+                            <li><strong>Subir certificaciones:</strong> Usa el ícono 🏆 para agregar certificados</li>
+                            <li><strong>Definir especialidades:</strong> Usa el ícono 🛠️ para especificar capacidades</li>
+                            <li><strong>Crear usuario:</strong> En "Usuarios", crea cuenta con rol "Asociado"</li>
+                            <li><strong>Vincular usuario:</strong> Usa el ícono 👤 para asignar la cuenta a la empresa</li>
+                        </ol>
+                    </div>
+
+                    <h3>📊 Caso 3: Monitorear proyecto en curso</h3>
+                    <div class="feature-card">
+                        <h4>Situación:</h4>
+                        <p>Quieres verificar el avance de un proyecto asignado hace 2 semanas.</p>
+                        
+                        <h4>¿Qué hacer?</h4>
+                        <ol>
+                            <li><strong>Ir a gestión:</strong> Ve a "Gestión de Proyectos"</li>
+                            <li><strong>Localizar proyecto:</strong> Busca por nombre de cliente o asociado</li>
+                            <li><strong>Expandir detalles:</strong> Haz clic para ver el progreso completo</li>
+                            <li><strong>Revisar actividades:</strong> Ve qué está "En progreso" y qué está "Completado"</li>
+                            <li><strong>Consultar bitácora:</strong> Haz clic en el número de la bitácora para ver eventos</li>
+                            <li><strong>Crear actividades:</strong> Si es necesario, agrega nuevas tareas</li>
+                        </ol>
+                    </div>
+
+                    <div class="alert alert-success">
+                        <strong>🎉 ¡Felicidades!</strong> Ya tienes todo lo necesario para dominar Conecta Tool. Recuerda que la práctica hace al maestro.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Mapeo de descripciones a imágenes
+        const imageMapping = {
+            "inicio de sesión": "IMG-0",
+            "Módulo de Proyectos": "IMG-2", 
+            "Detalle de Proyecto (overview)": "IMG-3",
+            "Crear actividad en proyecto": "IMG-8",
+            "Crear etapas al proyecto": "IMG-11",
+            "Gestionar Requerimientos de una solicitud": "IMG-16",
+            "Gestionar Especialidades de requerimientos de proyecto": "IMG-20",
+            "Agrear certificaciones requeridas a una solicitud": "IMG-22",
+            "Gestión de Asociados participantes": "IMG-23",
+            "Aolicitudes asignadas": "IMG-28",
+            "Documentos y cotizaciones de un asociado a una solicitud asignada": "IMG-29",
+            "lista de Asociados": "IMG-31",
+            "Crear asociado": "IMG-30",
+            "Certificados de un asociado": "IMG-33",
+            "Especialidades de un asociado": "IMG-34",
+            "Agregar usuarios a Asociados": "IMG-35",
+            "Listado de Clientes": "IMG-37",
+            "nuevo Cliente": "IMG-36",
+            "Nuevo Contacto para un Cliente": "IMG-38",
+            "Modulo reportes": "IMG-41",
+            "Catalogo especialdades": "IMG-42",
+            "catálogo Certificaciones": "IMG-43",
+            "editar perfil de usuario": "IMG-45",
+            "cerrar sesión": "IMG-46"
+        };
+
+        // Cargar imágenes y descripciones
+        async function loadManualImages() {
+            try {
+                const [stepsResponse, descriptionsResponse] = await Promise.all([
+                    fetch('./manual/manual-steps-selected-2025-09-24.json'),
+                    fetch('./manual/image-descriptions-2025-09-24.json')
+                ]);
+                
+                const steps = await stepsResponse.json();
+                const descriptions = await descriptionsResponse.json();
+                
+                // Mapear imágenes por ID
+                const imagesByID = {};
+                steps.forEach((step, index) => {
+                    imagesByID[`IMG-${index}`] = step.screenshot;
+                });
+                
+                // Cargar imágenes específicas
+                loadImage('login-image', descriptions['IMG-0'], imagesByID['IMG-0']);
+                
+                // Gestión de Proyectos
+                loadImage('proyectos-image', descriptions['IMG-2'], imagesByID['IMG-2']);
+                loadImage('detalle-proyecto-image', descriptions['IMG-3'], imagesByID['IMG-3']);
+                loadImage('crear-categorias-image', descriptions['IMG-4'], imagesByID['IMG-4']);
+                loadImage('proyecto-actividades-image', descriptions['IMG-5'], imagesByID['IMG-5']);
+                loadImage('bitacora-image', descriptions['IMG-6'], imagesByID['IMG-6']);
+                loadImage('crear-actividad-image', descriptions['IMG-8'], imagesByID['IMG-8']);
+                loadImage('actividades-canceladas-image', descriptions['IMG-9'], imagesByID['IMG-9']);
+                loadImage('etapas-proyecto-image', descriptions['IMG-11'], imagesByID['IMG-11']);
+                loadImage('categorias-etapas-image', descriptions['IMG-13'], imagesByID['IMG-13']);
+                
+                // Solicitudes de Proyecto
+                loadImage('solicitudes-image', descriptions['IMG-15'], imagesByID['IMG-15']);
+                loadImage('requerimientos-image', descriptions['IMG-16'], imagesByID['IMG-16']);
+                loadImage('solicitud-detalle-image', descriptions['IMG-17'], imagesByID['IMG-17']);
+                loadImage('editar-solicitud-image', descriptions['IMG-18'], imagesByID['IMG-18']);
+                loadImage('especialidades-req-image', descriptions['IMG-20'], imagesByID['IMG-20']);
+                loadImage('vista-requerimientos-image', descriptions['IMG-21'], imagesByID['IMG-21']);
+                loadImage('certificaciones-req-image', descriptions['IMG-22'], imagesByID['IMG-22']);
+                loadImage('participantes-image', descriptions['IMG-23'], imagesByID['IMG-23']);
+                loadImage('lista-asociados-solicitud-image', descriptions['IMG-25'], imagesByID['IMG-25']);
+                loadImage('detalle-cotizacion-image', descriptions['IMG-26'], imagesByID['IMG-26']);
+                loadImage('aceptar-rechazar-cotizacion-image', descriptions['IMG-27'], imagesByID['IMG-27']);
+                
+                // Solicitudes Asignadas
+                loadImage('asignadas-image', descriptions['IMG-28'], imagesByID['IMG-28']);
+                loadImage('cotizaciones-image', descriptions['IMG-29'], imagesByID['IMG-29']);
+                
+                // Asociados
+                loadImage('nuevo-asociado-image', descriptions['IMG-30'], imagesByID['IMG-30']);
+                loadImage('asociados-list-image', descriptions['IMG-31'], imagesByID['IMG-31']);
+                loadImage('detalle-asociado-image', descriptions['IMG-32'], imagesByID['IMG-32']);
+                loadImage('certificados-asociado-image', descriptions['IMG-33'], imagesByID['IMG-33']);
+                loadImage('especialidades-asociado-image', descriptions['IMG-34'], imagesByID['IMG-34']);
+                loadImage('usuarios-asociado-image', descriptions['IMG-35'], imagesByID['IMG-35']);
+                
+                // Clientes
+                loadImage('nuevo-cliente-image', descriptions['IMG-36'], imagesByID['IMG-36']);
+                loadImage('clientes-list-image', descriptions['IMG-37'], imagesByID['IMG-37']);
+                loadImage('nuevo-contacto-image', descriptions['IMG-38'], imagesByID['IMG-38']);
+                loadImage('clientes-overview-image', descriptions['IMG-39'], imagesByID['IMG-39']);
+                
+                // Reportes
+                loadImage('reportes-image', descriptions['IMG-41'], imagesByID['IMG-41']);
+                
+                // Catálogos
+                loadImage('cat-especialidades-image', descriptions['IMG-42'], imagesByID['IMG-42']);
+                loadImage('cat-certificaciones-image', descriptions['IMG-43'], imagesByID['IMG-43']);
+                
+                // NDAs
+                loadImage('ndas-image', descriptions['IMG-44'], imagesByID['IMG-44']);
+                
+                // Perfil y Logout
+                loadImage('perfil-image', descriptions['IMG-45'], imagesByID['IMG-45']);
+                loadImage('logout-image', descriptions['IMG-46'], imagesByID['IMG-46']);
+                
+            } catch (error) {
+                console.error('Error cargando imágenes:', error);
+            }
+        }
+        
+        function loadImage(containerId, description, screenshot) {
+            const container = document.getElementById(containerId);
+            if (container && screenshot && description) {
+                container.innerHTML = `
+                    <img src="${screenshot}" class="screenshot" alt="${description.description}">
+                    <div class="screenshot-caption">${description.description}</div>
+                `;
+            }
+        }
+        
+        // Cargar imágenes al iniciar
+        loadManualImages();
+    </script>
+</body>
+</html>

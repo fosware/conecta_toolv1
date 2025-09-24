@@ -8,6 +8,7 @@ import { useState } from "react";
 import React from "react";
 import { Toaster } from "react-hot-toast";
 import { UnreadMessagesProvider } from "../(root)/(modules)/project_request_logs/context/unread-messages-context";
+import { usePathname } from "next/navigation";
 
 export default function RootLayout({
   children,
@@ -15,6 +16,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
+  const pathname = usePathname();
+  
+  // Ocultar sidebar solo en la página del manual
+  const isManualPage = pathname === '/manual';
 
   return (
     <div className="h-screen flex flex-col">
@@ -46,8 +51,11 @@ export default function RootLayout({
           />
           <Navbar isSidebarOpen={isSidebarOpen} setSidebarOpen={setSidebarOpen} />
           <div className="flex flex-1 overflow-hidden pt-16 bg-background dark:bg-background-dark">
-            <Sidebar isOpen={isSidebarOpen} setIsOpen={setSidebarOpen} />
-            <main className="flex-1 overflow-y-auto p-4 bg-background dark:bg-background-dark w-full">
+            {/* En manual: sidebar solo cuando está abierto, en otras páginas: siempre disponible */}
+            {(isManualPage ? isSidebarOpen : true) && (
+              <Sidebar isOpen={isSidebarOpen} setIsOpen={setSidebarOpen} />
+            )}
+            <main className={`flex-1 overflow-y-auto bg-background dark:bg-background-dark w-full ${isManualPage ? '' : 'p-4'}`}>
               {children}
             </main>
           </div>

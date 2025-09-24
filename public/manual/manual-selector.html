@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Selector de Pasos para Manual - Conecta Tool</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        .step-item {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 15px;
+        }
+        .step-checkbox {
+            flex-shrink: 0;
+            margin-top: 5px;
+        }
+        .step-checkbox input {
+            transform: scale(1.2);
+        }
+        .step-content {
+            flex: 1;
+        }
+        .step-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .step-id {
+            background: #007bff;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .step-type {
+            background: #6c757d;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            margin-right: 10px;
+        }
+        .step-timestamp {
+            color: #666;
+            font-size: 12px;
+            margin-left: auto;
+        }
+        .step-text {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            font-size: 14px;
+            border-left: 3px solid #007bff;
+        }
+        .step-screenshot {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .selected-count {
+            font-weight: bold;
+            color: #007bff;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🖼️ Selector de Pasos para Manual - Conecta Tool</h1>
+        <p>Selecciona los pasos que quieres incluir en el manual final. Puedes usar los controles para seleccionar/deseleccionar en lote.</p>
+        
+        <div class="controls">
+            <button class="btn btn-primary" onclick="selectAll()">✅ Seleccionar Todo</button>
+            <button class="btn btn-secondary" onclick="deselectAll()">❌ Deseleccionar Todo</button>
+            <button class="btn btn-primary" onclick="selectByType('click')">👆 Solo Clicks</button>
+            <button class="btn btn-primary" onclick="selectByType('input')">⌨️ Solo Inputs</button>
+            <button class="btn btn-success" onclick="generateSelectedJSON()">📄 Generar JSON Clasificado</button>
+            <button class="btn btn-secondary" onclick="saveDescriptions()">💾 Guardar Descripciones</button>
+            <span class="selected-count" id="selectedCount">0 seleccionados</span>
+        </div>
+    </div>
+
+    <div id="stepsContainer">
+        <div class="loading">Cargando pasos del manual...</div>
+    </div>
+
+    <script>
+        let stepsData = [];
+        
+        // Cargar el JSON de pasos filtrados
+        async function loadSteps() {
+            try {
+                const response = await fetch('./manual-steps-selected-2025-09-24.json');
+                stepsData = await response.json();
+                renderSteps();
+            } catch (error) {
+                document.getElementById('stepsContainer').innerHTML = 
+                    '<div class="loading">❌ Error cargando los pasos. Asegúrate de que manual-steps-selected-2025-09-24.json esté en la misma carpeta.</div>';
+            }
+        }
+        
+        // Renderizar todos los pasos
+        function renderSteps() {
+            const container = document.getElementById('stepsContainer');
+            container.innerHTML = '';
+            
+            stepsData.forEach((step, index) => {
+                const stepDiv = document.createElement('div');
+                stepDiv.className = 'step-item';
+                stepDiv.innerHTML = `
+                    <div class="step-checkbox">
+                        <input type="checkbox" id="step_${index}" onchange="updateCount()">
+                    </div>
+                    <div class="step-content">
+                        <div class="step-header">
+                            <div>
+                                <span class="step-id">IMG-${index}</span>
+                                <span class="step-type">${step.type}</span>
+                                <span class="step-type">${step.tag}</span>
+                            </div>
+                            <span class="step-timestamp">${new Date(step.timestamp).toLocaleString()}</span>
+                        </div>
+                        ${step.text ? `<div class="step-text"><strong>Texto detectado:</strong> ${step.text}</div>` : ''}
+                        ${step.value ? `<div class="step-text"><strong>Valor ingresado:</strong> ${step.value}</div>` : ''}
+                        <div class="step-text">
+                            <label for="description_${index}"><strong>📝 Descripción de la imagen:</strong></label>
+                            <input type="text" id="description_${index}" placeholder="Ej: Login, Dashboard, Módulo de Reportes, etc." 
+                                   style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px;">
+                        </div>
+                        ${step.screenshot ? `<img src="${step.screenshot}" alt="Screenshot IMG-${index}" class="step-screenshot">` : ''}
+                    </div>
+                `;
+                container.appendChild(stepDiv);
+            });
+            
+            updateCount();
+        }
+        
+        // Seleccionar todos
+        function selectAll() {
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = true);
+            updateCount();
+        }
+        
+        // Deseleccionar todos
+        function deselectAll() {
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = false);
+            updateCount();
+        }
+        
+        // Seleccionar por tipo
+        function selectByType(type) {
+            deselectAll();
+            stepsData.forEach((step, index) => {
+                if (step.type === type) {
+                    document.getElementById(`step_${index}`).checked = true;
+                }
+            });
+            updateCount();
+        }
+        
+        // Actualizar contador
+        function updateCount() {
+            const selected = document.querySelectorAll('input[type="checkbox"]:checked').length;
+            document.getElementById('selectedCount').textContent = `${selected} seleccionados`;
+        }
+        
+        // Generar JSON con pasos seleccionados y descripciones
+        function generateSelectedJSON() {
+            const selectedSteps = [];
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            
+            checkboxes.forEach((checkbox, index) => {
+                if (checkbox.checked) {
+                    const step = { ...stepsData[index] };
+                    const description = document.getElementById(`description_${index}`).value.trim();
+                    
+                    // Agregar la descripción personalizada
+                    if (description) {
+                        step.manualDescription = description;
+                        step.imageId = `IMG-${index}`;
+                    }
+                    
+                    selectedSteps.push(step);
+                }
+            });
+            
+            if (selectedSteps.length === 0) {
+                alert('⚠️ No hay pasos seleccionados');
+                return;
+            }
+            
+            // Crear y descargar el archivo JSON
+            const jsonContent = JSON.stringify(selectedSteps, null, 2);
+            const blob = new Blob([jsonContent], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `manual-steps-classified-${new Date().toISOString().slice(0,10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            alert(`✅ Archivo generado con ${selectedSteps.length} pasos clasificados`);
+        }
+        
+        // Guardar solo las descripciones como referencia
+        function saveDescriptions() {
+            const descriptions = {};
+            
+            stepsData.forEach((step, index) => {
+                const description = document.getElementById(`description_${index}`).value.trim();
+                if (description) {
+                    descriptions[`IMG-${index}`] = {
+                        description: description,
+                        originalText: step.text || '',
+                        type: step.type,
+                        timestamp: step.timestamp
+                    };
+                }
+            });
+            
+            if (Object.keys(descriptions).length === 0) {
+                alert('⚠️ No hay descripciones para guardar');
+                return;
+            }
+            
+            // Crear y descargar el archivo de descripciones
+            const jsonContent = JSON.stringify(descriptions, null, 2);
+            const blob = new Blob([jsonContent], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `image-descriptions-${new Date().toISOString().slice(0,10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            alert(`✅ Descripciones guardadas: ${Object.keys(descriptions).length} imágenes clasificadas`);
+        }
+        
+        // Cargar pasos al iniciar
+        loadSteps();
+    </script>
+</body>
+</html>
