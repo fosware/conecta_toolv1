@@ -41,7 +41,12 @@ export const imagesMapping: Record<string, string> = {
   "IMG-43": "/manual/images/sys_catalog_certifications.png",
   "IMG-44": "/manual/images/sys_ndas.png",
   "IMG-45": "/manual/images/sys_edit_profile.png",
-  "IMG-46": "/manual/images/sys_logout.png"
+  "IMG-46": "/manual/images/sys_logout.png",
+  // Imágenes del manual asociado - NOMBRES DESCRIPTIVOS
+  "IMG-19": "/manual/images/req_documents_management.png", // Documentos Técnicos y Cotización
+  "IMG-24": "/manual/images/ass_certificates_module.png", // Módulo de Certificados del Asociado
+  "IMG-47": "/manual/images/nda_administration_main.png", // Administración NDA's Principal
+  "IMG-48": "/manual/images/nda_edit_form.png"  // Formulario de NDA
 };
 
 // Función helper para obtener imagen con fallback
