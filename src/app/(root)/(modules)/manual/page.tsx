@@ -302,10 +302,8 @@ export default function ManualPage() {
   const { role, isLoading } = useCurrentUser();
 
   // Determinar qué manual mostrar basado en el rol
-  const isAdmin = role === "admin";
-  const manualSections = isAdmin
-    ? adminManualSections
-    : asociadoManualSections;
+  const isAdmin = role?.toLowerCase() === "admin";
+  const manualSections = isAdmin ? adminManualSections : asociadoManualSections;
   const manualTitle = isAdmin
     ? "📚 Manual del Administrador"
     : "📚 Manual del Asociado";
