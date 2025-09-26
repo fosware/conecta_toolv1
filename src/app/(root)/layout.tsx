@@ -17,9 +17,8 @@ export default function RootLayout({
 }) {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
-  
-  // Ocultar sidebar solo en la página del manual
-  const isManualPage = pathname === '/manual';
+
+  const isManualPage = pathname === "/manual" || pathname === "/manual-admin" || pathname === "/manual-asociado";
 
   return (
     <div className="h-screen flex flex-col">
@@ -31,9 +30,9 @@ export default function RootLayout({
             toastOptions={{
               success: {
                 style: {
-                  backgroundColor: "var(--background)", 
-                  color: "var(--accent)", 
-                  border: "1px solid var(--accent)", 
+                  backgroundColor: "var(--background)",
+                  color: "var(--accent)",
+                  border: "1px solid var(--accent)",
                 },
                 iconTheme: {
                   primary: "var(--accent)",
@@ -49,13 +48,18 @@ export default function RootLayout({
               },
             }}
           />
-          <Navbar isSidebarOpen={isSidebarOpen} setSidebarOpen={setSidebarOpen} />
+          <Navbar
+            isSidebarOpen={isSidebarOpen}
+            setSidebarOpen={setSidebarOpen}
+          />
           <div className="flex flex-1 overflow-hidden pt-16 bg-background dark:bg-background-dark">
             {/* En manual: sidebar solo cuando está abierto, en otras páginas: siempre disponible */}
             {(isManualPage ? isSidebarOpen : true) && (
               <Sidebar isOpen={isSidebarOpen} setIsOpen={setSidebarOpen} />
             )}
-            <main className={`flex-1 overflow-y-auto bg-background dark:bg-background-dark w-full ${isManualPage ? '' : 'p-4'}`}>
+            <main
+              className={`flex-1 overflow-y-auto bg-background dark:bg-background-dark w-full ${isManualPage ? "" : "p-4"}`}
+            >
               {children}
             </main>
           </div>

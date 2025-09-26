@@ -41,7 +41,7 @@ export default function Navbar({
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   
   // Detectar si estamos en la página del manual
-  const isManualPage = pathname === '/manual';
+  const isManualPage = pathname === '/manual' || pathname === '/manual-admin' || pathname === '/manual-asociado';
 
   // Fetch profile image on mount
   useEffect(() => {

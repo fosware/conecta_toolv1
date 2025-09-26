@@ -56,4 +56,9 @@ export const menuItems: MenuItem[] = [
     path: "/client_company_nda",
     icon: "/icons/file-key.svg",
   },
+  {
+    name: "Manual",
+    path: "/manual",
+    icon: "/icons/file-question-mark.svg",
+  },
 ];

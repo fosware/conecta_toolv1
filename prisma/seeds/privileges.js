@@ -15,6 +15,7 @@ const privileges = [
   { name: "Administración de NDA's" },
   { name: "Reportes" },
   { name: "Gestión de Proyectos" },
+  { name: "Manual" },
 ];
 
 export async function seedPrivileges() {

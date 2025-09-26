@@ -2,6 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Estilos para resaltado de subsecciones */
+.highlight-subsection {
+  @apply bg-yellow-100 border-l-4 border-yellow-500 pl-4 transition-all duration-500;
+  animation: highlight-pulse 2s ease-in-out;
+}
+
+@keyframes highlight-pulse {
+  0% { background-color: rgb(254 249 195); }
+  50% { background-color: rgb(254 240 138); }
+  100% { background-color: rgb(254 249 195); }
+}
+
+
 
 @layer base {
   :root {
