@@ -57,13 +57,14 @@ interface ProjectRequest {
 
 interface ProjectRequirement {
   id: number;
+  requirementName?: string;
   ProjectRequest: ProjectRequest;
 }
 
 interface ProjectRequestCompany {
   id: number;
   Company?: Company;
-  ProjectRequirements?: ProjectRequirement[];
+  ProjectRequirements?: ProjectRequirement;
   projectRequestId?: number;
 }
 
@@ -125,10 +126,10 @@ const getProjectTitle = (project: ProjectWithRelations) => {
 
   // Fallback al método anterior por si acaso
   if (
-    project.ProjectRequestCompany?.ProjectRequirements?.[0]?.ProjectRequest
+    project.ProjectRequestCompany?.ProjectRequirements?.ProjectRequest
       ?.title
   ) {
-    return project.ProjectRequestCompany.ProjectRequirements[0].ProjectRequest
+    return project.ProjectRequestCompany.ProjectRequirements.ProjectRequest
       .title;
   }
 
@@ -579,6 +580,7 @@ export default function ProjectsPage() {
                             // Header para ASOCIADO/STAFF
                             <>
                               <TableHead>Asociado</TableHead>
+                              <TableHead>Requerimientos</TableHead>
                               <TableHead>Estado</TableHead>
                               <TableHead>Fecha de Creación</TableHead>
                               <TableHead className="text-right">
@@ -800,6 +802,9 @@ export default function ProjectsPage() {
                                         project.ProjectRequestCompany?.Company
                                       )}
                                     </TableCell>
+                                    <TableCell className="py-2">
+                                      {project.ProjectRequestCompany?.ProjectRequirements?.requirementName || "N/A"}
+                                    </TableCell>
                                     <TableCell>
                                       <span
                                         className={`px-2 py-1 rounded-md text-xs font-medium ${
@@ -849,8 +854,8 @@ export default function ProjectsPage() {
                                     </TableCell>
                                   </TableRow>
                                   {expandedProjectId === project.id && (
-                                    <TableRow>
-                                      <TableCell colSpan={6} className="p-0">
+                                  <TableRow>
+                                    <TableCell colSpan={6} className="p-0">
                                         <div className="bg-muted/50 p-6">
                                           <ProjectOverview
                                             ref={
@@ -928,18 +933,7 @@ export default function ProjectsPage() {
           projectId={selectedProject.id}
           projectTitle={getProjectTitle(selectedProject)}
           requirementName={
-            // Para Admin: ProjectRequirements es objeto directo
-            (
-              selectedProject.ProjectRequestCompany?.ProjectRequirements as {
-                requirementName?: string;
-              }
-            )?.requirementName ||
-            // Para Asociado: ProjectRequirements es array
-            (
-              selectedProject.ProjectRequestCompany?.ProjectRequirements as {
-                requirementName?: string;
-              }[]
-            )?.[0]?.requirementName
+            selectedProject.ProjectRequestCompany?.ProjectRequirements?.requirementName
           }
           associateName={getCompanyName(
             selectedProject.ProjectRequestCompany?.Company

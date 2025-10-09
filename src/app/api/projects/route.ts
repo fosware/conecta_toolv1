@@ -89,7 +89,9 @@ export async function GET(request: NextRequest) {
               }
             },
             ProjectRequirements: {
-              include: {
+              select: {
+                id: true,
+                requirementName: true,
                 ProjectRequest: {
                   select: {
                     id: true,
@@ -175,7 +177,9 @@ export async function GET(request: NextRequest) {
                 }
               },
               ProjectRequirements: {
-                include: {
+                select: {
+                  id: true,
+                  requirementName: true,
                   ProjectRequest: {
                     select: {
                       id: true,
