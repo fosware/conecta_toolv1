@@ -5,6 +5,7 @@ export const assignedCompanySchema = z.object({
   companyId: z.number(),
   projectRequirementsId: z.number(),
   statusId: z.number().default(1),
+  hasDeclined: z.boolean().default(false),
   ndaFile: z.string().nullable().optional(),
   ndaFileName: z.string().nullable().optional(),
   ndaSignedFile: z.string().nullable().optional(),
@@ -132,6 +133,7 @@ export interface AssignedCompany {
     }[];
   };
   requirementName?: string;
+  hasDeclined?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
   loading?: boolean;

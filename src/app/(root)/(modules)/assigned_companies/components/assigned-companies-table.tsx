@@ -74,6 +74,7 @@ export function AssignedCompaniesTable({
     Record<number, boolean>
   >({});
 
+
   // Obtener el item expandido de los datos
   const expandedItem = data.find((item) => item.id === expandedId);
 
@@ -546,19 +547,22 @@ export function AssignedCompaniesTable({
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end space-x-2">
-                    {/* Solo mostrar el botón de subir cotización si hay un NDA firmado y el estado no es "No seleccionado" */}
+                    {/* Solo mostrar el botón de subir cotización si hay un NDA firmado, el estado no es "No seleccionado" y no ha declinado */}
                     {item.status && companiesWithNDAs[item.id] === true && item.status.id !== 8 && (
                       <Button
                         variant="ghost"
                         size="icon"
-                        title="Subir cotización"
+                        title={item.hasDeclined ? "Asociado declinó cotizar" : "Subir cotización"}
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleUploadQuote(item);
+                          if (!item.hasDeclined) {
+                            handleUploadQuote(item);
+                          }
                         }}
+                        disabled={item.hasDeclined || false}
                         className="h-8 w-8"
                       >
-                        <Upload className="h-4 w-4 text-muted-foreground" />
+                        <Upload className={`h-4 w-4 ${item.hasDeclined ? 'text-muted-foreground/30' : 'text-muted-foreground'}`} />
                       </Button>
                     )}
 

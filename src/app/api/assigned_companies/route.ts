@@ -271,6 +271,7 @@ export async function GET(request: NextRequest) {
           companyId: item.companyId,
           statusId: item.statusId,
           projectRequirementsId: item.projectRequirementsId,
+          hasDeclined: item.hasDeclined || false,
         };
         
         // Acceder a las propiedades relacionadas de forma segura

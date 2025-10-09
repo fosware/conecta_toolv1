@@ -537,6 +537,7 @@ model ProjectRequestCompany {
   projectRequirementsId          Int
   statusId                       Int                                 @default(1)
   status                         StatusProjectRequest                @relation(fields: [statusId], references: [id])
+  hasDeclined                    Boolean                             @default(false)
   isActive                       Boolean                             @default(true)
   isDeleted                      Boolean                             @default(false)
   dateDeleted                    DateTime?

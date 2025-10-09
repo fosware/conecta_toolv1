@@ -59,6 +59,8 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useUserRole } from "@/hooks/use-user-role";
 
 // Interfaz para los requerimientos con los nuevos campos
 interface ProjectRequirement {
@@ -232,9 +234,11 @@ export default function ProjectRequestOverview({
   onManageParticipants,
   onRefreshData, // Nuevo prop para refrescar los datos
 }: ProjectRequestOverviewProps) {
+  const { isAdmin } = useUserRole();
   const [expandedRequirements, setExpandedRequirements] = useState<{
     [key: number]: boolean;
   }>({});
+  const [updatingDecline, setUpdatingDecline] = useState<number | null>(null);
   const [technicalDocsOpen, setTechnicalDocsOpen] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<any>(null);
   const [clientQuotationOpen, setClientQuotationOpen] = useState(false);
@@ -893,6 +897,72 @@ export default function ProjectRequestOverview({
     setIsLogsModalOpen(true);
   };
 
+  const handleDeclineToggle = async (
+    participantId: number,
+    requirementId: number,
+    hasDeclined: boolean
+  ) => {
+    setUpdatingDecline(participantId);
+    
+    // ACTUALIZACIÓN OPTIMISTA: Actualizar UI inmediatamente
+    const previousData = JSON.parse(JSON.stringify(data)); // Backup para revertir
+    
+    try {
+      // Actualizar estado local ANTES de la llamada API (optimistic update)
+      if (data.ProjectRequirements) {
+        data.ProjectRequirements.forEach((req) => {
+          if (req.id === requirementId && req.ProjectRequestCompany) {
+            req.ProjectRequestCompany.forEach((p: any) => {
+              if (p.id === participantId) {
+                p.hasDeclined = hasDeclined;
+              }
+            });
+          }
+        });
+      }
+
+      const response = await fetch(
+        `/api/project_requests/${data.id}/requirements/${requirementId}/participants/${participantId}/decline`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${getToken()}`,
+          },
+          body: JSON.stringify({ hasDeclined }),
+        }
+      );
+
+      if (!response.ok) {
+        // Revertir cambio optimista si falla
+        Object.assign(data, previousData);
+        throw new Error("Error al actualizar estado de declinación");
+      }
+
+      const result = await response.json();
+
+      toast.success(
+        hasDeclined
+          ? "Asociado marcado como declinado"
+          : "Marca de declinación removida"
+      );
+
+      // Refrescar datos desde el servidor para sincronizar
+      if (onRefreshData) {
+        onRefreshData();
+      }
+    } catch (error) {
+      console.error("Error al actualizar declinación:", error);
+      toast.error("Error al actualizar estado de declinación");
+      // Si falla, refrescar para sincronizar con servidor
+      if (onRefreshData) {
+        onRefreshData();
+      }
+    } finally {
+      setUpdatingDecline(null);
+    }
+  };
+
   const handleReviewOk = async (participant: any, requirementId: number) => {
     try {
       setUpdatingStatus(participant.id);
@@ -1384,6 +1454,39 @@ export default function ProjectRequestOverview({
                                           <span>{participant.status.name}</span>
                                         </Badge>
                                       ))}
+                                    {/* Checkbox para marcar asociado declinado - Solo Admin y statusId 2 */}
+                                    {isAdmin &&
+                                      participant.status &&
+                                      participant.status.id === 2 && (
+                                        <div 
+                                          key={`decline-${participant.id}-${participant.hasDeclined}`}
+                                          className="flex items-center gap-2.5 px-3 py-2 rounded-md border border-dashed border-muted-foreground/20 bg-muted/20 hover:bg-muted/30 dark:bg-muted/10 dark:hover:bg-muted/20 transition-colors"
+                                        >
+                                          <Checkbox
+                                            id={`declined-${participant.id}`}
+                                            checked={participant.hasDeclined || false}
+                                            onCheckedChange={(checked) =>
+                                              handleDeclineToggle(
+                                                participant.id,
+                                                requirement.id,
+                                                checked as boolean
+                                              )
+                                            }
+                                            disabled={
+                                              updatingDecline === participant.id
+                                            }
+                                            className="data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500 dark:data-[state=checked]:bg-amber-600"
+                                          />
+                                          <Label
+                                            htmlFor={`declined-${participant.id}`}
+                                            className="text-xs font-medium cursor-pointer select-none text-foreground/80 dark:text-foreground/70"
+                                          >
+                                            {updatingDecline === participant.id
+                                              ? "Actualizando..."
+                                              : "Asociado declinó"}
+                                          </Label>
+                                        </div>
+                                      )}
                                     {participant.status &&
                                       participant.status.id === 7 && (
                                         <Button
