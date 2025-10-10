@@ -37,35 +37,17 @@ export async function GET(
       return NextResponse.json([]);
     }
 
-    // Consultar directamente la tabla real con JOIN a la vista materializada para obtener progreso
-    const categories = await prisma.$queryRaw`
-      SELECT 
-        c.id,
-        c.name,
-        c.description,
-        c."projectId",
-        c."stageId",
-        COALESCE(v.progress, 0) as progress,
-        COALESCE(v.status, 'pending') as status,
-        COALESCE(v.total_active_activities, 0) as total_active_activities,
-        COALESCE(v.completed_activities, 0) as completed_activities,
-        COALESCE(v.in_progress_activities, 0) as in_progress_activities,
-        COALESCE(v.pending_activities, 0) as pending_activities,
-        COALESCE(v.cancelled_activities, 0) as cancelled_activities
-      FROM c_project_categories c
-      LEFT JOIN project_categories_with_progress v ON c.id = v.id
-      WHERE c."projectId" = ANY(${projectIds})
-        AND c."isActive" = true
-        AND c."isDeleted" = false
-      ORDER BY c."projectId", c.name;
-    `;
-
-    // Obtener actividades para cada categoría
-    const categoriesWithActivities = await Promise.all(
-      (categories as any[]).map(async (category) => {
-        const activities = await prisma.projectCategoryActivity.findMany({
+    // OPTIMIZACIÓN: Usar include de Prisma para traer actividades en una sola query
+    // En lugar de Promise.all con N queries, hacer 1 query con JOIN
+    const categories = await prisma.projectCategory.findMany({
+      where: {
+        projectId: { in: projectIds },
+        isActive: true,
+        isDeleted: false
+      },
+      include: {
+        ProjectCategoryActivity: {
           where: {
-            projectCategoryId: category.id,
             isActive: true,
             isDeleted: false
           },
@@ -75,24 +57,51 @@ export async function GET(
           orderBy: {
             name: 'asc'
           }
-        });
+        }
+      },
+      orderBy: [
+        { projectId: 'asc' },
+        { name: 'asc' }
+      ]
+    });
 
-        return {
-          id: category.id,
-          name: category.name,
-          description: category.description,
-          projectId: category.projectId,
-          stageId: category.stageId,
-          progress: Number(category.progress),
-          status: category.status,
-          activities: activities.map(activity => ({
-            id: activity.id,
-            name: activity.name,
-            status: activity.ProjectCategorActivityStatus?.name?.toLowerCase() || 'pending'
-          }))
-        };
-      })
+    // Consultar progreso de la vista materializada para cada categoría
+    const categoryIds = categories.map(c => c.id);
+    const progressData = categoryIds.length > 0 
+      ? await prisma.$queryRaw`
+          SELECT 
+            id,
+            COALESCE(progress, 0) as progress,
+            COALESCE(status, 'pending') as status
+          FROM project_categories_with_progress
+          WHERE id = ANY(${categoryIds})
+        `
+      : [];
+
+    // Mapear progreso a cada categoría
+    const progressMap = new Map(
+      (progressData as any[]).map(p => [p.id, { progress: Number(p.progress), status: p.status }])
     );
+
+    // Formatear respuesta
+    const categoriesWithActivities = categories.map(category => {
+      const progress = progressMap.get(category.id) || { progress: 0, status: 'pending' };
+      
+      return {
+        id: category.id,
+        name: category.name,
+        description: category.description,
+        projectId: category.projectId,
+        stageId: category.stageId,
+        progress: progress.progress,
+        status: progress.status,
+        activities: category.ProjectCategoryActivity.map(activity => ({
+          id: activity.id,
+          name: activity.name,
+          status: activity.ProjectCategorActivityStatus?.name?.toLowerCase() || 'pending'
+        }))
+      };
+    });
 
     return NextResponse.json(categoriesWithActivities);
 

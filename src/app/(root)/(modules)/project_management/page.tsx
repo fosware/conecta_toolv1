@@ -140,52 +140,6 @@ export default function ProjectManagementPage() {
   // Estado para almacenar el progreso de cada proyecto
   const [projectProgress, setProjectProgress] = useState<Record<number, {status: string, progress: number}>>({});
 
-  // Función para calcular el progreso de todos los proyectos
-  const calculateAllProjectsProgress = useCallback(async (projects: ProjectManagementWithRelations[]) => {
-    const progressData: Record<number, {status: string, progress: number}> = {};
-    
-    for (const project of projects) {
-      try {
-        const token = getToken();
-        if (!token) continue;
-
-        // Obtener etapas del proyecto
-        const stagesResponse = await fetch(`/api/project_management/${project.id}/project-stages`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        
-        if (stagesResponse.ok) {
-          const stages = await stagesResponse.json();
-          
-          if (stages.length > 0) {
-            // Calcular progreso promedio de etapas
-            const totalProgress = stages.reduce((sum: number, stage: any) => sum + (Number(stage.progress) || 0), 0);
-            const averageProgress = Math.round(totalProgress / stages.length);
-            
-            // Determinar estado
-            let status = 'Por iniciar';
-            if (averageProgress > 0 && averageProgress < 100) {
-              status = 'En progreso';
-            } else if (averageProgress === 100) {
-              status = 'Completado';
-            }
-            
-            progressData[project.id] = { status, progress: averageProgress };
-          } else {
-            progressData[project.id] = { status: 'Por iniciar', progress: 0 };
-          }
-        } else {
-          progressData[project.id] = { status: 'Por iniciar', progress: 0 };
-        }
-      } catch (error) {
-        console.error(`Error calculating progress for project ${project.id}:`, error);
-        progressData[project.id] = { status: 'Por iniciar', progress: 0 };
-      }
-    }
-    
-    setProjectProgress(progressData);
-  }, []);
-
   // Función para actualizar el estado del proyecto basado en el progreso
   const updateProjectStatus = useCallback((projectId: number, status: string, progress: number) => {
     // Actualizar el estado de progreso
@@ -328,9 +282,21 @@ export default function ProjectManagementPage() {
         setTotalPages(data.totalPages || 1);
         setTotalItems(data.totalItems || 0);
         
-        // Calcular progreso de todos los proyectos
+        // OPTIMIZACIÓN: Usar progreso pre-calculado del backend
         if (projects.length > 0) {
-          await calculateAllProjectsProgress(projects);
+          const progressData: Record<number, {status: string, progress: number}> = {};
+          projects.forEach((project: any) => {
+            if (project.calculatedProgress !== undefined && project.calculatedStatus) {
+              progressData[project.id] = {
+                status: project.calculatedStatus,
+                progress: project.calculatedProgress
+              };
+            } else {
+              // Fallback si no viene calculado
+              progressData[project.id] = { status: 'Por iniciar', progress: 0 };
+            }
+          });
+          setProjectProgress(progressData);
         }
       } catch (error) {
         console.error("Error loading projects:", error);
@@ -368,7 +334,7 @@ export default function ProjectManagementPage() {
         if (showLoading) setLoading(false);
       }
     },
-    [currentPage, itemsPerPage, showActive, debouncedSearchTerm, calculateAllProjectsProgress] // ✅ Usar debouncedSearchTerm
+    [currentPage, itemsPerPage, showActive, debouncedSearchTerm] // ✅ Usar debouncedSearchTerm
   );
 
   // Manejador para cambiar la cantidad de elementos por página

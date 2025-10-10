@@ -243,33 +243,69 @@ const ProjectOverview = forwardRef<ProjectOverviewRef, ProjectOverviewProps>(fun
   const fetchCategories = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/projects/${projectId}/categories`, {
-        headers: {
-          Authorization: `Bearer ${getToken()}`,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
+      
+      // OPTIMIZACIÓN: Intentar con nuevo endpoint que incluye actividades
+      let data: any[];
+      let useOptimizedEndpoint = true;
+      
+      try {
+        const response = await fetch(`/api/projects/${projectId}/categories?includeActivities=true`, {
+          headers: {
+            Authorization: `Bearer ${getToken()}`,
+          },
+        });
         
-        // Mapear las categorías con sus actividades
-        // Asegurarse de que las categorías estén en el orden correcto
-        const sortedData = [...data].sort((a, b) => a.id - b.id);
+        if (response.ok) {
+          data = await response.json();
+        } else {
+          throw new Error('Optimized endpoint failed');
+        }
+      } catch (error) {
+        // FALLBACK: Si el endpoint optimizado falla, usar método antiguo
+        console.warn('Falling back to old method for fetching categories');
+        useOptimizedEndpoint = false;
+        const response = await fetch(`/api/projects/${projectId}/categories`, {
+          headers: {
+            Authorization: `Bearer ${getToken()}`,
+          },
+        });
         
-        const mappedCategories: ProjectCategory[] = await Promise.all(
-          sortedData.map(async (category: any) => {
-            // Obtener las actividades para esta categoría
+        if (!response.ok) {
+          throw new Error('Failed to fetch categories');
+        }
+        data = await response.json();
+      }
+      
+      // Asegurarse de que las categorías estén en el orden correcto
+      const sortedData = [...data].sort((a, b) => a.id - b.id);
+      
+      const mappedCategories: ProjectCategory[] = await Promise.all(
+        sortedData.map(async (category: any) => {
+          let activities: Activity[] = [];
+          
+          if (useOptimizedEndpoint && category.ProjectCategoryActivity) {
+            // OPTIMIZADO: Actividades ya vienen en la respuesta
+            activities = category.ProjectCategoryActivity.map((activity: any) => ({
+              id: activity.id,
+              title: activity.name,
+              description: activity.description || "",
+              status: activity.projectCategoryActivityStatusId === 3 ? "completed" :
+                      activity.projectCategoryActivityStatusId === 2 ? "in-progress" :
+                      activity.projectCategoryActivityStatusId === 4 ? "cancelled" : "pending",
+              categoryId: category.id,
+              dueDate: activity.dateTentativeEnd,
+              assignedTo: activity.assignedTo
+            }));
+          } else {
+            // FALLBACK: Obtener actividades con llamada separada (método antiguo)
             const activityResponse = await fetch(`/api/projects/${projectId}/categories/${category.id}/activities`, {
               headers: {
                 Authorization: `Bearer ${getToken()}`,
               },
             });
             
-            let activities: Activity[] = [];
             if (activityResponse.ok) {
               const activityData = await activityResponse.json();
-              
-              // Mapear las actividades
               activities = activityData.map((activity: any) => ({
                 id: activity.id,
                 title: activity.name,
@@ -282,65 +318,65 @@ const ProjectOverview = forwardRef<ProjectOverviewRef, ProjectOverviewProps>(fun
                 assignedTo: activity.assignedTo
               }));
             }
+          }
+          
+          // Determinar el estado de la categoría basado en sus actividades
+          let status = "pending";
+          if (activities.length > 0) {
+            const completedActivities = activities.filter(a => a.status === "completed").length;
+            const inProgressActivities = activities.filter(a => a.status === "in-progress").length;
+            const totalActivities = activities.length;
             
-            // Determinar el estado de la categoría basado en sus actividades
-            let status = "pending";
-            if (activities.length > 0) {
-              const completedActivities = activities.filter(a => a.status === "completed").length;
-              const inProgressActivities = activities.filter(a => a.status === "in-progress").length;
-              const totalActivities = activities.length;
-              
-              if (completedActivities === totalActivities) {
-                status = "completed";
-              } else if (inProgressActivities > 0 || completedActivities > 0) {
-                status = "in-progress";
-              }
+            if (completedActivities === totalActivities) {
+              status = "completed";
+            } else if (inProgressActivities > 0 || completedActivities > 0) {
+              status = "in-progress";
             }
-            
-            return {
-              id: category.id,
-              name: category.name,
-              description: category.description,
-              status: status as "pending" | "in-progress" | "completed",
-              activities: activities,
-              projectId: category.projectId,
-              isActive: category.isActive,
-              createdAt: category.createdAt,
-              updatedAt: category.updatedAt
-            };
-          })
-        );
-        
-        setCategories(mappedCategories);
-        
-        // Calcular y actualizar el progreso general del proyecto
-        const newProgress = calculateProgress(mappedCategories);
-        setProgressValue(newProgress);
-        
-        // Verificar si hay actividades en progreso para el estado del proyecto
-        let hasInProgressActivities = false;
-        mappedCategories.forEach(category => {
-          if (category.activities && category.activities.some(activity => activity.status === "in-progress")) {
-            hasInProgressActivities = true;
           }
-        });
-        
-        // Actualizar el estado del proyecto basado en el progreso
-        const initialStatusBadge = getProjectStatusBadge(newProgress, hasInProgressActivities);
-        setProjectStatusBadge(initialStatusBadge);
-        
-        // Notificar al componente padre del progreso inicial
-        if (onProjectStatusChange) {
-          onProjectStatusChange(projectId, newProgress, initialStatusBadge.text);
+          
+          return {
+            id: category.id,
+            name: category.name,
+            description: category.description,
+            status: status as "pending" | "in-progress" | "completed",
+            activities: activities,
+            projectId: category.projectId,
+            isActive: category.isActive,
+            createdAt: category.createdAt,
+            updatedAt: category.updatedAt
+          };
+        })
+      );
+      
+      setCategories(mappedCategories);
+      
+      // Calcular y actualizar el progreso general del proyecto
+      const newProgress = calculateProgress(mappedCategories);
+      setProgressValue(newProgress);
+      
+      // Verificar si hay actividades en progreso para el estado del proyecto
+      let hasInProgressActivities = false;
+      mappedCategories.forEach(category => {
+        if (category.activities && category.activities.some(activity => activity.status === "in-progress")) {
+          hasInProgressActivities = true;
         }
-        
-        // Si no hay categoría activa, seleccionar la primera
-        if (mappedCategories.length > 0 && !activeCategoryId) {
-          setActiveCategoryId(mappedCategories[0].id);
-          // Cargar las actividades de la primera categoría
-          if (mappedCategories[0].activities) {
-            setActivities(mappedCategories[0].activities);
-          }
+      });
+      
+      // Actualizar el estado del proyecto basado en el progreso
+      const initialStatusBadge = getProjectStatusBadge(newProgress, hasInProgressActivities);
+      setProjectStatusBadge(initialStatusBadge);
+      
+      // Notificar al componente padre del progreso inicial
+      if (onProjectStatusChange) {
+        onProjectStatusChange(projectId, newProgress, initialStatusBadge.text);
+      }
+      
+      // Si no hay categoría activa, seleccionar la primera
+      if (mappedCategories.length > 0 && !activeCategoryId) {
+        setActiveCategoryId(mappedCategories[0].id);
+        // Cargar las actividades de la primera categoría
+        if (mappedCategories[0].activities) {
+          setActivities(mappedCategories[0].activities);
         }
       }
     } catch (error) {

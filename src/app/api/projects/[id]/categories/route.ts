@@ -48,6 +48,7 @@ export async function GET(
     // Obtener parámetros de consulta
     const { searchParams } = new URL(request.url);
     const active = searchParams.get("active") !== "false"; // Por defecto muestra activos
+    const includeActivities = searchParams.get("includeActivities") === "true"; // Nuevo parámetro opcional
 
     // Obtener las categorías del proyecto
     const categories = await prisma.projectCategory.findMany({
@@ -58,6 +59,19 @@ export async function GET(
       orderBy: {
         createdAt: "desc",
       },
+      // OPTIMIZACIÓN: Incluir actividades si se solicita (reduce N+1 queries)
+      ...(includeActivities && {
+        include: {
+          ProjectCategoryActivity: {
+            where: {
+              isDeleted: !active,
+            },
+            orderBy: {
+              createdAt: "asc",
+            },
+          },
+        },
+      }),
     });
 
     return NextResponse.json(categories);
