@@ -32,7 +32,6 @@ type ProjectRequestData = {
 };
 
 export async function GET(request: NextRequest) {
-  try { console.time('⏱️ [API] Total request time'); } catch {}
   try {
     // Verificar autenticación
     const userId = await getUserFromToken();
@@ -46,9 +45,6 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "10");
     const status = searchParams.get("status") || "active";
     const search = searchParams.get("search") || "";
-    
-    console.log(`🔍 [API] Request params - page: ${page}, limit: ${limit}, search: "${search}"`);
-    try { console.time('⏱️ [API] Fetch project requests'); } catch {}
 
     // Obtener directamente las solicitudes de proyecto que tienen proyectos asociados
     const projectRequests = await prisma.projectRequest.findMany({
@@ -114,8 +110,6 @@ export async function GET(request: NextRequest) {
       },
       orderBy: { updatedAt: 'desc' }
     });
-    try { console.timeEnd('⏱️ [API] Fetch project requests'); } catch {}
-    console.log(`📊 [API] Found ${projectRequests.length} project requests`);
     
     // Contar total de elementos
     const totalItems = projectRequests.length;
@@ -123,9 +117,6 @@ export async function GET(request: NextRequest) {
     // Aplicar paginación directamente
     const startIndex = (page - 1) * limit;
     const paginatedProjectRequests = projectRequests.slice(startIndex, startIndex + limit);
-    console.log(`📋 [API] Paginated to ${paginatedProjectRequests.length} projects`);
-    
-    try { console.time('⏱️ [API] Extract project IDs'); } catch {}
 
     // OPTIMIZACIÓN: Extraer todos los project IDs para calcular progreso en una sola query
     const allProjectIds: number[] = [];
@@ -140,14 +131,11 @@ export async function GET(request: NextRequest) {
         });
       });
     });
-    try { console.timeEnd('⏱️ [API] Extract project IDs'); } catch {}
-    console.log(`🎯 [API] Extracted ${allProjectIds.length} project IDs`);
 
     // OPTIMIZACIÓN: Obtener fechas de actividades SOLO de proyectos paginados
     let projectDatesMap = new Map<number, { startDate: Date | null, endDate: Date | null }>();
     
     if (allProjectIds.length > 0) {
-      try { console.time('⏱️ [API] Fetch activity dates'); } catch {}
       const activitiesWithDates = await prisma.projectCategoryActivity.findMany({
         where: {
           ProjectCategory: {
@@ -193,16 +181,12 @@ export async function GET(request: NextRequest) {
           projectDatesMap.set(projectId, { startDate, endDate });
         }
       });
-      
-      try { console.timeEnd('⏱️ [API] Fetch activity dates'); } catch {}
-      console.log(`📅 [API] Fetched dates for ${projectDatesMap.size} projects`);
     }
 
     // OPTIMIZACIÓN: Calcular progreso de todos los proyectos en una sola query
     let projectsProgressMap = new Map<number, { progress: number, status: string }>();
     
     if (allProjectIds.length > 0) {
-      try { console.time('⏱️ [API] Calculate progress'); } catch {}
       try {
         // Obtener progreso promedio de etapas para cada proyecto
         const stagesProgress = await prisma.projectStage.groupBy({
@@ -227,16 +211,12 @@ export async function GET(request: NextRequest) {
           }
           projectsProgressMap.set(item.projectId, { progress, status });
         });
-        try { console.timeEnd('⏱️ [API] Calculate progress'); } catch {}
-        console.log(`✅ [API] Calculated progress for ${projectsProgressMap.size} projects`);
       } catch (error) {
-        try { console.timeEnd('⏱️ [API] Calculate progress'); } catch {}
         console.error('❌ [API] Error calculating projects progress:', error);
         // Continuar sin progreso si falla
       }
     }
 
-    try { console.time('⏱️ [API] Transform projects data'); } catch {}
     // Transformar ProjectRequests a formato compatible con el frontend
     const projectsWithTitle = paginatedProjectRequests.map((projectRequest: ProjectRequestData) => {
       // Calcular estado general del proyecto basado en sus requerimientos
@@ -323,13 +303,9 @@ export async function GET(request: NextRequest) {
         }
       };
     });
-    try { console.timeEnd('⏱️ [API] Transform projects data'); } catch {}
 
     const actualTotalItems = projectRequests.length;
     const totalPages = Math.ceil(actualTotalItems / limit);
-
-    try { console.timeEnd('⏱️ [API] Total request time'); } catch {}
-    console.log(`🎉 [API] Returning ${projectsWithTitle.length} projects`);
     
     return NextResponse.json({
       projects: projectsWithTitle,

@@ -261,12 +261,10 @@ export default function ProjectManagementPage() {
     async (showLoading = true) => {
       // OPTIMIZACIÓN: Prevenir múltiples llamadas simultáneas
       if (isLoadingRef.current) {
-        console.log('⚠️ [Frontend] Skipping duplicate call - already loading');
         return;
       }
       
       isLoadingRef.current = true;
-      try { console.time('⏱️ [Frontend] Total load time'); } catch {}
       if (showLoading) setLoading(true);
 
       try {
@@ -278,7 +276,6 @@ export default function ProjectManagementPage() {
         }
 
         const statusFilter = showActive ? "active" : "all";
-        try { console.time('⏱️ [Frontend] API fetch'); } catch {}
         const response = await fetch(
           `/api/project_management?page=${currentPage}&limit=${itemsPerPage}&status=${statusFilter}&search=${encodeURIComponent(debouncedSearchTerm)}`,
           {
@@ -287,16 +284,13 @@ export default function ProjectManagementPage() {
             },
           }
         );
-        try { console.timeEnd('⏱️ [Frontend] API fetch'); } catch {}
 
         if (!response.ok) {
           throw new Error("Error al cargar proyectos");
         }
 
-        try { console.time('⏱️ [Frontend] Process data'); } catch {}
         const data = await response.json();
         const projects = data.projects || [];
-        console.log(`📊 [Frontend] Received ${projects.length} projects`);
         setProjects(projects);
         setTotalPages(data.totalPages || 1);
         setTotalItems(data.totalItems || 0);
@@ -304,29 +298,21 @@ export default function ProjectManagementPage() {
         // OPTIMIZACIÓN: Usar progreso pre-calculado del backend
         if (projects.length > 0) {
           const progressData: Record<number, {status: string, progress: number}> = {};
-          let withProgress = 0;
           projects.forEach((project: any) => {
             if (project.calculatedProgress !== undefined && project.calculatedStatus) {
               progressData[project.id] = {
                 status: project.calculatedStatus,
                 progress: project.calculatedProgress
               };
-              withProgress++;
             } else {
               // Fallback si no viene calculado
               progressData[project.id] = { status: 'Por iniciar', progress: 0 };
             }
           });
           setProjectProgress(progressData);
-          console.log(`✅ [Frontend] Processed progress for ${withProgress}/${projects.length} projects`);
         }
-        try { console.timeEnd('⏱️ [Frontend] Process data'); } catch {}
-        try { console.timeEnd('⏱️ [Frontend] Total load time'); } catch {}
-        console.log('🎉 [Frontend] Page ready');
       } catch (error) {
-        try { console.timeEnd('⏱️ [Frontend] API fetch'); } catch {}
-        try { console.timeEnd('⏱️ [Frontend] Total load time'); } catch {}
-        console.error("❌ [Frontend] Error loading projects:", error);
+        console.error("Error loading projects:", error);
         toast.error("Error al cargar los proyectos");
         // Datos de ejemplo para desarrollo
         setProjects([
