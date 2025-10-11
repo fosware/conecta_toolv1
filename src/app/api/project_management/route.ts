@@ -5,25 +5,14 @@ import { PrismaClient } from "@prisma/client";
 // Instancia local de Prisma para este endpoint específico
 const prisma = new PrismaClient();
 
-// Tipos para actividades con fechas
-type ActivityWithDates = {
-  dateTentativeStart: Date | null;
-  dateTentativeEnd: Date | null;
-};
-
-// Tipos para la estructura anidada
-type CategoryWithActivities = {
-  ProjectCategoryActivity: ActivityWithDates[];
-};
-
-type ProjectWithCategories = {
+// OPTIMIZACIÓN: Tipos simplificados - solo traemos IDs
+type ProjectSimple = {
   id: number;
   isDeleted: boolean;
-  ProjectCategory: CategoryWithActivities[];
 };
 
 type CompanyWithProjects = {
-  Project: ProjectWithCategories[];
+  Project: ProjectSimple[];
 };
 
 type RequirementWithCompanies = {
@@ -43,6 +32,7 @@ type ProjectRequestData = {
 };
 
 export async function GET(request: NextRequest) {
+  try { console.time('⏱️ [API] Total request time'); } catch {}
   try {
     // Verificar autenticación
     const userId = await getUserFromToken();
@@ -56,6 +46,9 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "10");
     const status = searchParams.get("status") || "active";
     const search = searchParams.get("search") || "";
+    
+    console.log(`🔍 [API] Request params - page: ${page}, limit: ${limit}, search: "${search}"`);
+    try { console.time('⏱️ [API] Fetch project requests'); } catch {}
 
     // Obtener directamente las solicitudes de proyecto que tienen proyectos asociados
     const projectRequests = await prisma.projectRequest.findMany({
@@ -98,28 +91,20 @@ export async function GET(request: NextRequest) {
             ProjectRequestCompany: {
               where: { isDeleted: false, isActive: true },
               include: {
-                Company: true,
+                Company: {
+                  select: {
+                    id: true,
+                    companyName: true,
+                    comercialName: true
+                  }
+                },
                 Project: {
                   where: { isDeleted: false },
-                  include: {
-                    ProjectStatus: true,
-                    ProjectStage: {
-                      where: { isDeleted: false },
-                      orderBy: { order: 'asc' }
-                    },
-                    // Incluir categorías y actividades para obtener fechas reales
-                    ProjectCategory: {
-                      where: { isDeleted: false },
-                      include: {
-                        ProjectCategoryActivity: {
-                          where: { isDeleted: false },
-                          select: {
-                            dateTentativeStart: true,
-                            dateTentativeEnd: true
-                          }
-                        }
-                      }
-                    }
+                  select: {
+                    id: true,
+                    isDeleted: true,
+                    // OPTIMIZACIÓN: Solo traer IDs, no incluir categories ni activities
+                    // Las fechas se calcularán cuando se necesiten
                   }
                 }
               }
@@ -129,6 +114,8 @@ export async function GET(request: NextRequest) {
       },
       orderBy: { updatedAt: 'desc' }
     });
+    try { console.timeEnd('⏱️ [API] Fetch project requests'); } catch {}
+    console.log(`📊 [API] Found ${projectRequests.length} project requests`);
     
     // Contar total de elementos
     const totalItems = projectRequests.length;
@@ -136,13 +123,16 @@ export async function GET(request: NextRequest) {
     // Aplicar paginación directamente
     const startIndex = (page - 1) * limit;
     const paginatedProjectRequests = projectRequests.slice(startIndex, startIndex + limit);
+    console.log(`📋 [API] Paginated to ${paginatedProjectRequests.length} projects`);
+    
+    try { console.time('⏱️ [API] Extract project IDs'); } catch {}
 
     // OPTIMIZACIÓN: Extraer todos los project IDs para calcular progreso en una sola query
     const allProjectIds: number[] = [];
     paginatedProjectRequests.forEach((projectRequest: ProjectRequestData) => {
       projectRequest.ProjectRequirements?.forEach((requirement: RequirementWithCompanies) => {
         requirement.ProjectRequestCompany?.forEach((company: CompanyWithProjects) => {
-          company.Project?.forEach((project: ProjectWithCategories) => {
+          company.Project?.forEach((project: ProjectSimple) => {
             if (!project.isDeleted) {
               allProjectIds.push(project.id);
             }
@@ -150,11 +140,69 @@ export async function GET(request: NextRequest) {
         });
       });
     });
+    try { console.timeEnd('⏱️ [API] Extract project IDs'); } catch {}
+    console.log(`🎯 [API] Extracted ${allProjectIds.length} project IDs`);
+
+    // OPTIMIZACIÓN: Obtener fechas de actividades SOLO de proyectos paginados
+    let projectDatesMap = new Map<number, { startDate: Date | null, endDate: Date | null }>();
+    
+    if (allProjectIds.length > 0) {
+      try { console.time('⏱️ [API] Fetch activity dates'); } catch {}
+      const activitiesWithDates = await prisma.projectCategoryActivity.findMany({
+        where: {
+          ProjectCategory: {
+            projectId: { in: allProjectIds },
+            isDeleted: false
+          },
+          isDeleted: false
+        },
+        select: {
+          dateTentativeStart: true,
+          dateTentativeEnd: true,
+          ProjectCategory: {
+            select: {
+              projectId: true
+            }
+          }
+        }
+      });
+
+      // Agrupar fechas por proyecto (filtrar las que tengan fechas)
+      const projectDates = new Map<number, Date[]>();
+      activitiesWithDates.forEach((activity: any) => {
+        // Solo procesar si tiene al menos una fecha
+        if (!activity.dateTentativeStart && !activity.dateTentativeEnd) return;
+        
+        const projectId = activity.ProjectCategory.projectId;
+        if (!projectDates.has(projectId)) {
+          projectDates.set(projectId, []);
+        }
+        if (activity.dateTentativeStart) {
+          projectDates.get(projectId)!.push(new Date(activity.dateTentativeStart));
+        }
+        if (activity.dateTentativeEnd) {
+          projectDates.get(projectId)!.push(new Date(activity.dateTentativeEnd));
+        }
+      });
+
+      // Calcular fecha min y max por proyecto
+      projectDates.forEach((dates, projectId) => {
+        if (dates.length > 0) {
+          const startDate = new Date(Math.min(...dates.map(d => d.getTime())));
+          const endDate = new Date(Math.max(...dates.map(d => d.getTime())));
+          projectDatesMap.set(projectId, { startDate, endDate });
+        }
+      });
+      
+      try { console.timeEnd('⏱️ [API] Fetch activity dates'); } catch {}
+      console.log(`📅 [API] Fetched dates for ${projectDatesMap.size} projects`);
+    }
 
     // OPTIMIZACIÓN: Calcular progreso de todos los proyectos en una sola query
     let projectsProgressMap = new Map<number, { progress: number, status: string }>();
     
     if (allProjectIds.length > 0) {
+      try { console.time('⏱️ [API] Calculate progress'); } catch {}
       try {
         // Obtener progreso promedio de etapas para cada proyecto
         const stagesProgress = await prisma.projectStage.groupBy({
@@ -179,25 +227,25 @@ export async function GET(request: NextRequest) {
           }
           projectsProgressMap.set(item.projectId, { progress, status });
         });
+        try { console.timeEnd('⏱️ [API] Calculate progress'); } catch {}
+        console.log(`✅ [API] Calculated progress for ${projectsProgressMap.size} projects`);
       } catch (error) {
-        console.error('Error calculating projects progress:', error);
+        try { console.timeEnd('⏱️ [API] Calculate progress'); } catch {}
+        console.error('❌ [API] Error calculating projects progress:', error);
         // Continuar sin progreso si falla
       }
     }
 
+    try { console.time('⏱️ [API] Transform projects data'); } catch {}
     // Transformar ProjectRequests a formato compatible con el frontend
     const projectsWithTitle = paginatedProjectRequests.map((projectRequest: ProjectRequestData) => {
       // Calcular estado general del proyecto basado en sus requerimientos
       let overallStatus = 'Pendiente';
       let hasActiveProjects = false;
       
-      // Calcular fechas de inicio y término basadas en actividades
-      let projectStartDate: Date | null = null;
-      let projectEndDate: Date | null = null;
-      const allActivityDates: Date[] = [];
-      
       // OPTIMIZACIÓN: Calcular progreso agregado de todos los proyectos del projectRequest
       const projectProgressValues: number[] = [];
+      const allProjectDates: Date[] = [];
       
       // Revisar todos los requerimientos y sus proyectos
       projectRequest.ProjectRequirements?.forEach((requirement: RequirementWithCompanies) => {
@@ -205,34 +253,23 @@ export async function GET(request: NextRequest) {
           if (company.Project?.length > 0) {
             hasActiveProjects = true;
             
-            // Recopilar progreso de proyectos
-            company.Project.forEach((project: ProjectWithCategories) => {
+            // Recopilar progreso y fechas de proyectos
+            company.Project.forEach((project: ProjectSimple) => {
               const progressData = projectsProgressMap.get(project.id);
               if (progressData) {
                 projectProgressValues.push(progressData.progress);
               }
               
-              // Recopilar fechas de todas las actividades
-              project.ProjectCategory?.forEach((category: CategoryWithActivities) => {
-                category.ProjectCategoryActivity?.forEach((activity: ActivityWithDates) => {
-                  if (activity.dateTentativeStart) {
-                    allActivityDates.push(new Date(activity.dateTentativeStart));
-                  }
-                  if (activity.dateTentativeEnd) {
-                    allActivityDates.push(new Date(activity.dateTentativeEnd));
-                  }
-                });
-              });
+              // Recopilar fechas del proyecto
+              const datesData = projectDatesMap.get(project.id);
+              if (datesData) {
+                if (datesData.startDate) allProjectDates.push(datesData.startDate);
+                if (datesData.endDate) allProjectDates.push(datesData.endDate);
+              }
             });
           }
         });
       });
-      
-      // Calcular fechas mínima y máxima
-      if (allActivityDates.length > 0) {
-        projectStartDate = new Date(Math.min(...allActivityDates.map(d => d.getTime())));
-        projectEndDate = new Date(Math.max(...allActivityDates.map(d => d.getTime())));
-      }
       
       // OPTIMIZACIÓN: Calcular progreso promedio y estado para este projectRequest
       let calculatedProgress = 0;
@@ -250,6 +287,15 @@ export async function GET(request: NextRequest) {
         }
       }
       
+      // OPTIMIZACIÓN: Calcular fechas mínima y máxima del projectRequest
+      let projectStartDate: Date | null = null;
+      let projectEndDate: Date | null = null;
+      
+      if (allProjectDates.length > 0) {
+        projectStartDate = new Date(Math.min(...allProjectDates.map(d => d.getTime())));
+        projectEndDate = new Date(Math.max(...allProjectDates.map(d => d.getTime())));
+      }
+      
       return {
         id: projectRequest.id,
         projectRequestId: projectRequest.id,
@@ -262,7 +308,7 @@ export async function GET(request: NextRequest) {
         updatedAt: projectRequest.updatedAt,
         userId: projectRequest.userId,
         projectRequestTitle: projectRequest.title,
-        // Nuevas fechas basadas en actividades
+        // OPTIMIZACIÓN: Fechas calculadas eficientemente (solo proyectos paginados)
         projectStartDate: projectStartDate,
         projectEndDate: projectEndDate,
         // OPTIMIZACIÓN: Progreso pre-calculado (evita N llamadas en frontend)
@@ -277,10 +323,14 @@ export async function GET(request: NextRequest) {
         }
       };
     });
+    try { console.timeEnd('⏱️ [API] Transform projects data'); } catch {}
 
     const actualTotalItems = projectRequests.length;
     const totalPages = Math.ceil(actualTotalItems / limit);
 
+    try { console.timeEnd('⏱️ [API] Total request time'); } catch {}
+    console.log(`🎉 [API] Returning ${projectsWithTitle.length} projects`);
+    
     return NextResponse.json({
       projects: projectsWithTitle,
       totalPages,

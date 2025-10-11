@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import {
   Card,
@@ -139,6 +139,12 @@ export default function ProjectManagementPage() {
   
   // Estado para almacenar el progreso de cada proyecto
   const [projectProgress, setProjectProgress] = useState<Record<number, {status: string, progress: number}>>({});
+  
+  // Ref para evitar llamadas duplicadas en mount inicial
+  const isInitialMount = useRef(true);
+  
+  // Ref para prevenir múltiples llamadas simultáneas
+  const isLoadingRef = useRef(false);
 
   // Función para actualizar el estado del proyecto basado en el progreso
   const updateProjectStatus = useCallback((projectId: number, status: string, progress: number) => {
@@ -253,16 +259,26 @@ export default function ProjectManagementPage() {
   // Función para cargar proyectos - optimizada con useCallback
   const loadProjects = useCallback(
     async (showLoading = true) => {
+      // OPTIMIZACIÓN: Prevenir múltiples llamadas simultáneas
+      if (isLoadingRef.current) {
+        console.log('⚠️ [Frontend] Skipping duplicate call - already loading');
+        return;
+      }
+      
+      isLoadingRef.current = true;
+      try { console.time('⏱️ [Frontend] Total load time'); } catch {}
       if (showLoading) setLoading(true);
 
       try {
         const token = getToken();
         if (!token) {
+          isLoadingRef.current = false;
           toast.error("No se encontró token de autenticación");
           return;
         }
 
         const statusFilter = showActive ? "active" : "all";
+        try { console.time('⏱️ [Frontend] API fetch'); } catch {}
         const response = await fetch(
           `/api/project_management?page=${currentPage}&limit=${itemsPerPage}&status=${statusFilter}&search=${encodeURIComponent(debouncedSearchTerm)}`,
           {
@@ -271,13 +287,16 @@ export default function ProjectManagementPage() {
             },
           }
         );
+        try { console.timeEnd('⏱️ [Frontend] API fetch'); } catch {}
 
         if (!response.ok) {
           throw new Error("Error al cargar proyectos");
         }
 
+        try { console.time('⏱️ [Frontend] Process data'); } catch {}
         const data = await response.json();
         const projects = data.projects || [];
+        console.log(`📊 [Frontend] Received ${projects.length} projects`);
         setProjects(projects);
         setTotalPages(data.totalPages || 1);
         setTotalItems(data.totalItems || 0);
@@ -285,21 +304,29 @@ export default function ProjectManagementPage() {
         // OPTIMIZACIÓN: Usar progreso pre-calculado del backend
         if (projects.length > 0) {
           const progressData: Record<number, {status: string, progress: number}> = {};
+          let withProgress = 0;
           projects.forEach((project: any) => {
             if (project.calculatedProgress !== undefined && project.calculatedStatus) {
               progressData[project.id] = {
                 status: project.calculatedStatus,
                 progress: project.calculatedProgress
               };
+              withProgress++;
             } else {
               // Fallback si no viene calculado
               progressData[project.id] = { status: 'Por iniciar', progress: 0 };
             }
           });
           setProjectProgress(progressData);
+          console.log(`✅ [Frontend] Processed progress for ${withProgress}/${projects.length} projects`);
         }
+        try { console.timeEnd('⏱️ [Frontend] Process data'); } catch {}
+        try { console.timeEnd('⏱️ [Frontend] Total load time'); } catch {}
+        console.log('🎉 [Frontend] Page ready');
       } catch (error) {
-        console.error("Error loading projects:", error);
+        try { console.timeEnd('⏱️ [Frontend] API fetch'); } catch {}
+        try { console.timeEnd('⏱️ [Frontend] Total load time'); } catch {}
+        console.error("❌ [Frontend] Error loading projects:", error);
         toast.error("Error al cargar los proyectos");
         // Datos de ejemplo para desarrollo
         setProjects([
@@ -331,6 +358,7 @@ export default function ProjectManagementPage() {
           },
         ]);
       } finally {
+        isLoadingRef.current = false;
         if (showLoading) setLoading(false);
       }
     },
@@ -352,6 +380,12 @@ export default function ProjectManagementPage() {
 
   // Efecto separado para búsquedas - sin mostrar loading para evitar parpadeo
   useEffect(() => {
+    // OPTIMIZACIÓN: Evitar ejecución en mount inicial (ya se ejecuta el primer useEffect)
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    
     if (debouncedSearchTerm !== undefined) {
       loadProjects(false); // ✅ Sin loading indicator para evitar parpadeo
     }
